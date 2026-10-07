@@ -21,3 +21,8 @@ yarn-error.log
 error_log
 /public/error_log
 /public/sitemap.xml
+opencode.json
+/.opencode
+AGENTS.md
+/postman
+NOTAS_FLUTTER_API.md

@@ -21,7 +21,12 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect(RouteServiceProvider::HOME);
+                $user = Auth::guard($guard)->user();
+
+                // Aluno não tem painel web (usa o app Android); cai no site público.
+                return $user?->isStudent()
+                    ? redirect('/')
+                    : redirect(RouteServiceProvider::HOME);
             }
         }
 

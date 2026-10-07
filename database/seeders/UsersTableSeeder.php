@@ -1,8 +1,10 @@
 <?php
+
 namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class UsersTableSeeder extends Seeder
@@ -19,15 +21,15 @@ class UsersTableSeeder extends Seeder
         $user = User::firstOrCreate(
             ['email' => env('ADMIN_EMAIL')],
             [
-                'name'               => env('ADMIN_NOME'),
-                'email_verified_at'  => now(),
-                'password'           => bcrypt(env('ADMIN_PASS')),
-                'remember_token'     => \Illuminate\Support\Str::random(10),
-                'status'             => 1,
+                'name' => env('ADMIN_NOME'),
+                'email_verified_at' => now(),
+                'password' => bcrypt(env('ADMIN_PASS')),
+                'remember_token' => Str::random(10),
+                'status' => 1,
             ]
         );
 
-        if (!$user->hasRole('super-admin')) {
+        if (! $user->hasRole('super-admin')) {
             $user->assignRole('super-admin');
         }
 

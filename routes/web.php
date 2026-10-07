@@ -11,6 +11,9 @@ use App\Livewire\Dashboard\Posts\Posts;
 use App\Livewire\Dashboard\Reports\Posts as ReportsPosts;
 use App\Livewire\Dashboard\Settings;
 use App\Livewire\Dashboard\Sitemap\SitemapGenerator;
+use App\Livewire\Dashboard\Students\StudentForm;
+use App\Livewire\Dashboard\Students\StudentIndex;
+use App\Livewire\Dashboard\Students\StudentShow;
 use App\Livewire\Dashboard\Users\Form;
 use App\Livewire\Dashboard\Users\Time;
 use App\Livewire\Dashboard\Users\Users;
@@ -19,13 +22,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
 
-    /** Página Inicial */   
-    Route::get('/', [SiteController::class, 'home'])->name('home'); 
+    /** Página Inicial */
+    Route::get('/', [SiteController::class, 'home'])->name('home');
 
     Route::get('/blog/artigo/{slug}', [SiteController::class, 'artigo'])->name('blog.artigo');
     Route::get('/blog/categoria/{slug}', [SiteController::class, 'categoria'])->name('blog.categoria');
     Route::get('/blog', [SiteController::class, 'artigos'])->name('blog.artigos');
-    
+
     // //*************************************** Páginas *******************************************/
     Route::get('/noticia/{slug}', [SiteController::class, 'noticia'])->name('noticia');
     Route::get('/noticias', [SiteController::class, 'noticias'])->name('noticias');
@@ -35,20 +38,33 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
 
 });
 
-Route::group(['middleware' => ['auth', 'verified'], 'prefix' => 'admin'], function () {
+/*
+ * Painel do SaaS (professores + admin da plataforma).
+ * Papéis garantidos pelo middleware `role`; tenant isolado por Policies/global scope.
+ * Obs.: middleware `verified` removido — e-mail não é verificado no MVP (sem MustVerifyEmail).
+ */
+Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin'], function () {
 
     Route::get('/', Dashboard::class)->name('admin');
+
+    // *********************** Alunos **********************************************/
+    Route::get('alunos', StudentIndex::class)->name('students.index');
+    Route::get('alunos/cadastrar', StudentForm::class)->name('students.create');
+    Route::get('alunos/{student}/editar', StudentForm::class)->name('students.edit');
+    Route::get('alunos/{student}', StudentShow::class)->name('students.show');
+
+    // *********************** Resíduos do starter (remover na Fase 2) *************/
     Route::get('configuracoes', Settings::class)->name('settings');
     Route::get('sitemap-generator', SitemapGenerator::class)->name('sitemap.generator');
 
-    //*********************** Usuários **********************************************/
+    // *********************** Usuários **********************************************/
     Route::get('usuarios/clientes', Users::class)->name('users.index');
     Route::get('usuarios/time', Time::class)->name('users.time');
     Route::get('usuarios/cadastrar', Form::class)->name('users.create');
     Route::get('usuarios/{userId}/editar', Form::class)->name('users.edit');
-    Route::get('usuarios/{user}/visualizar', ViewUser::class)->name('users.view'); 
+    Route::get('usuarios/{user}/visualizar', ViewUser::class)->name('users.view');
 
-    //*********************** Posts *********************************************/
+    // *********************** Posts *********************************************/
     Route::get('posts/{post}/editar', PostForm::class)->name('posts.edit');
     Route::get('posts/cadastrar', PostForm::class)->name('posts.create');
     Route::get('posts/categorias', CatPosts::class)->name('posts.categories.index');
@@ -61,6 +77,6 @@ Route::group(['middleware' => ['auth', 'verified'], 'prefix' => 'admin'], functi
 
 // Authentication routes
 Route::group(['prefix' => 'auth'], function () {
-    Route::get('login', Login::class)->name('login');
-    Route::get('register', Register::class)->name('register');
+    Route::get('login', Login::class)->name('login')->middleware('guest');
+    Route::get('register', Register::class)->name('register')->middleware('guest');
 });

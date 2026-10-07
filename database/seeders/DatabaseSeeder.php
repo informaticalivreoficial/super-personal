@@ -14,9 +14,19 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             ConfigTableSeeder::class,
-            UsersTableSeeder::class, 
+            UsersTableSeeder::class,
             CatPostsTableSeeder::class,
             PostsTableSeeder::class,
+            // SaaS — base de dados do Super Personal
+            AdminSeeder::class,
+            TeacherSeeder::class,
+            SportSeeder::class,
+            ExerciseSeeder::class,
+            StudentSeeder::class,
+            TrainingPlanSeeder::class,
+            TrainingWeekSeeder::class,
+            TrainingSessionSeeder::class,
+            PaymentSeeder::class,
         ]);
     }
 }

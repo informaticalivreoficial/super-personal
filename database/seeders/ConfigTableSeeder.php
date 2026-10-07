@@ -1,8 +1,9 @@
 <?php
+
 namespace Database\Seeders;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ConfigTableSeeder extends Seeder
 {
@@ -30,7 +31,7 @@ class ConfigTableSeeder extends Seeder
             'template' => 'default',
             'phone' => '(11) 1111-1111',
             'cell_phone' => '(11) 11111-1111',
-            'whatsapp' => '(11) 11111-1111'            
-        ]);  
+            'whatsapp' => '(11) 11111-1111',
+        ]);
     }
 }

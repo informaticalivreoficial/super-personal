@@ -2,36 +2,22 @@
 
 namespace App\Livewire\Dashboard;
 
-use App\Models\Ad;
-use App\Models\AdContract;
-use App\Models\Company;
-use App\Models\Invoice;
-use App\Models\Post;
+use App\Services\DashboardService;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
+/**
+ * Painel do SaaS: visão geral do professor (ou do admin, com dados globais).
+ * Substitui o dashboard legado de blog (imports inexistentes removidos).
+ */
 class Dashboard extends Component
 {
-    public $topcompanies = [];
-
-    public function render()
-    {        
-        $noticiasCount = Post::where('type', 'noticia')->count();
-        $noticiasYearCount = Post::where('type', 'noticia')->whereYear('created_at', now()->year)->count();
-
-        $articlesCount = Post::where('type', 'artigo')->count();
-        $articlesYearCount = Post::where('type', 'artigo')->whereYear('created_at', now()->year)->count();
-        
-        
-        
-
-        $title = 'Painel de Controle';
-
+    #[Title('Painel de Controle')]
+    public function render(DashboardService $dashboard)
+    {
+        // Admin vê globais (global scope sem filtro); professor vê só o próprio tenant.
         return view('livewire.dashboard.dashboard', [
-            'title' => $title, 
-            'noticiasCount' => $noticiasCount,
-            'noticiasYearCount' => $noticiasYearCount,
-            'articlesCount' => $articlesCount,
-            'articlesYearCount' => $articlesYearCount
+            'stats' => $dashboard->teacherDashboard(),
         ]);
     }
 }

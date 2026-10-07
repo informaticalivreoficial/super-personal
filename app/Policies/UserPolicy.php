@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class UserPolicy
 {
@@ -12,22 +11,21 @@ class UserPolicy
         return $user->isSuperAdmin() || $user->isAdmin() || $user->isManager();
     }
 
-
     public function view(User $user, User $model): bool
     {
         // SuperAdmin e Admin veem todos
         if ($user->isSuperAdmin() || $user->isAdmin()) {
             return true;
-        }        
+        }
         // Manager vê apenas colaboradores da mesma empresa
         if ($user->isManager()) {
-            return
-                $model->isEmployee();
+            return $model->isEmployee();
         }
         // Employee vê apenas ele mesmo
         if ($user->isEmployee()) {
             return $user->id === $model->id;
         }
+
         return false;
     }
 
@@ -46,9 +44,9 @@ class UserPolicy
         // 🧑‍💼 Manager
         if ($user->isManager()) {
             return
-                (
+
                     $model->isEmployee()
-                )
+
                 || $user->id === $model->id;
         }
 
@@ -74,7 +72,7 @@ class UserPolicy
 
         // Admin deleta qualquer um EXCETO SuperAdmin
         if ($user->isAdmin()) {
-            return !$model->isSuperAdmin();
+            return ! $model->isSuperAdmin();
         }
 
         // Manager deleta apenas employees

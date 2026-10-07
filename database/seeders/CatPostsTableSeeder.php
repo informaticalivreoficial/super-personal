@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\CatPost;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 
 class CatPostsTableSeeder extends Seeder
@@ -21,7 +20,7 @@ class CatPostsTableSeeder extends Seeder
         // Subcategorias
         foreach ($categorias as $cat) {
             CatPost::factory(3)->create([
-                'id_pai' => $cat->id
+                'id_pai' => $cat->id,
             ]);
         }
     }
