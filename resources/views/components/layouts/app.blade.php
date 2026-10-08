@@ -36,7 +36,7 @@
 </head>
 
 <body class="antialiased">
-    <div x-cloak class="min-h-screen">
+    <div x-data x-cloak class="min-h-screen">
         <livewire:navigation.side-navigation />
 
         {{-- Backdrop do menu no mobile --}}

@@ -774,7 +774,6 @@
         </div> {{-- card-body --}}
         </div> {{-- card --}}
     </div>
-    </div>
 
         
     <!-- Modal -->
@@ -819,9 +818,7 @@
         </div>
     </div>
 
-</div>
-
-<script>
+    <script>
 
     document.addEventListener('atualizado', function() {
         Swal.fire({
@@ -852,6 +849,6 @@
         };
     }
 
-    
-    
-</script>
+    </script>
+
+</div>

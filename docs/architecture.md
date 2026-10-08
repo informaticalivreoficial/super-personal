@@ -202,7 +202,9 @@ sports ──1:N── training_sessions (restrict)
     semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
   - `PaymentCrudTest` — isolamento, `paid_at` automático, marcar como pago,
     404 cross-tenant, smoke das 3 rotas.
-  - **Total: 68 testes / 161 assertions** (23 API + 45 painel).
+  - `PanelRoutesSmokeTest` — as 25 rotas `/admin/*` retornam 200 para teacher
+    (cria Config + roles spatie legadas; pegou o 500 de Configurações).
+  - **Total: 69 testes / 186 assertions** (23 API + 46 painel).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 
