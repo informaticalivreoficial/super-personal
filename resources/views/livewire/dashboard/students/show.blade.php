@@ -152,11 +152,19 @@
                                 @endforeach
                             </tbody>
                         </table>
-                    @else
-                        <p class="text-muted p-3 mb-0">Nenhum pagamento registrado.</p>
-                    @endif
+            @else
+                <p class="text-muted p-3 mb-0">Nenhum pagamento registrado.</p>
+            @endif
                 </div>
             </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+            @livewire('dashboard.students.student-notes', ['student' => $student], key('student-notes'))
+        </div>
+
+        <div class="col-12 col-md-6">
+            @livewire('dashboard.students.student-messages', ['student' => $student], key('student-messages'))
         </div>
     </div>
 </div>

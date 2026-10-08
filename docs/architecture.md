@@ -195,6 +195,17 @@ sports ──1:N── training_sessions (restrict)
   - Cuidados: `TrainingPlan::sessions()` é `HasManyThrough` (retorno
     corrigido) e as colunas `status` são qualificadas
     (`training_sessions.status`) porque `training_weeks` também tem `status`.
+- **Observações e mensagens do aluno** — dois cards aninhados no `StudentShow`
+  (`@livewire('dashboard.students.student-*', ['student' => $student], ...)`):
+  - `StudentNotes` — CRUD de `student_notes` (listagem paginada `notas`,
+    criação/exclusão) com `StoreStudentNoteRequest`, `StudentNoteService`
+    (ownership pelo aluno) e `StudentNotePolicy` (before() admin);
+    visibilidade `private`/`shared` (`NoteVisibility`).
+  - `StudentMessages` — envia `TeacherMessage` (notificação database) para o
+    `user` do aluno com `SendMessageRequest` (`title`/`message`); payload da
+    `data`: title, message, student_id, teacher_id, sent_by. Lista as últimas
+    10 enviadas; aluno sem usuário → card avisa e bloqueia envio. A leitura
+    pelo aluno é a API `GET /api/v1/student/notifications` (app Android).
 
 ### Visual — painel 100% Tailwind (sem AdminLTE)
 
@@ -264,7 +275,11 @@ sports ──1:N── training_sessions (restrict)
     50%, estados vazios), acesso (login/papel/404 cross-tenant), registro de
     avaliação (ownership, data, ranges), AuthorizationException no componente
     cross-tenant, admin preservando `teacher_id` do aluno.
-  - **Total: 113 testes / 306 assertions** (23 API + 90 painel).
+  - `StudentNotesTest` (7) — CRUD de observações na ficha do aluno
+    (criação/validação/exclusão, 404 cross-component, cross-tenant, admin).
+  - `StudentMessagesTest` (5) — envio de mensagem (payload da notificação),
+    validação, card no `StudentShow`, aluno sem usuário, cross-tenant.
+  - **Total: 125 testes / 345 assertions** (23 API + 102 painel).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -290,8 +305,9 @@ sports ──1:N── training_sessions (restrict)
 
 ## Fora do escopo atual
 
-- Próximo incremento da Fase 2: gestão de notificações/mensagens aos alunos
-  no painel ou CRUD de notas do aluno (`student_notes`).
+- Próximo incremento da Fase 2: gatilhos de notificação automáticos
+  (`PaymentDueSoon`/`PaymentOverdue`/`TrainingToday` via comando agendado)
+  ou product pass para remover as páginas legadas de blog/usuarios/settings.
 - Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
   (foram des-spatiadas, mas podem ser removidas num futuro product pass).
 - Swagger (docs manuais), refresh token, gateway de pagamento,
