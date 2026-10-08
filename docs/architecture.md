@@ -126,10 +126,28 @@ sports ──1:N── training_sessions (restrict)
     e o policy derruba a render com 403; usar `mount($student = null)` + `instanceof`.
   - `UpdateStudentRequest` aceita `student_id` no payload (fallback do model binding
     da rota, que não existe em contexto Livewire).
+- **Planos de treino** — `app/Livewire/Dashboard/Plans/`:
+  - `PlanIndex` (busca/exclusão), `PlanForm` (create com select de aluno; edit com
+    aluno fixo), `PlanShow` (detalhe + **CRUD de semanas** e **CRUD de sessões**).
+  - Reaproveita `StoreTrainingPlanRequest`/`UpdateTrainingPlanRequest`,
+    `StoreWeekRequest` (fallback `plan_id`/`week_id` no payload) e
+    `StoreTrainingSessionRequest`/`UpdateTrainingSessionRequest`.
+  - `TrainingPlanService` ganhou `updateWeek`/`deleteWeek`; sessões via
+    `TrainingSessionService` (sem `items` no painel — só na API por ora).
+  - Erros de Form Request com dados em propriedade-array são **prefixados**
+    (`week.week_number`) pelo trait — senão o Livewire filtra e a view não exibe.
+  - Aluno de outro tenant no form → `Student::find` com escopo → erro de validação
+    (não cria plano no tenant errado).
+- **Pagamentos** — `app/Livewire/Dashboard/Payments/`:
+  - `PaymentIndex` (busca, filtro por status, "marcar como pago", exclusão),
+    `PaymentForm` (create/edit; aluno fixo na edição).
+  - Reaproveita `StorePaymentRequest` (store e update, igual à API);
+    `PaymentService` preenche/limpa `paid_at` conforme status.
 - `AppServiceProvider` compartilha `config` (`Config::first() ?? new Config()`)
   em propriedade de instância (**não static** — static contaminava os testes).
-- Navegação: `side-navigation` só com itens do domínio (Painel, Alunos; Settings
-  só para admin); `top-navigation` sem notificações fake nem `users.edit`.
+- Navegação: `side-navigation` só com itens do domínio (Painel, Alunos, Planos,
+  Pagamentos; Settings só para admin); `top-navigation` sem notificações fake
+  nem `users.edit`.
 
 ## Testes
 
@@ -145,13 +163,19 @@ sports ──1:N── training_sessions (restrict)
   - `StudentCrudTest` — listagem isolada por tenant, criação/edição com Form Requests,
     email duplicado, 404 cross-tenant na rota, AuthorizationException no Livewire,
     exclusão lógica, admin sem CRUD de aluno, smoke HTTP das 4 rotas.
+  - `TrainingPlanCrudTest` — isolamento de planos, criação com aluno do tenant,
+    semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
+  - `PaymentCrudTest` — isolamento, `paid_at` automático, marcar como pago,
+    404 cross-tenant, smoke das 3 rotas.
+  - **Total: 68 testes / 161 assertions** (23 API + 45 painel).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 
 ## Fora do escopo atual
 
-- Próximos incrementos da Fase 2: CRUD de planos de treino e pagamentos;
-  limpeza dos resíduos do starter (rotas/views legadas de blog).
+- Próximos incrementos da Fase 2: edição de `items` de sessão no painel
+  (composição avançada), gestão de exercícios/modalidades, resíduos do starter
+  (rotas/views legadas de blog), reconciliar roles spatie.
 - Swagger (docs manuais), refresh token, gateway de pagamento,
   integrações Strava/Garmin.
 - App Android (Fase 3).

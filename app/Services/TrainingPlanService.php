@@ -43,4 +43,20 @@ class TrainingPlanService
 
         return $week;
     }
+
+    public function updateWeek(TrainingWeek $week, array $data): TrainingWeek
+    {
+        $week->fill($data);
+        $week->save();
+
+        return $week;
+    }
+
+    /**
+     * Sessões caem em cascata (FK cascadeOnDelete em training_sessions.training_week_id).
+     */
+    public function deleteWeek(TrainingWeek $week): void
+    {
+        $week->delete();
+    }
 }

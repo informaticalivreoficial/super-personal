@@ -56,6 +56,22 @@
                     </ul>
                 </li>
 
+                <li class="nav-item">
+                    <a href="{{ route('plans.index') }}" wire:navigate
+                        class="nav-link {{ Route::is('plans.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-clipboard-list"></i>
+                        <p> Planos de Treino</p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="{{ route('payments.index') }}" wire:navigate
+                        class="nav-link {{ Route::is('payments.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-dollar-sign"></i>
+                        <p> Pagamentos</p>
+                    </a>
+                </li>
+
                 {{-- Resíduos do starter (remover quando sair da Fase 2) --}}
                 @if (auth()->user()->isPlatformAdmin())
                     <li class="nav-item {{ Route::is(['settings', 'sitemap.generator']) ? 'menu-open' : '' }}">

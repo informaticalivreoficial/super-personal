@@ -4,6 +4,11 @@ use App\Http\Controllers\Web\SiteController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Dashboard\Dashboard;
+use App\Livewire\Dashboard\Payments\PaymentForm;
+use App\Livewire\Dashboard\Payments\PaymentIndex;
+use App\Livewire\Dashboard\Plans\PlanForm;
+use App\Livewire\Dashboard\Plans\PlanIndex;
+use App\Livewire\Dashboard\Plans\PlanShow;
 use App\Livewire\Dashboard\Posts\CatPosts;
 use App\Livewire\Dashboard\Posts\Lixeira;
 use App\Livewire\Dashboard\Posts\PostForm;
@@ -52,6 +57,17 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
     Route::get('alunos/cadastrar', StudentForm::class)->name('students.create');
     Route::get('alunos/{student}/editar', StudentForm::class)->name('students.edit');
     Route::get('alunos/{student}', StudentShow::class)->name('students.show');
+
+    // *********************** Planos de treino *************************************/
+    Route::get('planos', PlanIndex::class)->name('plans.index');
+    Route::get('planos/cadastrar', PlanForm::class)->name('plans.create');
+    Route::get('planos/{plan}/editar', PlanForm::class)->name('plans.edit');
+    Route::get('planos/{plan}', PlanShow::class)->name('plans.show');
+
+    // *********************** Pagamentos *******************************************/
+    Route::get('pagamentos', PaymentIndex::class)->name('payments.index');
+    Route::get('pagamentos/cadastrar', PaymentForm::class)->name('payments.create');
+    Route::get('pagamentos/{payment}/editar', PaymentForm::class)->name('payments.edit');
 
     // *********************** Resíduos do starter (remover na Fase 2) *************/
     Route::get('configuracoes', Settings::class)->name('settings');

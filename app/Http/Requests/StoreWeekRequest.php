@@ -13,13 +13,16 @@ class StoreWeekRequest extends FormRequest
      */
     public function rules(): array
     {
-        $plan = $this->route('plan');
+        // Rota (API) usa model binding; componente Livewire envia plan_id/week_id no payload.
+        $planId = $this->route('plan')?->id ?? $this->input('plan_id');
+        $weekId = $this->route('week')?->id ?? $this->input('week_id');
 
         return [
             'week_number' => [
                 'required', 'integer', 'min:1', 'max:520',
                 Rule::unique('training_weeks', 'week_number')
-                    ->where('training_plan_id', $plan?->id),
+                    ->where('training_plan_id', $planId)
+                    ->ignore($weekId),
             ],
             'name' => ['nullable', 'string', 'max:255'],
             'start_date' => ['required', 'date'],

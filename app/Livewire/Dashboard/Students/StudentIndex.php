@@ -32,9 +32,10 @@ class StudentIndex extends Component
 
     public function confirmDelete($studentId): void
     {
-        Gate::authorize('delete', Student::find($studentId));
+        $student = Student::find($studentId) ?? abort(404);
+        Gate::authorize('delete', $student);
 
-        $this->deleteId = $studentId;
+        $this->deleteId = $student->id;
     }
 
     public function delete(StudentService $service): void
