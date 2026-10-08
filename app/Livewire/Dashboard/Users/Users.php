@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard\Users;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -47,11 +48,14 @@ class Users extends Component
     #[Title('Clientes')]
     public function render()
     {
+        // "Clientes" do SaaS = assinantes = professores (coluna users.role).
         $users = User::query()
-            ->role('employee')
+            ->where('role', UserRole::TEACHER)
             ->when($this->search, function ($query) {
-                $query->orWhere('name', 'LIKE', "%{$this->search}%");
-                $query->orWhere('email', "%{$this->search}%");
+                $query->where(function ($q) {
+                    $q->where('name', 'LIKE', "%{$this->search}%")
+                        ->orWhere('email', 'LIKE', "%{$this->search}%");
+                });
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(35);
@@ -95,6 +99,7 @@ class Users extends Component
     public function toggleStatus($id)
     {
         $user = User::findOrFail($id);
+        $this->authorize('update', $user);
         $user->status = ! $user->status;
         $user->save();
     }

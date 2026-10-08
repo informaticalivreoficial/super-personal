@@ -7,7 +7,8 @@ use Illuminate\Console\Command;
 
 class ClearTrashCron extends Command
 {
-    protected $signature   = 'posts:purge-deleted';
+    protected $signature = 'posts:purge-deleted';
+
     protected $description = 'Force delete em posts excluídos há mais de 8 meses';
 
     public function handle(): void

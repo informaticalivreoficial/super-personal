@@ -3,8 +3,9 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -26,9 +27,9 @@ class SupportRequestMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '🆘 Nova solicitação de suporte',  
+            subject: '🆘 Nova solicitação de suporte',
             from: new Address(env('MAIL_FROM_ADDRESS'), config('app.name')), // Remetente
-            to: [new Address(config('app.desenvolvedor_email'), config('app.desenvolvedor_nome'))], // Destinatário                
+            to: [new Address(config('app.desenvolvedor_email'), config('app.desenvolvedor_nome'))], // Destinatário
             replyTo: [
                 new Address(env('MAIL_FROM_ADDRESS'), config('app.name')),
             ],
@@ -42,11 +43,11 @@ class SupportRequestMail extends Mailable
     {
         return new Content(
             markdown: 'emails.support',
-            with:[
+            with: [
                 'Cliente' => config('app.name'),
                 'nome' => auth()->user()->name,
                 'email' => env('MAIL_FROM_ADDRESS'),
-                'mensagem' => $this->messageText
+                'mensagem' => $this->messageText,
             ]
         );
     }
@@ -54,7 +55,7 @@ class SupportRequestMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {

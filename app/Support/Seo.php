@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: gustavoweb
@@ -16,7 +17,7 @@ class Seo
 
     public function __construct()
     {
-        $this->optimizer = new Optimizer();
+        $this->optimizer = new Optimizer;
         $this->optimizer->openGraph(
             'Ubatuba Times',
             'pt_BR',

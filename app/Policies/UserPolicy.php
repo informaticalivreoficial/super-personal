@@ -4,82 +4,44 @@ namespace App\Policies;
 
 use App\Models\User;
 
+/**
+ * Usuários (páginas legadas de gestão de usuários do starter).
+ * Reconciliado com `users.role` (enum UserRole) — o spatie/laravel-permission
+ * foi removido; não existem mais "manager"/"employee"/"super-admin".
+ */
 class UserPolicy
 {
-    public function create(User $user)
+    public function before(User $user, string $ability, mixed ...$arguments): ?bool
     {
-        return $user->isSuperAdmin() || $user->isAdmin() || $user->isManager();
+        if (! $user->isPlatformAdmin()) {
+            return null;
+        }
+
+        // Ninguém exclui a si mesmo (inclusive o admin).
+        if ($ability === 'delete' && isset($arguments[0]) && $arguments[0] instanceof User) {
+            return $user->id !== $arguments[0]->id;
+        }
+
+        return true;
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->isPlatformAdmin();
     }
 
     public function view(User $user, User $model): bool
     {
-        // SuperAdmin e Admin veem todos
-        if ($user->isSuperAdmin() || $user->isAdmin()) {
-            return true;
-        }
-        // Manager vê apenas colaboradores da mesma empresa
-        if ($user->isManager()) {
-            return $model->isEmployee();
-        }
-        // Employee vê apenas ele mesmo
-        if ($user->isEmployee()) {
-            return $user->id === $model->id;
-        }
-
-        return false;
+        return $user->isPlatformAdmin() || $user->id === $model->id;
     }
 
     public function update(User $user, User $model): bool
     {
-        // 🚀 Super Admin pode tudo
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        // 🛡 Admin pode todos, menos Super Admin
-        if ($user->isAdmin()) {
-            return ! $model->isSuperAdmin();
-        }
-
-        // 🧑‍💼 Manager
-        if ($user->isManager()) {
-            return
-
-                    $model->isEmployee()
-
-                || $user->id === $model->id;
-        }
-
-        // 👷 Employee → somente o próprio perfil
-        if ($user->isEmployee()) {
-            return $user->id === $model->id;
-        }
-
-        return false;
+        return $user->isPlatformAdmin() || $user->id === $model->id;
     }
 
     public function delete(User $user, User $model): bool
     {
-        // Ninguém pode deletar a si mesmo
-        if ($user->id === $model->id) {
-            return false;
-        }
-
-        // SuperAdmin pode deletar qualquer um
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        // Admin deleta qualquer um EXCETO SuperAdmin
-        if ($user->isAdmin()) {
-            return ! $model->isSuperAdmin();
-        }
-
-        // Manager deleta apenas employees
-        if ($user->isManager()) {
-            return $model->isEmployee();
-        }
-
-        return false;
+        return $user->isPlatformAdmin() && $user->id !== $model->id;
     }
 }

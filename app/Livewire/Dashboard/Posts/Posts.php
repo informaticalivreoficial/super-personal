@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard\Posts;
 
+use App\Enums\UserRole;
 use App\Models\Post;
 use App\Models\User;
 use Livewire\Attributes\On;
@@ -92,9 +93,8 @@ class Posts extends Component
     public function mount()
     {
         $this->autores = User::query()
-            ->when(! auth()->user()->isSuperAdmin(), function ($q) {
-                $q->whereDoesntHave('roles', fn ($q) => $q->where('name', 'super-admin')
-                );
+            ->when(! auth()->user()->isPlatformAdmin(), function ($q) {
+                $q->where('role', '!=', UserRole::ADMIN->value);
             })
             ->orderBy('name')
             ->get();

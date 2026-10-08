@@ -10,11 +10,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -78,26 +77,6 @@ class User extends Authenticatable
         });
     }
 
-    public function isSuperAdmin(): bool
-    {
-        return $this->hasRole('super-admin');
-    }
-
-    public function isAdmin(): bool
-    {
-        return $this->hasRole('admin');
-    }
-
-    public function isManager(): bool
-    {
-        return $this->hasRole('manager');
-    }
-
-    public function isEmployee(): bool
-    {
-        return $this->hasRole('employee');
-    }
-
     /**
      * Relacionamentos
      */
@@ -118,7 +97,9 @@ class User extends Authenticatable
 
     /**
      * Identifica o papel do usuário pela coluna `role` (fonte de verdade do SaaS).
-     * Obs.: isAdmin()/isEmployee() etc. do legado usam spatie e não devem ser alterados aqui.
+     * Os helpers legados do starter (isSuperAdmin/isAdmin/isManager/isEmployee),
+     * que dependiam do spatie/laravel-permission, foram removidos: tudo migrou
+     * para `users.role` (enum UserRole).
      */
     public function isPlatformAdmin(): bool
     {

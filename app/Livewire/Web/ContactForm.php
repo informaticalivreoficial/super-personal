@@ -10,9 +10,13 @@ use Livewire\Component;
 class ContactForm extends Component
 {
     public string $name = '';
+
     public string $email = '';
+
     public string $message = '';
+
     public string $whatsapp = '';
+
     public string $cidade = '';
 
     public bool $enviado = false;
@@ -24,7 +28,7 @@ class ContactForm extends Component
 
     public function submit()
     {
-        if (!empty($this->cidade)) {
+        if (! empty($this->cidade)) {
             abort(403, 'Spam detectado');
         }
 
@@ -32,7 +36,7 @@ class ContactForm extends Component
             'name' => 'required|min:3',
             'email' => 'required|email',
             'message' => 'required|min:10',
-        ]);        
+        ]);
 
         $data = [
             'sitename' => config('app.name'),
@@ -41,13 +45,13 @@ class ContactForm extends Component
             'reply_email' => $validated['email'],
             'reply_whatsapp' => $this->whatsapp,
             'whatsapp' => $this->whatsapp,
-            'message' => $validated['message'],       
+            'message' => $validated['message'],
         ];
 
         Mail::send(new SendOrcamento($data));
         Mail::send(new OrcamentoRetorno($data));
         $this->reset(['name', 'email', 'whatsapp', 'message']);
         $this->enviado = true;
-        session()->flash('success', 'Mensagem enviada com sucesso!');        
+        session()->flash('success', 'Mensagem enviada com sucesso!');
     }
 }

@@ -66,10 +66,10 @@ class CatPost extends Model
 
     /**
      * Accerssors and Mutators
-     */ 
+     */
     public function generateSlug(): void
     {
-        if (!$this->title) {
+        if (! $this->title) {
             return;
         }
 
@@ -84,7 +84,7 @@ class CatPost extends Model
                 })
                 ->exists()
         ) {
-            $slug = $baseSlug . '-' . str_pad($count, 2, '0', STR_PAD_LEFT);
+            $slug = $baseSlug.'-'.str_pad($count, 2, '0', STR_PAD_LEFT);
             $count++;
         }
 

@@ -2,15 +2,14 @@
 
 namespace App\Livewire\Dashboard\Users;
 
-use App\Http\Requests\Admin\UserRequest;
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Livewire\Attributes\Title;
-use Illuminate\Support\Str;
-use Livewire\Component;
-use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Form extends Component
 {
@@ -18,21 +17,18 @@ class Form extends Component
 
     public User $user;
 
-    public $userId;  
-      
+    public $userId;
 
     public $foto; // Propriedade para armazenar a foto temporariamente
+
     public $fotoUrl; // Propriedade para armazenar o caminho da foto após o upload
 
     public $roles;
-    public array $roleLabels = [
-        'super-admin' => 'Super Administrador',
-        'admin'       => 'Administrador',
-        'manager'     => 'Gerente',
-        'employee'    => 'Colaborador',
-    ];
+
+    public array $roleLabels = [];
+
     public $roleSelected = '';
-    
+
     protected function rulesCreate()
     {
         $rules = [
@@ -44,13 +40,11 @@ class Form extends Component
             'cell_phone' => 'required',
             'information' => 'nullable|string|max:2000',
             'birthday' => 'required|date_format:d/m/Y|before:today',
-            //'foto' => 'nullable|image|max:2048',
+            // 'foto' => 'nullable|image|max:2048',
 
-            'roleSelected' => 'required|in:employee,manager,admin,super-admin',
+            'roleSelected' => 'required|in:teacher,admin',
 
-            'code' => $this->roleSelected !== 'employee'
-                ? 'required|min:6|confirmed'
-                : 'nullable',
+            'code' => 'required|min:6|confirmed',
         ];
 
         return $rules;
@@ -62,12 +56,12 @@ class Form extends Component
             'name' => 'required|min:3|max:191',
             'gender' => 'required|in:masculino,feminino',
             'civil_status' => 'required|in:casado,separado,solteiro,divorciado,viuvo',
-            'email' => 'required|email|unique:users,email,' . $this->userId,
-            'cpf' => 'required|cpf|unique:users,cpf,' . $this->userId,
+            'email' => 'required|email|unique:users,email,'.$this->userId,
+            'cpf' => 'required|cpf|unique:users,cpf,'.$this->userId,
             'cell_phone' => 'required',
             'birthday' => 'required|date_format:d/m/Y',
             'information' => 'nullable|string|max:2000',
-            //'foto' => 'nullable|image|max:2048',
+            // 'foto' => 'nullable|image|max:2048',
 
             // 'code' => $this->roleSelected !== 'employee'
             //     ? 'required|min:6|confirmed'
@@ -75,46 +69,89 @@ class Form extends Component
 
             // 'code_confirmation' => 'same:code',
         ];
-    }    
-    
-    public $gender; 
+    }
 
-    //Informations about
-    public $name, $cargo, $birthday, $naturalness, $civil_status, $avatar, $information;    
-    
-    //Documents
-    public $cpf, $rg, $rg_expedition;
+    public $gender;
 
-    //Address
-    public $zipcode = '', $street, $neighborhood, $city, $state, $complement, $number;
+    // Informations about
+    public $name;
 
-    //Contact
-    public $phone, $cell_phone, $whatsapp, $email, $additional_email, $telegram;
+    public $cargo;
 
-    //Social
-    public $facebook, $instagram, $linkedin;
+    public $birthday;
+
+    public $naturalness;
+
+    public $civil_status;
+
+    public $avatar;
+
+    public $information;
+
+    // Documents
+    public $cpf;
+
+    public $rg;
+
+    public $rg_expedition;
+
+    // Address
+    public $zipcode = '';
+
+    public $street;
+
+    public $neighborhood;
+
+    public $city;
+
+    public $state;
+
+    public $complement;
+
+    public $number;
+
+    // Contact
+    public $phone;
+
+    public $cell_phone;
+
+    public $whatsapp;
+
+    public $email;
+
+    public $additional_email;
+
+    public $telegram;
+
+    // Social
+    public $facebook;
+
+    public $instagram;
+
+    public $linkedin;
 
     public $code;
+
     public $code_confirmation;
 
     public $errorMessage;
 
-    //protected $listeners = ['atualizar-data' => 'atualizarData'];
-    
-    //$this->userId = null ? 'Novo Cliente' : 'Editar Cliente'
+    // protected $listeners = ['atualizar-data' => 'atualizarData'];
+
+    // $this->userId = null ? 'Novo Cliente' : 'Editar Cliente'
 
     public function mount($userId = null)
     {
+        $this->roleLabels = UserRole::labels();
+
         if ($userId) {
             $user = User::findOrFail($userId);
             $this->authorize('update', $user);
             $this->userId = $user->id;
             $this->fill($user->toArray());
-            $this->roleSelected = $user->roles->pluck('name')->first() ?? '';
+            $this->roleSelected = $user->role?->value ?? '';
         }
     }
-
-    
 
     public function save()
     {
@@ -124,17 +161,15 @@ class Form extends Component
     public function create(): void
     {
         try {
+            $this->authorize('create', User::class);
+
             $validated = $this->validate($this->rulesCreate());
 
             if ($this->foto) {
                 $validated['avatar'] = $this->foto->store('user', 'public');
             }
 
-            $validated['password'] = $this->roleSelected !== 'employee'
-                ? Hash::make($this->code)
-                : Hash::make(Str::random(12));
-
-            
+            $validated['password'] = Hash::make($this->code);
 
             $extras = [
                 'cargo', 'naturalness', 'rg', 'rg_expedition',
@@ -149,28 +184,30 @@ class Form extends Component
             }
 
             $user = User::create($validated);
-            $user->syncRoles([$this->roleSelected]);
+            // Papel pela coluna users.role (fonte de verdade — spatie removido).
+            $user->role = UserRole::from($this->roleSelected);
+            $user->save();
 
             $this->reset(['code', 'code_confirmation', 'foto']);
             $this->dispatch('user-cadastrado');
 
             redirect()->route('users.edit', $user->id);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             $this->dispatch('toast', type: 'error', message: $e->validator->errors()->first());
             throw $e;
         }
     }
 
     public function update()
-    {    
+    {
         try {
-            
+
             $validated = $this->validate($this->rulesUpdate());
-        
+
             $user = User::findOrFail($this->userId);
 
-            //$this->authorize('update', $user);
+            $this->authorize('update', $user);
 
             if ($this->foto) {
                 if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
@@ -178,59 +215,64 @@ class Form extends Component
                 }
 
                 $validated['avatar'] = $this->foto->store('user', 'public');
-            }            
+            }
 
             $data = array_merge($validated, [
-                'cargo'            => $this->cargo,
-                'naturalness'      => $this->naturalness,
-                'rg'               => $this->rg,
-                'rg_expedition'    => $this->rg_expedition,
-                'phone'            => $this->phone,
-                'whatsapp'         => $this->whatsapp,
+                'cargo' => $this->cargo,
+                'naturalness' => $this->naturalness,
+                'rg' => $this->rg,
+                'rg_expedition' => $this->rg_expedition,
+                'phone' => $this->phone,
+                'whatsapp' => $this->whatsapp,
                 'additional_email' => $this->additional_email,
-                'telegram'         => $this->telegram,
-                'number'           => $this->number,
-                'zipcode'          => $this->zipcode,
-                'street'           => $this->street,
-                'neighborhood'     => $this->neighborhood,
-                'city'             => $this->city,
-                'state'            => $this->state,
-                'complement'       => $this->complement,
-                'facebook'         => $this->facebook,
-                'instagram'        => $this->instagram,
-                'linkedin'         => $this->linkedin,
-                'information'      => $this->information,
+                'telegram' => $this->telegram,
+                'number' => $this->number,
+                'zipcode' => $this->zipcode,
+                'street' => $this->street,
+                'neighborhood' => $this->neighborhood,
+                'city' => $this->city,
+                'state' => $this->state,
+                'complement' => $this->complement,
+                'facebook' => $this->facebook,
+                'instagram' => $this->instagram,
+                'linkedin' => $this->linkedin,
+                'information' => $this->information,
             ]);
-            
+
             $user->update($data);
-            $user->syncRoles([$this->roleSelected]);
+
+            // Papel pela coluna users.role (fonte de verdade — spatie removido).
+            if ($this->roleSelected && in_array($this->roleSelected, ['teacher', 'admin'], true)) {
+                $user->role = UserRole::from($this->roleSelected);
+                $user->save();
+            }
 
             $this->reset(['code', 'code_confirmation', 'foto']);
             $this->dispatch('user-atualizado');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            
-            $this->dispatch('toast', 
-                type: 'error', 
+        } catch (ValidationException $e) {
+
+            $this->dispatch('toast',
+                type: 'error',
                 message: $e->validator->errors()->first()
             );
             throw $e;
-        }    
-    }    
+        }
+    }
 
     public function updatedZipcode(string $value)
-    {        
+    {
         $this->zipcode = preg_replace('/[^0-9]/', '', $value);
 
-        if(strlen($this->zipcode) === 8){
-            $response = Http::get("https://viacep.com.br/ws/{$this->zipcode}/json/")->json();            
-            if(!isset($response['erro'])){                
+        if (strlen($this->zipcode) === 8) {
+            $response = Http::get("https://viacep.com.br/ws/{$this->zipcode}/json/")->json();
+            if (! isset($response['erro'])) {
                 $this->street = $response['logradouro'] ?? '';
                 $this->neighborhood = $response['bairro'] ?? '';
                 $this->state = $response['uf'] ?? '';
                 $this->city = $response['localidade'] ?? '';
-                $this->complement = $response['complemento'] ?? '';      
-            }else{                
-                $this->addError('zipcode', 'CEP não encontrado.'); 
+                $this->complement = $response['complemento'] ?? '';
+            } else {
+                $this->addError('zipcode', 'CEP não encontrado.');
             }
         }
     }
@@ -244,17 +286,8 @@ class Form extends Component
         $this->fotoUrl = $this->foto->temporaryUrl();
     }
 
-    public function updatedRoleSelected($value): void
-    {
-        if ($value === 'employee') {
-            $this->code = null;
-            $this->code_confirmation = null;
-        }
-    }
-
     public function render()
     {
         return view('livewire.dashboard.users.form');
     }
-
 }

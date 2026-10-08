@@ -10,9 +10,13 @@ use Livewire\Component;
 class CatPostForm extends Component
 {
     public ?int $id = null;
+
     public ?string $title = null;
+
     public int $status = 1;
+
     public ?string $type = null;
+
     public ?int $parentId = null;
 
     #[On('loadCategory')]
@@ -22,19 +26,19 @@ class CatPostForm extends Component
         $data = $payload['payload'] ?? $payload;
 
         // Edição
-        if (!empty($data['editId'])) {
+        if (! empty($data['editId'])) {
             $category = CatPost::find($data['editId']);
             if ($category) {
-                $this->id       = $category->id;
-                $this->title    = $category->title;
-                $this->status   = $category->status;
-                $this->type     = $category->type;
+                $this->id = $category->id;
+                $this->title = $category->title;
+                $this->status = $category->status;
+                $this->type = $category->type;
                 $this->parentId = $category->id_pai;
             }
         }
 
         // Nova subcategoria
-        if (!empty($data['categoryId'])) {
+        if (! empty($data['categoryId'])) {
             $this->parentId = $data['categoryId'];
             $parent = CatPost::find($this->parentId);
             if ($parent) {
@@ -44,7 +48,7 @@ class CatPostForm extends Component
     }
 
     public function save(): void
-    {        
+    {
         $this->validate([
             'title' => 'required|string|max:255',
             'type' => Rule::requiredIf($this->parentId === null),

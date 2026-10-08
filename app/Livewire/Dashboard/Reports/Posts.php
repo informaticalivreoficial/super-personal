@@ -9,14 +9,19 @@ use Livewire\Component;
 class Posts extends Component
 {
     public $period = '30'; // dias
+
     public $type = 'all';
 
     public array $labels = [];
-    public array $data   = [];
+
+    public array $data = [];
 
     public $totalPosts = 0;
+
     public $totalArtigos = 0;
+
     public $totalNoticias = 0;
+
     public $totalViews = 0;
 
     public function mount()
@@ -42,7 +47,7 @@ class Posts extends Component
     public function loadData()
     {
         $startDate = now()->subDays((int) $this->period)->startOfDay();
-        $endDate   = now()->endOfDay();
+        $endDate = now()->endOfDay();
 
         $baseQuery = Post::whereBetween('created_at', [$startDate, $endDate]);
 
@@ -52,10 +57,10 @@ class Posts extends Component
             $query->where('type', $this->type);
         }
 
-        $this->totalPosts    = (clone $baseQuery)->count();
-        $this->totalArtigos  = (clone $baseQuery)->where('type', 'artigo')->count();
+        $this->totalPosts = (clone $baseQuery)->count();
+        $this->totalArtigos = (clone $baseQuery)->where('type', 'artigo')->count();
         $this->totalNoticias = (clone $baseQuery)->where('type', 'noticia')->count();
-        $this->totalViews    = (clone $baseQuery)->sum('views');
+        $this->totalViews = (clone $baseQuery)->sum('views');
 
         $posts = $query
             ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
@@ -65,7 +70,7 @@ class Posts extends Component
 
         // ✅ converte para array simples
         $this->labels = $posts->pluck('date')
-            ->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))
+            ->map(fn ($d) => Carbon::parse($d)->format('d/m'))
             ->values()
             ->all();
 
@@ -75,14 +80,14 @@ class Posts extends Component
 
         $this->dispatch('updateChart', [
             'labels' => $this->labels,
-            'data'   => $this->data,
+            'data' => $this->data,
         ]);
     }
 
     public function render()
     {
-        return view('livewire.dashboard.reports.posts',[
-            'title' => 'Relatório de Artigos e Notícias'
+        return view('livewire.dashboard.reports.posts', [
+            'title' => 'Relatório de Artigos e Notícias',
         ]);
     }
 }

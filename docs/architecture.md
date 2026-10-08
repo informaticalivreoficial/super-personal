@@ -7,7 +7,8 @@
 
 - PHP 8.3 / Laravel 10 / Laravel Sail
 - MariaDB (host `mariadb`, db `superpersonal`)
-- Sanctum (tokens pessoais de longa duração), spatie/laravel-permission legado
+- Sanctum (tokens pessoais de longa duração); papéis em `users.role`
+  (`spatie/laravel-permission` **removido** — ver "Perfis")
 - Comandos: `vendor/bin/sail artisan ...`, testes: `vendor/bin/phpunit`
 
 ## Multi-tenancy (3 camadas)
@@ -40,10 +41,13 @@ Responsabilidade de `teacher_id`: **sempre definida pelos Services**
 
 Enum `App\Enums\UserRole`: `admin`, `teacher`, `student`.
 
-- **Fonte da verdade da Fase 1** = coluna `role` + middleware `role`
+- **Fonte da verdade** = coluna `role` + middleware `role`
   (`App\Http\Middleware\EnsureUserRole`, alias registrado no Kernel).
-- spatie/laravel-permission permanece **intocado** (roles legadas do starter);
-  reconciliar/limpar na Fase 2 do painel.
+- **`spatie/laravel-permission` foi removido** (2026-10-08): pacote, provider em
+  `config/app.php`, `config/permission.php`, migration `create_permission_tables`
+  e os helpers legados `User::isSuperAdmin/isAdmin/isManager/isEmployee` +
+  trait `HasRoles`. Todas as páginas legadas (usuários/time/posts/settings)
+  migraram para `users.role` + `UserPolicy` com `before()` de admin.
 - Guarda de rota: `auth:sanctum` + `role:teacher` / `role:student` em
   `routes/api.php`.
 
@@ -133,7 +137,7 @@ sports ──1:N── training_sessions (restrict)
     `StoreWeekRequest` (fallback `plan_id`/`week_id` no payload) e
     `StoreTrainingSessionRequest`/`UpdateTrainingSessionRequest`.
   - `TrainingPlanService` ganhou `updateWeek`/`deleteWeek`; sessões via
-    `TrainingSessionService` (sem `items` no painel — só na API por ora).
+    `TrainingSessionService` (mesmos métodos da API).
   - Erros de Form Request com dados em propriedade-array são **prefixados**
     (`week.week_number`) pelo trait — senão o Livewire filtra e a view não exibe.
   - Aluno de outro tenant no form → `Student::find` com escopo → erro de validação
@@ -145,9 +149,36 @@ sports ──1:N── training_sessions (restrict)
     `PaymentService` preenche/limpa `paid_at` conforme status.
 - `AppServiceProvider` compartilha `config` (`Config::first() ?? new Config()`)
   em propriedade de instância (**não static** — static contaminava os testes).
-- Navegação: `side-navigation` só com itens do domínio (Painel, Alunos, Planos,
-  Pagamentos; Settings só para admin); `top-navigation` sem notificações fake
-  nem `users.edit`.
+- Navegação: `side-navigation` com itens do domínio (Painel, Alunos, Planos,
+  Pagamentos, **Biblioteca**; Settings só para admin); `top-navigation` sem
+  notificações fake nem `users.edit`.
+- **Itens de sessão (composição do treino)** — `PlanShow` + componente aninhado
+  `app/Livewire/Dashboard/Plans/SessionItems.php` (linha expandida na tabela de
+  sessões, `expandedItemsId`/`toggleItems`):
+  - CRUD completo (create/edit/delete/move) reaproveitando a API de serviços
+    (`TrainingSessionService::storeItem/updateItem/deleteItem/moveItem`) e a
+    Form Request única `StoreSessionItemRequest` (padrão `StorePaymentRequest`).
+  - Ordenação: `sort_order` normalizado 1..N via `renumberItems` (método `move`).
+  - Bug corrigido: default de `training_session_items.type` era `'main'`
+    (inexistente no enum) — migration `2026_10_08_100001` troca o default para
+    `'work'` (SQL bruto com guard de driver, sem doctrine/dbal); o app grava
+    `type` sempre explicitamente (`SessionItemType::WORK`).
+  - Escopo de `exercise_id` em todas as Form Requests de sessão/itens:
+    global (`teacher_id` null) ou do tenant, `deleted_at` null.
+- **Biblioteca (modalidades + exercícios)** — menu "Biblioteca":
+  - **Modalidades (`sports`)** — catálogo **global** (compartilhado por todos
+    os tenants). Mutuações **exclusivas do admin** de plataforma:
+    `SportPolicy::before()` + rotas `sports.*` com `role:admin`;
+    `SportService::delete` lança `ValidationException` se houver exercises/
+    sessions vinculados.
+  - **Exercícios (`exercises`)** — professor vê os próprios + globais somente
+    leitura; admin vê/edita todos (ownership preservado no update —
+    `ExerciseService::store` seta `teacher_id` de `resolveTenantId()`;
+    admin → `null` = global). Validação unique por dono
+    (`unique` com `whereNull('deleted_at')` e escopo por teacher).
+  - Componentes `Sports/{SportIndex,SportForm}` e
+    `Exercises/{ExerciseIndex,ExerciseForm}` + Form Requests
+    `Store/Update{Sport,Exercise}Request` + `SportService`/`ExerciseService`.
 
 ### Visual — painel 100% Tailwind (sem AdminLTE)
 
@@ -202,17 +233,47 @@ sports ──1:N── training_sessions (restrict)
     semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
   - `PaymentCrudTest` — isolamento, `paid_at` automático, marcar como pago,
     404 cross-tenant, smoke das 3 rotas.
-  - `PanelRoutesSmokeTest` — as 25 rotas `/admin/*` retornam 200 para teacher
-    (cria Config + roles spatie legadas; pegou o 500 de Configurações).
-  - **Total: 69 testes / 186 assertions** (23 API + 46 painel).
+  - `PanelRoutesSmokeTest` — as 25 rotas do domínio `/admin/*` retornam 200
+    para teacher (cria ConfigTableSeeder; pegou o 500 de Configurações);
+    fase admin cobre as rotas exclusivas de plataforma (`/admin/usuarios/{id}/editar`,
+    `/admin/usuarios/{id}/visualizar`, `/admin/modalidades*`); teacher recebe
+    403 em `/admin/modalidades`.
+  - `SessionItemCrudTest` (9) — CRUD/move/renumber de itens, validação,
+    isolamento por tenant.
+  - `SportCrudTest` (11) — CRUD admin-only, 403 para teacher, bloqueio de
+    exclusão com vínculos, isolamento global.
+  - `ExerciseCrudTest` (11) — professor só edita os próprios, globais somente
+    leitura, admin edita todos, unique por dono, 404 cross-tenant.
+  - **Total: 102 testes / 271 assertions** (23 API + 79 painel).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
+- **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
+  (~37 arquivos) foi formatado em 2026-10-08.
+
+## Limpeza de legado (2026-10-08)
+
+- **`spatie/laravel-permission` removido** (`composer remove` + config/provider/
+  migration + `HasRoles` do `User`); páginas de usuários des-spatiadas:
+  `Users::render` filtra `role = teacher` ("clientes"), `Time::render` filtra
+  `role = admin`, `Form` grada `users.role` direto (radios teacher/admin),
+  `ViewUser`/`Users` ganharam `Gate::authorize` que faltava, `Posts`/`PostForm`
+  filtram autores por papel, `settings.blade.php` usa `isPlatformAdmin()`.
+  `UsersTableSeeder` reescrito sem spatie.
+- **Órfãos removidos**: `app/Providers/VoltServiceProvider.php`,
+  `app/View/Components/AppLayout.php`, `app/View/Components/GuestLayout.php`
+  (só `Icon.php` sobra em `app/View/Components`), `routes/auth.php` (não era
+  carregado). Nenhuma referência em views/rotas/config.
+- Migration legada `add_role_to_users_table` é segura sem as tabelas spatie
+  (guard com `Schema::hasTable('roles')`).
+- **Fix**: `public array $roleLabels` não pode inicializar com chamada de
+  método (`UserRole::labels()` não é expressão constante) — setado no `mount()`.
 
 ## Fora do escopo atual
 
-- Próximos incrementos da Fase 2: edição de `items` de sessão no painel
-  (composição avançada), gestão de exercícios/modalidades,
-  reconciliar roles spatie; Pint pendente em ~31 arquivos legados do starter.
+- Próximo incremento da Fase 2: acompanhamento de execuções/progresso dos
+  alunos no painel (usa `TrainingExecutionService`/`student_progress`).
+- Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
+  (foram des-spatiadas, mas podem ser removidas num futuro product pass).
 - Swagger (docs manuais), refresh token, gateway de pagamento,
   integrações Strava/Garmin.
 - App Android (Fase 3).

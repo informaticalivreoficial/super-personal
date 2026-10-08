@@ -7,7 +7,8 @@ use Illuminate\Console\Command;
 
 class DeletePostCron extends Command
 {
-    protected $signature   = 'posts:clean-old';
+    protected $signature = 'posts:clean-old';
+
     protected $description = 'Soft delete em posts com mais de 6 meses';
 
     public function handle(): void

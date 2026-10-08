@@ -5,19 +5,18 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 
+/**
+ * Usuários legados do starter. Papéis pela coluna `users.role`
+ * (o spatie/laravel-permission foi removido — ver AGENTS.md).
+ * Distribuição espelha o backfill da migration `add_role_to_users_table`:
+ * admin/manager → admin; employee → teacher.
+ */
 class UsersTableSeeder extends Seeder
 {
     public function run()
     {
-        // Criar roles
-        Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'admin',       'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'manager',     'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'employee',    'guard_name' => 'web']);
-
-        // Criar ou recuperar super-admin
+        // Criar ou recuperar o admin da plataforma
         $user = User::firstOrCreate(
             ['email' => env('ADMIN_EMAIL')],
             [
@@ -29,13 +28,11 @@ class UsersTableSeeder extends Seeder
             ]
         );
 
-        if (! $user->hasRole('super-admin')) {
-            $user->assignRole('super-admin');
-        }
+        $user->role = 'admin';
+        $user->save();
 
-        // Usuários fake distribuídos por role
-        User::factory()->count(5)->create()->each(fn ($u) => $u->assignRole('admin'));
-        User::factory()->count(5)->create()->each(fn ($u) => $u->assignRole('manager'));
-        User::factory()->count(20)->create()->each(fn ($u) => $u->assignRole('employee'));
+        // Usuários fake distribuídos por papel
+        User::factory()->count(10)->create(['role' => 'admin']);
+        User::factory()->count(20)->create(['role' => 'teacher']);
     }
 }

@@ -13,8 +13,11 @@ class ContactCompanyForm extends Component
     public Company $empresa;
 
     public $nome;
+
     public $email;
+
     public $mensagem;
+
     public $success = false;
 
     protected function rules()
@@ -34,6 +37,7 @@ class ContactCompanyForm extends Component
 
         if (RateLimiter::tooManyAttempts($key, 3)) {
             $this->addError('email', 'Muitas tentativas. Tente novamente depois.');
+
             return;
         }
 

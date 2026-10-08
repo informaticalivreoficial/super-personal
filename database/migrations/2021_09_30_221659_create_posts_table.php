@@ -28,7 +28,7 @@ class CreatePostsTable extends Migration
             $table->integer('status')->nullable();
             $table->integer('highlight')->nullable()->default(0);
             $table->integer('menu')->nullable();
-            $table->string('thumb_caption')->nullable(); 
+            $table->string('thumb_caption')->nullable();
             $table->date('publish_at')->nullable();
 
             $table->timestamps();

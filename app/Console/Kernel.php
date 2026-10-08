@@ -10,9 +10,9 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('sitemap:generate')->everyMinute()->withoutOverlapping();
-        $schedule->command('posts:clean-old')->everyMinute()->withoutOverlapping();      
+        $schedule->command('posts:clean-old')->everyMinute()->withoutOverlapping();
         $schedule->command('posts:purge-deleted')->everyMinute()->withoutOverlapping();
-        $schedule->command('app:clear-logs')->everyMinute()->withoutOverlapping(); 
+        $schedule->command('app:clear-logs')->everyMinute()->withoutOverlapping();
     }
 
     protected function commands(): void

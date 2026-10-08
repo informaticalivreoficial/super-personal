@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
             <a wire:navigate
-                href="{{ auth()->user()->isEmployee() ? route('admin') : route('users.index') }}"
+                href="{{ auth()->user()->isTeacher() ? route('admin') : route('users.index') }}"
                 title="Voltar"
                 class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
                 <x-icon name="arrow-left" class="h-5 w-5" />
@@ -313,7 +313,7 @@
                     </div>
                 </div>
 
-                @if (!auth()->user()->isEmployee())
+                @if (!auth()->user()->isTeacher())
                     {{-- Permissões & Acesso --}}
                     <div class="card mt-4">
                         <div class="card-header">
@@ -336,28 +336,16 @@
                                 </div>
                                 <div class="col-12 mt-3">
                                     <div class="form-check d-inline mx-2">
-                                        <input id="employee" class="form-check-input" type="radio"
-                                            wire:model.live="roleSelected" value="employee">
-                                        <label class="form-check-label" for="employee">Colaborador</label>
+                                        <input id="role_teacher" class="form-check-input" type="radio"
+                                            wire:model.live="roleSelected" value="teacher">
+                                        <label class="form-check-label" for="role_teacher">Professor</label>
                                     </div>
 
-                                    <div class="form-check d-inline mx-2">
-                                        <input id="manager" class="form-check-input" type="radio"
-                                            wire:model.live="roleSelected" value="manager">
-                                        <label class="form-check-label" for="manager">Gerente</label>
-                                    </div>
-                                    @if (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                                    @if (auth()->user()->isPlatformAdmin())
                                         <div class="form-check d-inline mx-2">
-                                            <input id="admin" class="form-check-input" type="radio"
+                                            <input id="role_admin" class="form-check-input" type="radio"
                                                 wire:model.live="roleSelected" value="admin">
-                                            <label class="form-check-label" for="admin">Administrador</label>
-                                        </div>
-                                    @endif
-                                    @if (auth()->user()->isSuperAdmin())
-                                        <div class="form-check d-inline mx-2">
-                                            <input id="superadmin" class="form-check-input" type="radio"
-                                                wire:model.live="roleSelected" value="super-admin">
-                                            <label class="form-check-label" for="superadmin">Super Administrador</label>
+                                            <label class="form-check-label" for="role_admin">Administrador</label>
                                         </div>
                                     @endif
                                     @error('roleSelected')
@@ -366,7 +354,7 @@
                                         </div>
                                     @enderror
                                 </div>
-                                @if (!$userId && $roleSelected !== 'employee')
+                                @if (!$userId)
                                     <!-- Campo: Senha -->
                                     <div class="col-12 col-md-6 col-lg-4 mt-3">
                                         <label class="text-muted"><b>Senha:</b></label>

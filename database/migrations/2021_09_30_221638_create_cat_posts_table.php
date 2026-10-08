@@ -23,7 +23,7 @@ class CreateCatPostsTable extends Migration
             $table->bigInteger('views')->default(0);
             $table->string('type')->nullable();
             $table->integer('status')->nullable();
-            
+
             $table->timestamps();
         });
     }

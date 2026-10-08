@@ -1,13 +1,17 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+use App\Providers\EventServiceProvider;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
-return [    
+return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
-    'logomarca_width'  => env('LOGOMARCA_GERENCIADOR_WIDTH', 447),
+    'logomarca_width' => env('LOGOMARCA_GERENCIADOR_WIDTH', 447),
     'logomarca_height' => env('LOGOMARCA_GERENCIADOR_HEIGHT', 155),
     'metaimg_width' => env('METAIMG_WIDTH', 800),
     'metaimg_height' => env('METAIMG_HEIGHT', 418),
@@ -155,12 +159,11 @@ return [
         /*
          * Application Service Providers...
          */
-        App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class,
+        AppServiceProvider::class,
+        AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
-        App\Providers\RouteServiceProvider::class,
-        Spatie\Permission\PermissionServiceProvider::class,
+        EventServiceProvider::class,
+        RouteServiceProvider::class,
     ])->toArray(),
 
     /*

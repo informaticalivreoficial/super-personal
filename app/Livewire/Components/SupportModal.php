@@ -13,6 +13,7 @@ class SupportModal extends Component
     use WithToastr;
 
     public bool $showSupport = false;
+
     public string $message = '';
 
     #[On('open-support-modal')]

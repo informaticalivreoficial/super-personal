@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->rememberToken();  
+            $table->rememberToken();
 
             $table->dateTime('last_login_at')->nullable();
             $table->string('last_login_ip')->nullable();
@@ -49,7 +49,7 @@ return new class extends Migration
 
             /** Redes Sociais */
             $table->string('facebook')->nullable();
-            $table->string('twitter')->nullable();            
+            $table->string('twitter')->nullable();
             $table->string('instagram')->nullable();
             $table->string('linkedin')->nullable();
 

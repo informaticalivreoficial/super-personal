@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard\Users;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -44,6 +45,7 @@ class Time extends Component
     public function toggleStatus($id)
     {
         $user = User::findOrFail($id);
+        $this->authorize('update', $user);
         $user->status = ! $user->status;
         $user->save();
     }
@@ -83,7 +85,9 @@ class Time extends Component
     {
         $title = 'Time de Usuários';
 
-        $users = User::role(['manager', 'super-admin']) // Filtra por roles
+        // "Time" = equipe da plataforma (coluna users.role).
+        $users = User::query()
+            ->where('role', UserRole::ADMIN)
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'LIKE', "%{$this->search}%")
