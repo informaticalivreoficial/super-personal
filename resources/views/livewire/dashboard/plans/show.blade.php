@@ -1,30 +1,36 @@
 <div>
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0 text-dark"><i class="fas fa-clipboard-list mr-2"></i>{{ $plan->name }}</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a wire:navigate href="{{ route('admin') }}">Painel</a></li>
-                        <li class="breadcrumb-item"><a wire:navigate href="{{ route('plans.index') }}">Planos</a></li>
-                        <li class="breadcrumb-item active">Detalhes</li>
-                    </ol>
-                </div>
+    {{-- Cabeçalho --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a wire:navigate href="{{ route('plans.index') }}" title="Voltar"
+                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                <x-icon name="arrow-left" class="h-5 w-5" />
+            </a>
+            <div>
+                <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
+                    <x-icon name="clipboard-document-list" class="h-6 w-6 text-teal-600" />
+                    {{ $plan->name }}
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">Planos / Detalhes</p>
             </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="badge {{ $plan->status->value === 'active' ? 'badge-success' : 'badge-secondary' }} text-sm">
+                {{ $planStatus[$plan->status->value] }}
+            </span>
+            <a wire:navigate href="{{ route('plans.edit', $plan) }}" class="btn btn-primary btn-sm">
+                <x-icon name="pencil" class="h-4 w-4" /> Editar plano
+            </a>
         </div>
     </div>
 
-    {{-- Cabeçalho do plano --}}
-    <div class="card card-teal card-outline">
+    {{-- Informações --}}
+    <div class="card">
         <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-info-circle mr-2"></i>Informações</h3>
-            <div class="card-tools">
-                <span class="badge {{ $plan->status->value === 'active' ? 'badge-success' : 'badge-secondary' }}">
-                    {{ $planStatus[$plan->status->value] }}
-                </span>
-            </div>
+            <h3 class="card-title flex items-center gap-2">
+                <x-icon name="information-circle" class="h-5 w-5 text-teal-600" />
+                Informações
+            </h3>
         </div>
         <div class="card-body">
             <div class="row">
@@ -33,7 +39,8 @@
                         <dt class="col-sm-4 text-muted">Aluno</dt>
                         <dd class="col-sm-8">
                             @if ($plan->student)
-                                <a wire:navigate href="{{ route('students.show', $plan->student) }}">
+                                <a wire:navigate href="{{ route('students.show', $plan->student) }}"
+                                    class="font-medium text-teal-600 hover:text-teal-700">
                                     {{ $plan->student->name }}
                                 </a>
                             @else
@@ -66,37 +73,32 @@
             </div>
 
             @if ($plan->notes)
-                <hr>
-                <h6 class="text-muted">Observações</h6>
-                <p class="mb-0">{{ $plan->notes }}</p>
+                <hr class="my-6 border-gray-100">
+                <h6 class="text-sm font-semibold uppercase tracking-wider text-gray-500">Observações</h6>
+                <p class="mb-0 text-gray-700">{{ $plan->notes }}</p>
             @endif
-        </div>
-        <div class="card-footer">
-            <a wire:navigate href="{{ route('plans.edit', $plan) }}" class="btn btn-teal btn-sm">
-                <i class="fas fa-pen mr-1"></i> Editar plano
-            </a>
-            <a wire:navigate href="{{ route('plans.index') }}" class="btn btn-default btn-sm">
-                <i class="fas fa-arrow-left mr-1"></i> Voltar
-            </a>
         </div>
     </div>
 
     {{-- Semanas --}}
-    <div class="card">
+    <div class="card mt-6">
         <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-calendar-week mr-2"></i>Semanas e sessões</h3>
-            <div class="card-tools">
-                <button type="button" class="btn btn-sm btn-teal" wire:click="openWeekForm">
-                    <i class="fas fa-plus mr-1"></i> Nova semana
-                </button>
-            </div>
+            <h3 class="card-title flex items-center gap-2">
+                <x-icon name="calendar" class="h-5 w-5 text-teal-600" />
+                Semanas e sessões
+            </h3>
+            <button type="button" class="btn btn-primary btn-sm" wire:click="openWeekForm">
+                <x-icon name="plus" class="h-4 w-4" /> Nova semana
+            </button>
         </div>
 
         <div class="card-body">
             @if ($showWeekForm)
-                <div class="card card-outline card-info mb-3">
-                    <div class="card-header">
-                        <h5 class="card-title">{{ $editingWeekId ? 'Editar semana' : 'Nova semana' }}</h5>
+                <div class="card mb-4 border-sky-300">
+                    <div class="card-header bg-sky-50">
+                        <h5 class="card-title text-sky-900">
+                            {{ $editingWeekId ? 'Editar semana' : 'Nova semana' }}
+                        </h5>
                     </div>
                     <form wire:submit="saveWeek">
                         <div class="card-body">
@@ -154,11 +156,15 @@
                             </div>
                         </div>
                         <div class="card-footer">
-                            <button type="submit" class="btn btn-teal btn-sm" wire:loading.attr="disabled" wire:target="saveWeek">
-                                <span wire:loading.remove wire:target="saveWeek"><i class="fas fa-save mr-1"></i> Salvar</span>
-                                <span wire:loading wire:target="saveWeek"><i class="fas fa-spinner fa-spin"></i></span>
+                            <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="saveWeek">
+                                <span wire:loading.remove wire:target="saveWeek" class="flex items-center gap-2">
+                                    <x-icon name="check" class="h-4 w-4" /> Salvar
+                                </span>
+                                <span wire:loading wire:target="saveWeek">
+                                    <x-icon name="arrow-path" class="h-4 w-4 animate-spin" />
+                                </span>
                             </button>
-                            <button type="button" class="btn btn-default btn-sm" wire:click="closeWeekForm">Cancelar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" wire:click="closeWeekForm">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -166,29 +172,32 @@
 
             @if ($plan->weeks->count() > 0)
                 @foreach ($plan->weeks as $weekItem)
-                    <div class="card card-outline card-secondary mb-2" wire:key="week-{{ $weekItem->id }}">
+                    <div class="card mb-3" wire:key="week-{{ $weekItem->id }}">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <strong>Semana {{ $weekItem->week_number }}</strong>
-                                @if ($weekItem->name) — {{ $weekItem->name }} @endif
-                                <span class="badge badge-info ml-2">{{ $weekStatus[$weekItem->status->value] }}</span>
-                                <small class="text-muted ml-2">
+                            <h5 class="card-title mb-0 flex flex-wrap items-center gap-2">
+                                <span class="font-semibold text-gray-900">Semana {{ $weekItem->week_number }}</span>
+                                @if ($weekItem->name)
+                                    <span class="text-gray-400">—</span>
+                                    <span class="font-medium text-gray-600">{{ $weekItem->name }}</span>
+                                @endif
+                                <span class="badge badge-info">{{ $weekStatus[$weekItem->status->value] }}</span>
+                                <small class="text-muted">
                                     {{ $weekItem->start_date?->format('d/m/Y') ?? '—' }}
                                     → {{ $weekItem->end_date?->format('d/m/Y') ?? '—' }}
                                 </small>
-                                <small class="text-muted ml-2">({{ $weekItem->sessions->count() }} sessões)</small>
+                                <small class="text-muted">({{ $weekItem->sessions->count() }} sessões)</small>
                             </h5>
                             <div class="card-tools">
-                                <button type="button" class="btn btn-tool" wire:click="toggleSessions({{ $weekItem->id }})"
+                                <button type="button" class="btn-tool" wire:click="toggleSessions({{ $weekItem->id }})"
                                     title="Ver sessões">
-                                    <i class="fas {{ $expandedWeekId === $weekItem->id ? 'fa-minus' : 'fa-plus' }}"></i>
+                                    <x-icon name="{{ $expandedWeekId === $weekItem->id ? 'minus' : 'plus' }}" class="h-4 w-4" />
                                 </button>
-                                <button type="button" class="btn btn-tool" wire:click="editWeek({{ $weekItem->id }})" title="Editar semana">
-                                    <i class="fas fa-pen"></i>
+                                <button type="button" class="btn-tool" wire:click="editWeek({{ $weekItem->id }})" title="Editar semana">
+                                    <x-icon name="pencil" class="h-4 w-4" />
                                 </button>
-                                <button type="button" class="btn btn-tool text-danger" wire:click="deleteWeek({{ $weekItem->id }})"
+                                <button type="button" class="btn-tool text-red-500 hover:text-red-600" wire:click="deleteWeek({{ $weekItem->id }})"
                                     wire:confirm="Excluir a semana {{ $weekItem->week_number }} e todas as suas sessões?" title="Excluir semana">
-                                    <i class="fas fa-trash"></i>
+                                    <x-icon name="trash" class="h-4 w-4" />
                                 </button>
                             </div>
                         </div>
@@ -196,13 +205,15 @@
                         @if ($expandedWeekId === $weekItem->id)
                             <div class="card-body">
                                 @if ($weekItem->objective)
-                                    <p class="text-muted mb-2"><em>Objetivo: {{ $weekItem->objective }}</em></p>
+                                    <p class="mb-3 text-sm italic text-gray-500">Objetivo: {{ $weekItem->objective }}</p>
                                 @endif
 
                                 @if ($showSessionForm && $sessionWeekId === $weekItem->id)
-                                    <div class="card card-outline card-info mb-3">
-                                        <div class="card-header">
-                                            <h6 class="card-title">{{ $editingSessionId ? 'Editar sessão' : 'Nova sessão' }}</h6>
+                                    <div class="card mb-4 border-sky-300">
+                                        <div class="card-header bg-sky-50">
+                                            <h6 class="card-title text-sky-900">
+                                                {{ $editingSessionId ? 'Editar sessão' : 'Nova sessão' }}
+                                            </h6>
                                         </div>
                                         <form wire:submit="saveSession">
                                             <div class="card-body">
@@ -317,69 +328,77 @@
                                                 </div>
                                             </div>
                                             <div class="card-footer">
-                                                <button type="submit" class="btn btn-teal btn-sm" wire:loading.attr="disabled" wire:target="saveSession">
-                                                    <span wire:loading.remove wire:target="saveSession"><i class="fas fa-save mr-1"></i> Salvar sessão</span>
-                                                    <span wire:loading wire:target="saveSession"><i class="fas fa-spinner fa-spin"></i></span>
+                                                <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="saveSession">
+                                                    <span wire:loading.remove wire:target="saveSession" class="flex items-center gap-2">
+                                                        <x-icon name="check" class="h-4 w-4" /> Salvar sessão
+                                                    </span>
+                                                    <span wire:loading wire:target="saveSession">
+                                                        <x-icon name="arrow-path" class="h-4 w-4 animate-spin" />
+                                                    </span>
                                                 </button>
-                                                <button type="button" class="btn btn-default btn-sm" wire:click="closeSessionForm">Cancelar</button>
+                                                <button type="button" class="btn btn-secondary btn-sm" wire:click="closeSessionForm">Cancelar</button>
                                             </div>
                                         </form>
                                     </div>
                                 @endif
 
                                 @if ($weekItem->sessions->count() > 0)
-                                    <table class="table table-sm table-bordered mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>Data</th>
-                                                <th>Sessão</th>
-                                                <th>Modalidade</th>
-                                                <th class="text-center">Duração</th>
-                                                <th class="text-center">Distância</th>
-                                                <th class="text-center">Status</th>
-                                                <th class="text-center">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($weekItem->sessions as $sessionItem)
-                                                <tr wire:key="session-{{ $sessionItem->id }}">
-                                                    <td>{{ $sessionItem->scheduled_date?->format('d/m') }}</td>
-                                                    <td>
-                                                        {{ $sessionItem->title }}
-                                                        @if ($sessionItem->intensity)
-                                                            <br><small class="text-muted">{{ $sessionItem->intensity }}</small>
-                                                        @endif
-                                                    </td>
-                                                    <td>{{ $sessionItem->sport?->name ?? '—' }}</td>
-                                                    <td class="text-center">{{ $sessionItem->estimated_duration ? $sessionItem->estimated_duration . ' min' : '—' }}</td>
-                                                    <td class="text-center">{{ $sessionItem->distance ? number_format($sessionItem->distance / 1000, 2, ',', '.') . ' km' : '—' }}</td>
-                                                    <td class="text-center">
-                                                        <span class="badge {{ $sessionItem->status->value === 'completed' ? 'badge-success' : ($sessionItem->status->value === 'planned' ? 'badge-info' : 'badge-secondary') }}">
-                                                            {{ $sessionStatus[$sessionItem->status->value] }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <button type="button" class="btn btn-xs btn-default"
-                                                            wire:click="editSession({{ $sessionItem->id }})" title="Editar">
-                                                            <i class="fas fa-pen"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-xs btn-danger text-white"
-                                                            wire:click="deleteSession({{ $sessionItem->id }})"
-                                                            wire:confirm="Excluir esta sessão?" title="Excluir">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </td>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Data</th>
+                                                    <th>Sessão</th>
+                                                    <th>Modalidade</th>
+                                                    <th class="text-center">Duração</th>
+                                                    <th class="text-center">Distância</th>
+                                                    <th class="text-center">Status</th>
+                                                    <th class="text-center">Ações</th>
                                                 </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($weekItem->sessions as $sessionItem)
+                                                    <tr wire:key="session-{{ $sessionItem->id }}">
+                                                        <td>{{ $sessionItem->scheduled_date?->format('d/m') }}</td>
+                                                        <td>
+                                                            {{ $sessionItem->title }}
+                                                            @if ($sessionItem->intensity)
+                                                                <br><small class="text-muted">{{ $sessionItem->intensity }}</small>
+                                                            @endif
+                                                        </td>
+                                                        <td>{{ $sessionItem->sport?->name ?? '—' }}</td>
+                                                        <td class="text-center">{{ $sessionItem->estimated_duration ? $sessionItem->estimated_duration . ' min' : '—' }}</td>
+                                                        <td class="text-center">{{ $sessionItem->distance ? number_format($sessionItem->distance / 1000, 2, ',', '.') . ' km' : '—' }}</td>
+                                                        <td class="text-center">
+                                                            <span class="badge {{ $sessionItem->status->value === 'completed' ? 'badge-success' : ($sessionItem->status->value === 'planned' ? 'badge-info' : 'badge-secondary') }}">
+                                                                {{ $sessionStatus[$sessionItem->status->value] }}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center justify-center gap-1">
+                                                                <button type="button" class="btn btn-xs btn-secondary"
+                                                                    wire:click="editSession({{ $sessionItem->id }})" title="Editar">
+                                                                    <x-icon name="pencil" class="h-4 w-4" />
+                                                                </button>
+                                                                <button type="button" class="btn btn-xs btn-danger"
+                                                                    wire:click="deleteSession({{ $sessionItem->id }})"
+                                                                    wire:confirm="Excluir esta sessão?" title="Excluir">
+                                                                    <x-icon name="trash" class="h-4 w-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 @else
-                                    <p class="text-muted mb-0">Nenhuma sessão nesta semana.</p>
+                                    <p class="mb-0 text-sm text-gray-500">Nenhuma sessão nesta semana.</p>
                                 @endif
                             </div>
                             <div class="card-footer">
-                                <button type="button" class="btn btn-sm btn-info" wire:click="openSessionForm({{ $weekItem->id }})">
-                                    <i class="fas fa-plus mr-1"></i> Nova sessão
+                                <button type="button" class="btn btn-info btn-sm" wire:click="openSessionForm({{ $weekItem->id }})">
+                                    <x-icon name="plus" class="h-4 w-4" /> Nova sessão
                                 </button>
                             </div>
                         @endif

@@ -4,8 +4,8 @@ namespace App\Livewire\Dashboard\Posts;
 
 use App\Models\Post;
 use App\Models\User;
-use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class Posts extends Component
@@ -13,12 +13,14 @@ class Posts extends Component
     use WithPagination;
 
     public string $filterType = '';
+
     public string $filterAutor = '';
+
     public $autores = [];
 
     public int $perPage = 25;
 
-    protected $paginationTheme = 'bootstrap';
+    protected $paginationTheme = 'tailwind';
 
     public string $search = '';
 
@@ -27,9 +29,8 @@ class Posts extends Component
     public string $sortField = 'created_at';
 
     public string $sortDirection = 'desc';
-    
 
-    #{Url}
+    // {Url}
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -50,12 +51,12 @@ class Posts extends Component
         }
 
         $this->resetPage();
-    }    
+    }
 
     public function toggleStatus($id)
-    {              
+    {
         $post = Post::findOrFail($id);
-        $post->status = !$post->status;        
+        $post->status = ! $post->status;
         $post->save();
     }
 
@@ -69,7 +70,7 @@ class Posts extends Component
             'cancelButtonText' => 'Cancelar',
             'confirmEvent' => 'deletePost',
             'confirmParams' => [$id],
-        ]);        
+        ]);
     }
 
     #[On('deletePost')]
@@ -81,19 +82,18 @@ class Posts extends Component
 
         $this->dispatch('swal', [
             'title' => 'Excluído!',
-            'text'  => 'O Post e todas as imagens foram removidas!',
-            'icon'  => 'success',
+            'text' => 'O Post e todas as imagens foram removidas!',
+            'icon' => 'success',
             'timer' => 2000,
             'showConfirmButton' => false,
         ]);
-    }   
-    
+    }
+
     public function mount()
     {
         $this->autores = User::query()
-            ->when(!auth()->user()->isSuperAdmin(), function ($q) {
-                $q->whereDoesntHave('roles', fn($q) =>
-                    $q->where('name', 'super-admin')
+            ->when(! auth()->user()->isSuperAdmin(), function ($q) {
+                $q->whereDoesntHave('roles', fn ($q) => $q->where('name', 'super-admin')
                 );
             })
             ->orderBy('name')
@@ -119,7 +119,7 @@ class Posts extends Component
     public function render()
     {
         $title = 'Lista de Posts';
-        $searchableFields = ['title','content','slug','category'];
+        $searchableFields = ['title', 'content', 'slug', 'category'];
         $posts = Post::query()
             ->when($this->search, function ($query) use ($searchableFields) {
                 $query->where(function ($q) use ($searchableFields) {
@@ -137,7 +137,7 @@ class Posts extends Component
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
-        return view('livewire.dashboard.posts.posts',[
+        return view('livewire.dashboard.posts.posts', [
             'title' => $title,
             'posts' => $posts,
         ]);

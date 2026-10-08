@@ -14,7 +14,7 @@ class PlanIndex extends Component
 {
     use WithPagination, WithToastr;
 
-    protected $paginationTheme = 'bootstrap';
+    protected $paginationTheme = 'tailwind';
 
     public string $search = '';
 

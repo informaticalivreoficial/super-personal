@@ -6,18 +6,18 @@ use App\Support\Cropper;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Post extends Model
 {
     use HasFactory, Notifiable, SoftDeletes;
 
-    protected $table = 'posts'; 
+    protected $table = 'posts';
 
-    protected $fillable = [ 
+    protected $fillable = [
         'autor',
         'type',
         'title',
@@ -28,21 +28,21 @@ class Post extends Model
         'category',
         'comments',
         'highlight',
-        'cat_pai',        
+        'cat_pai',
         'status',
         'menu',
         'thumb_caption',
-        'publish_at'
+        'publish_at',
     ];
 
     protected $casts = [
         'status' => 'boolean',
         'comments' => 'boolean',
     ];
-    
+
     protected static function boot()
     {
-        parent::boot();        
+        parent::boot();
     }
 
     protected static function booted()
@@ -62,12 +62,12 @@ class Post extends Model
 
     /**
      * Scopes
-    */
+     */
     public function scopePostson($query)
     {
         return $query->where('status', 1);
     }
-    
+
     public function scopePostsoff($query)
     {
         return $query->where('status', 0);
@@ -75,27 +75,27 @@ class Post extends Model
 
     /**
      * Relacionamentos
-    */
+     */
     public function user()
     {
         return $this->belongsTo(User::class, 'autor', 'id');
     }
-    
+
     public function category()
     {
         return $this->hasOne(CatPost::class, 'id', 'category');
     }
-    
+
     public function categoryObject()
     {
         return $this->hasOne(CatPost::class, 'id', 'category');
     }
-    
+
     public function userObject()
     {
         return $this->hasOne(User::class, 'id', 'autor');
     }
-    
+
     public function images()
     {
         return $this->hasMany(PostGb::class, 'post', 'id')->orderBy('cover', 'ASC');
@@ -109,7 +109,6 @@ class Post extends Model
     /**
      * Accerssors and Mutators
      */
-
     public function getContentWebAttribute()
     {
         return Str::words($this->content, '20', ' ...');
@@ -121,12 +120,12 @@ class Post extends Model
         $cover = $images->where('cover', 1)->first(['path']) ??
                 $images->first(['path']);
 
-        if (!$cover || empty($cover->path)) {
-            return asset('theme/images/image.jpg');
+        if (! $cover || empty($cover->path)) {
+            return asset('images/image.jpg');
         }
 
         return Storage::url(Cropper::thumb($cover['path'], 720, 480));
-    }    
+    }
 
     public function nocover()
     {
@@ -136,62 +135,63 @@ class Post extends Model
         $cover = $images->where('cover', 1)->first(['path'])
             ?? $images->first(['path']);
 
-        if (empty($cover['path']) || !Storage::disk()->exists($cover['path'])) {
-            return asset('theme/images/image.jpg');
+        if (empty($cover['path']) || ! Storage::disk()->exists($cover['path'])) {
+            return asset('images/image.jpg');
         }
-        
+
         return Storage::url($cover['path']);
-    }  
+    }
 
     public function setPublishAtAttribute($value)
     {
-        if (!$value) {
+        if (! $value) {
             $this->attributes['publish_at'] = null;
+
             return;
         }
 
-        if ($value instanceof \Carbon\Carbon || $value instanceof \DateTime) {
+        if ($value instanceof Carbon || $value instanceof \DateTime) {
             $this->attributes['publish_at'] = $value->format('Y-m-d');
+
             return;
         }
 
         // Tenta d/m/Y (vindo do front)
         if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $value)) {
-            $this->attributes['publish_at'] = \Carbon\Carbon::createFromFormat('d/m/Y', $value)->format('Y-m-d');
+            $this->attributes['publish_at'] = Carbon::createFromFormat('d/m/Y', $value)->format('Y-m-d');
+
             return;
         }
 
         // Qualquer outro formato (Y-m-d, Y-m-d H:i:s, etc.) — vindo do seeder/factory
-        $this->attributes['publish_at'] = \Carbon\Carbon::parse($value)->format('Y-m-d');
+        $this->attributes['publish_at'] = Carbon::parse($value)->format('Y-m-d');
     }
 
     public function getPublishAtAttribute($value)
     {
-        return $value 
-            ? Carbon::parse($value)->format('d/m/Y') 
+        return $value
+            ? Carbon::parse($value)->format('d/m/Y')
             : null;
     }
- 
-    
+
     public function setSlug()
     {
-        if (!empty($this->title)) {
-    
+        if (! empty($this->title)) {
+
             $baseSlug = Str::slug($this->title);
             $slug = $baseSlug;
             $count = 1;
-    
+
             while (
                 Post::where('slug', $slug)
                     ->where('id', '!=', $this->id)
                     ->exists()
             ) {
-                $slug = $baseSlug . '-' . str_pad($count, 2, '0', STR_PAD_LEFT);
+                $slug = $baseSlug.'-'.str_pad($count, 2, '0', STR_PAD_LEFT);
                 $count++;
             }
-    
+
             $this->attributes['slug'] = $slug;
         }
-    }   
-    
+    }
 }

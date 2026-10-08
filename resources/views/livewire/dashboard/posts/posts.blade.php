@@ -1,169 +1,164 @@
 <div>
-    @section('title', $title) 
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1><i class="fas fa-search mr-2"></i> Posts</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">                    
-                        <li class="breadcrumb-item"><a href="{{route('admin')}}">Painel de Controle</a></li>
-                        <li class="breadcrumb-item active">Posts</li>
-                    </ol>
-                </div>
+    @section('title', $title)
+
+    {{-- Cabeçalho --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a wire:navigate href="{{ route('admin') }}" title="Voltar"
+                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                <x-icon name="arrow-left" class="h-5 w-5" />
+            </a>
+            <div>
+                <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
+                    <x-icon name="clipboard-document-list" class="h-6 w-6 text-teal-600" />
+                    Posts
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">Posts / Listagem</p>
             </div>
-        </div>    
+        </div>
+        <a wire:navigate href="{{ route('posts.create') }}" class="btn btn-primary">
+            <x-icon name="plus" class="h-4 w-4" />
+            Cadastrar novo
+        </a>
     </div>
 
     <div class="card">
         <div class="card-header">
-            <div class="row">    
-                <!-- ESQUERDA (busca + filtros) -->
-                <div class="col-12 col-sm-8 my-2">
-                    <div class="card-tools">
-                        <div class="d-flex flex-wrap" style="gap: 6px;">
-
-                            <!-- Busca -->
-                            <input type="text"
-                                wire:model.live.debounce.500ms="search"
-                                class="form-control form-control-sm"
-                                style="max-width: 200px;"
-                                placeholder="Pesquisar">
-
-                            <!-- Tipo -->
-                            <select wire:model.live="filterType"
-                                    class="form-control form-control-sm"
-                                    style="max-width: 140px;">
-                                <option value="">Tipo</option>
-                                <option value="artigo">Artigo</option>
-                                <option value="noticia">Notícia</option>
-                                <option value="pagina">Página</option>
-                            </select>
-
-                            <!-- Autor -->
-                            <select wire:model.live="filterAutor"
-                                    class="form-control form-control-sm"
-                                    style="max-width: 180px;">
-                                <option value="">Autor</option>
-                                @foreach($autores as $autor)
-                                    <option value="{{ $autor->id }}">{{ $autor->name }}</option>
-                                @endforeach
-                            </select>
-
-                            <!-- Limpar -->
-                            <button wire:click="clearFilters"
-                                    class="btn btn-sm btn-light">
-                                Limpar
-                            </button>
-
-                        </div>
-                    </div>
+            {{-- Busca + filtros --}}
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="relative">
+                    <x-icon name="magnifying-glass"
+                        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input type="text"
+                        wire:model.live.debounce.500ms="search"
+                        class="form-control form-control-sm pl-9"
+                        style="max-width: 200px;"
+                        placeholder="Pesquisar">
                 </div>
 
-                <!-- DIREITA (botão) -->
-                <div class="col-12 col-sm-4 my-2 text-sm-right">
-                    <a wire:navigate href="{{ route('posts.create') }}" 
-                    class="btn btn-sm btn-default">
-                        <i class="fas fa-plus mr-2"></i> Cadastrar Novo
-                    </a>
-                </div>
+                <select wire:model.live="filterType"
+                        class="form-control form-control-sm"
+                        style="max-width: 140px;">
+                    <option value="">Tipo</option>
+                    <option value="artigo">Artigo</option>
+                    <option value="noticia">Notícia</option>
+                    <option value="pagina">Página</option>
+                </select>
 
+                <select wire:model.live="filterAutor"
+                        class="form-control form-control-sm"
+                        style="max-width: 180px;">
+                    <option value="">Autor</option>
+                    @foreach($autores as $autor)
+                        <option value="{{ $autor->id }}">{{ $autor->name }}</option>
+                    @endforeach
+                </select>
+
+                <button wire:click="clearFilters" class="btn btn-sm btn-secondary" type="button">
+                    Limpar
+                </button>
             </div>
         </div>
 
-        <div class="card-body"> 
+        <div class="card-body">
             @if ($posts->count())
-                <div class="overflow-x-auto" x-data="{ showModal: false, imageUrl: '' }">
-                    <table class="table-auto w-full border-collapse border border-gray-200">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="px-4 py-2">Capa</th>
-                                <th class="px-4 py-2 cursor-pointer" wire:click="sortBy('title')">
-                                    Título <i class="fas fa-caret-down fa-fw ml-1"></i>
-                                </th>
-                                <th class="px-4 py-2 text-center">Categoria</th>
-                                <th class="px-4 py-2 text-center">Views</th>
-                                <th class="px-4 py-2 text-center">Imagens</th>
-                                <th class="px-4 py-2 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($posts as $post)
-                            <tr class="border-t border-gray-200 hover:bg-gray-50 {{ $post->status ? '' : 'bg-yellow-100' }}">
-                                <!-- Imagem -->
-                                <td class="px-4 py-2 text-center">
-                                    <img 
-                                        src="{{ $post->cover() }}" 
-                                        alt="{{ $post->title }}" 
-                                        class="w-16 mx-auto cursor-pointer rounded-lg hover:scale-105 transition-transform"
-                                        @click="showModal = true; imageUrl = '{{ addslashes(url($post->nocover())) }}'">
-                                </td>
-                                <td class="px-4 py-2">{{ $post->title }}</td>
-                                <td class="px-4 py-2 text-center">
-                                    {{ $post->category()->first() ? $post->category()->first()->title : 'N/D' }}
-                                </td>
-                                <td class="px-4 py-2 text-center">{{ $post->views }}</td>
-                                <td class="px-4 py-2 text-center">{{ $post->countimages() ? $post->countimages() : 0 }}</td>
-                                
-                                <td class="px-4 py-4">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <x-forms.switch-toggle
-                                            wire:key="safe-switch-{{ $post->id }}"
-                                            wire:click="toggleStatus({{ $post->id }})"
-                                            :checked="$post->status"
-                                            size="sm"
-                                            color="green"
-                                        />      
-                                        <a target="_blank" href="{{ route('web.' . (
-                                                                    $post->type == 'artigo' ? 'blog.artigo' : (
-                                                                    $post->type == 'noticia' ? 'noticia' : 'pagina')), $post->slug) }}" 
-                                            class="btn btn-xs btn-info" 
-                                            title="Visualizar">
-                                            <i class="fas fa-search"></i>
-                                        </a>
-                                        <a title="Editar Post" href="{{ route('posts.edit', $post->id) }}" class="btn btn-xs btn-default"><i class="fas fa-pen"></i></a>
-                                        <button type="button" 
-                                            class="btn btn-xs bg-danger text-white" 
-                                            title="Excluir Post"
-                                            wire:click="setDeleteId({{ $post->id }})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                <div x-data="{ showModal: false, imageUrl: '' }">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">Capa</th>
+                                    <th class="cursor-pointer" wire:click="sortBy('title')">
+                                        <span class="flex items-center gap-1">
+                                            Título
+                                            <x-icon name="chevron-down" class="h-4 w-4" />
+                                        </span>
+                                    </th>
+                                    <th class="text-center">Categoria</th>
+                                    <th class="text-center">Views</th>
+                                    <th class="text-center">Imagens</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($posts as $post)
+                                    <tr wire:key="post-{{ $post->id }}"
+                                        class="{{ $post->status ? '' : 'bg-amber-50/70' }}">
+                                        <td class="text-center">
+                                            <img
+                                                src="{{ $post->cover() }}"
+                                                alt="{{ $post->title }}"
+                                                class="mx-auto w-16 cursor-pointer rounded-lg transition-transform hover:scale-105"
+                                                @click="showModal = true; imageUrl = '{{ addslashes(url($post->nocover())) }}'">
+                                        </td>
+                                        <td>{{ $post->title }}</td>
+                                        <td class="text-center">
+                                            {{ $post->category()->first() ? $post->category()->first()->title : 'N/D' }}
+                                        </td>
+                                        <td class="text-center">{{ $post->views }}</td>
+                                        <td class="text-center">{{ $post->countimages() ? $post->countimages() : 0 }}</td>
 
-                    <!-- Modal de imagem -->
+                                        <td>
+                                            <div class="flex items-center justify-center gap-2">
+                                                <x-forms.switch-toggle
+                                                    wire:key="safe-switch-{{ $post->id }}"
+                                                    wire:click="toggleStatus({{ $post->id }})"
+                                                    :checked="$post->status"
+                                                    size="sm"
+                                                    color="green"
+                                                />
+                                                <a target="_blank" href="{{ route('web.' . (
+                                                                            $post->type == 'artigo' ? 'blog.artigo' : (
+                                                                            $post->type == 'noticia' ? 'noticia' : 'pagina')), $post->slug) }}"
+                                                    class="btn btn-xs btn-secondary"
+                                                    title="Visualizar">
+                                                    <x-icon name="eye" class="h-4 w-4" />
+                                                </a>
+                                                <a title="Editar Post" href="{{ route('posts.edit', $post->id) }}"
+                                                    class="btn btn-xs btn-secondary">
+                                                    <x-icon name="pencil" class="h-4 w-4" />
+                                                </a>
+                                                <button type="button"
+                                                    class="btn btn-xs btn-danger"
+                                                    title="Excluir Post"
+                                                    wire:click="setDeleteId({{ $post->id }})">
+                                                    <x-icon name="trash" class="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Modal de imagem --}}
                     <div x-show="showModal" x-cloak
-                        class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
+                        class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
                         x-transition>
                         <div class="relative">
-                            <img :src="imageUrl" class="max-w-[70vw] max-h-[70vh] object-contain mx-auto rounded shadow-lg">
-                            <button type="button" @click="showModal = false"
-                                    class="absolute top-2 right-2 text-white text-xl bg-black bg-opacity-50 rounded-full px-2 py-1 hover:bg-opacity-75 transition">
-                                ✕
+                            <img :src="imageUrl" class="mx-auto max-h-[70vh] max-w-[70vw] rounded-lg object-contain shadow-lg">
+                            <button type="button" @click="showModal = false" title="Fechar"
+                                    class="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-1 text-xl text-white transition hover:bg-black/75">
+                                <x-icon name="x-mark" class="h-5 w-5" />
                             </button>
                         </div>
                     </div>
                 </div>
 
                 @if($posts->hasMorePages())
-                    <div class="text-center mt-4">
-                        <button wire:click="loadMore" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <div class="mt-4 text-center">
+                        <button wire:click="loadMore" class="btn btn-primary">
                             Carregar mais
                         </button>
                     </div>
                 @endif
             @else
-                <div class="row mb-4">
-                    <div class="col-12">                                                        
-                        <div class="alert alert-info p-3">
-                            Não foram encontrados registros!
-                        </div>                                                        
-                    </div>
+                <div class="py-10 text-center">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                        <x-icon name="clipboard-document-list" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm text-gray-500">Nenhum registro encontrado.</p>
                 </div>
             @endif
         </div>

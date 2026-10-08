@@ -1,37 +1,29 @@
-<!-- Navbar -->
-<nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <!-- Left navbar links -->
-    <ul class="navbar-nav">
-        <li class="nav-item">
-            <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-        </li>
-    </ul>
+<header
+    class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b border-gray-200 bg-white/80 px-4 backdrop-blur sm:gap-3 sm:px-6 lg:px-8">
+    {{-- Recolher sidebar (desktop) / abrir gaveta (mobile) --}}
+    <button type="button" title="Menu"
+        @click="window.innerWidth >= 1024 ? $store.nav.toggleMini() : $store.nav.openMobile()"
+        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700">
+        <x-icon name="bars" class="h-5 w-5" />
+    </button>
 
-    <!-- Right navbar links -->
-    <ul class="navbar-nav ml-auto">
-        <li class="nav-item dropdown">
-            <a class="nav-link" href="{{ route('web.home') }}" title="Ver site" target="_blank"><i class="fas fa-desktop"></i></a>
-        </li>
+    <span class="text-sm font-semibold tracking-tight text-gray-900 lg:hidden">
+        {{ $config->app_name ?? config('app.name') }}
+    </span>
 
-        <li class="nav-item">
-            <a class="nav-link" data-widget="fullscreen" href="#" role="button">
-                <i class="fas fa-expand-arrows-alt"></i>
-            </a>
-        </li>
+    <div class="ml-auto flex items-center gap-1 sm:gap-2">
+        <a href="{{ route('web.home') }}" target="_blank" title="Ver site"
+            class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700">
+            <x-icon name="computer-desktop" class="h-5 w-5" />
+        </a>
 
-        <li class="nav-item dropdown">
-            <a
-                href="#"
-                wire:click.prevent="$dispatch('open-support-modal')"
-                title="Suporte"
-                class="nav-link"
-            >
-                <i class="fas fa-life-ring text-red-500"></i>
-            </a>
-        </li>
+        <button type="button" title="Suporte" wire:click.prevent="$dispatch('open-support-modal')"
+            class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700">
+            <x-icon name="lifebuoy" class="h-5 w-5 text-red-500" />
+        </button>
 
         @auth
             <livewire:auth.button-logout />
         @endauth
-    </ul>
-</nav>
+    </div>
+</header>

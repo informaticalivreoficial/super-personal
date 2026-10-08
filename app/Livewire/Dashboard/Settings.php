@@ -5,13 +5,12 @@ namespace App\Livewire\Dashboard;
 use App\Models\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Livewire\Component;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
+use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Validator;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class Settings extends Component
 {
@@ -22,11 +21,17 @@ class Settings extends Component
     public string $currentTab = 'dados';
 
     public $logo;
+
     public $logo_admin;
+
     public $logo_footer;
+
     public $favicon;
+
     public $watermark;
+
     public $imgheader;
+
     public $metaimg;
 
     public array $tags = [];
@@ -71,9 +76,9 @@ class Settings extends Component
      */
     protected function saveImage(string $key, $file)
     {
-        if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+        if ($file instanceof TemporaryUploadedFile) {
             // Deleta a antiga
-            if (!empty($this->configData[$key]) && Storage::disk('public')->exists($this->configData[$key])) {
+            if (! empty($this->configData[$key]) && Storage::disk('public')->exists($this->configData[$key])) {
                 Storage::disk('public')->delete($this->configData[$key]);
             }
 
@@ -104,7 +109,7 @@ class Settings extends Component
             'favicon',
             'metaimg',
             'imgheader',
-            'watermark'
+            'watermark',
         ];
 
         if (in_array($field, $uploadableFields)) {
@@ -128,7 +133,7 @@ class Settings extends Component
     {
         return array_merge([
             'configData.app_name' => 'required|min:3',
-            //'configData.email' => 'required|email',
+            // 'configData.email' => 'required|email',
         ], $this->imageValidationRules());
     }
 
@@ -149,11 +154,11 @@ class Settings extends Component
         $this->configData = $config->toArray();
 
         // Converte os campos de imagem salvos no banco para URLs
-        foreach (['logo','logo_admin','logo_footer','favicon','metaimg','imgheader','watermark'] as $field) {
-            if (!empty($config->$field)) {
-                $this->$field = asset("storage/" . $config->$field);
+        foreach (['logo', 'logo_admin', 'logo_footer', 'favicon', 'metaimg', 'imgheader', 'watermark'] as $field) {
+            if (! empty($config->$field)) {
+                $this->$field = asset('storage/'.$config->$field);
             } else {
-                $this->$field = asset("theme/images/image.jpg"); // fallback
+                $this->$field = asset('images/image.jpg'); // fallback
             }
         }
 
@@ -161,16 +166,16 @@ class Settings extends Component
     }
 
     public function update()
-    {      
+    {
         try {
-            $validated = $this->validate();     
+            $validated = $this->validate();
 
-            // Salva os uploads e atualiza configData com os novos caminhos       
-            $this->handleImageUploads();  
-            
+            // Salva os uploads e atualiza configData com os novos caminhos
+            $this->handleImageUploads();
+
             // remove campos que não podem ser atualizados manualmente
             unset($this->configData['id'], $this->configData['created_at'], $this->configData['updated_at']);
-            $this->configData['metatags'] = implode(',', $this->tags ?? []);  
+            $this->configData['metatags'] = implode(',', $this->tags ?? []);
 
             // Salva no banco
             Config::where('id', 1)->update($this->configData);
@@ -178,11 +183,11 @@ class Settings extends Component
             // Recarrega as imagens para o preview
             $this->loadLogos();
 
-            //$this->resetImages();
+            // $this->resetImages();
 
             $this->dispatch(['atualizado']);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             $firstErrorKey = array_key_first($e->validator->errors()->messages());
 
             $this->currentTab = match (true) {
@@ -193,9 +198,9 @@ class Settings extends Component
             };
 
             throw $e;
-        } 
-                
-    }    
+        }
+
+    }
 
     public function updatedConfigDataZipcode(string $value)
     {
@@ -204,14 +209,14 @@ class Settings extends Component
         if (strlen($cep) === 8) {
             $response = Http::get("https://viacep.com.br/ws/{$cep}/json/")->json();
 
-            if (!isset($response['erro'])) {
+            if (! isset($response['erro'])) {
                 $this->configData['street'] = $response['logradouro'] ?? '';
                 $this->configData['neighborhood'] = $response['bairro'] ?? '';
                 $this->configData['state'] = $response['uf'] ?? '';
                 $this->configData['city'] = $response['localidade'] ?? '';
-                //$this->configData['complement'] = $response['complemento'] ?? '';
+                // $this->configData['complement'] = $response['complemento'] ?? '';
             } else {
-                $this->addError('configData.zipcode', 'CEP não encontrado.'); 
+                $this->addError('configData.zipcode', 'CEP não encontrado.');
             }
         }
     }
@@ -220,9 +225,9 @@ class Settings extends Component
     {
         return QrCode::size(240)
             ->margin(2)
-            //->format('png')
+            // ->format('png')
             ->color(0, 0, 255)
-            //->merge($this->configData['favicon'] ? : asset('theme/images/chave.png'), 0.3)
+            // ->merge($this->configData['favicon'] ? : asset('images/chave.png'), 0.3)
             ->generate($this->configData['domain'] ?? env('DESENVOLVEDOR_URL'));
     }
 
@@ -234,60 +239,67 @@ class Settings extends Component
 
     public function getLogo()
     {
-        if (empty($this->configData['logo']) || !Storage::disk('public')->exists($this->configData['logo'])) {
-            return url(asset('theme/images/image.jpg'));
+        if (empty($this->configData['logo']) || ! Storage::disk('public')->exists($this->configData['logo'])) {
+            return url(asset('images/image.jpg'));
         }
+
         return Storage::url($this->configData['logo']);
-    }     
+    }
 
     public function getLogoadmin()
     {
-        if (empty($this->configData['logo_admin']) || !Storage::disk('public')->exists($this->configData['logo_admin'])) {
-            return url(asset('theme/images/image.jpg'));
+        if (empty($this->configData['logo_admin']) || ! Storage::disk('public')->exists($this->configData['logo_admin'])) {
+            return url(asset('images/image.jpg'));
         }
+
         return Storage::url($this->configData['logo_admin']);
     }
 
     public function getLogofooter()
     {
-        if (empty($this->configData['logo_footer']) || !Storage::disk('public')->exists($this->configData['logo_footer'])) {
-            return url(asset('theme/images/image.jpg'));
+        if (empty($this->configData['logo_footer']) || ! Storage::disk('public')->exists($this->configData['logo_footer'])) {
+            return url(asset('images/image.jpg'));
         }
+
         return Storage::url($this->configData['logo_footer']);
     }
 
     public function getfaveicon()
     {
-        if (empty($this->configData['favicon']) || !Storage::disk('public')->exists($this->configData['favicon'])) {
-            return url(asset('theme/images/image.jpg'));
+        if (empty($this->configData['favicon']) || ! Storage::disk('public')->exists($this->configData['favicon'])) {
+            return url(asset('images/image.jpg'));
         }
+
         return Storage::url($this->configData['favicon']);
-    }  
+    }
 
     public function getwatermark()
     {
-        if (empty($this->configData['watermark']) || !Storage::disk('public')->exists($this->configData['watermark'])) {
-            return url(asset('theme/images/image.jpg'));
+        if (empty($this->configData['watermark']) || ! Storage::disk('public')->exists($this->configData['watermark'])) {
+            return url(asset('images/image.jpg'));
         }
+
         return Storage::url($this->configData['watermark']);
-    } 
+    }
 
     public function getmetaimg()
     {
-        if (empty($this->configData['metaimg']) || !Storage::disk('public')->exists($this->configData['metaimg'])) {
-            return url(asset('theme/images/image.jpg'));
+        if (empty($this->configData['metaimg']) || ! Storage::disk('public')->exists($this->configData['metaimg'])) {
+            return url(asset('images/image.jpg'));
         }
+
         return Storage::url($this->configData['metaimg']);
-    }  
+    }
 
     public function getheadersite()
     {
-        if (empty($this->configData['imgheader']) || !Storage::disk('public')->exists($this->configData['imgheader'])) {
-            return url(asset('theme/images/image.jpg'));
+        if (empty($this->configData['imgheader']) || ! Storage::disk('public')->exists($this->configData['imgheader'])) {
+            return url(asset('images/image.jpg'));
         }
+
         return Storage::url($this->configData['imgheader']);
-    }     
-    
+    }
+
     protected function resetImages()
     {
         $this->reset('logo', 'logo_admin', 'logo_footer', 'favicon', 'watermark', 'metaimg', 'imgheader');
@@ -308,14 +320,14 @@ class Settings extends Component
         foreach ($images as $key => $file) {
             if ($file instanceof TemporaryUploadedFile) {
                 // Apaga a imagem antiga, se existir
-                if (!empty($this->configData[$key]) && Storage::disk('public')->exists($this->configData[$key])) {
+                if (! empty($this->configData[$key]) && Storage::disk('public')->exists($this->configData[$key])) {
                     Storage::disk('public')->delete($this->configData[$key]);
                 }
 
                 // Salva a nova
                 $path = $file->storeAs(
                     'config',
-                    "{$key}." . $file->getClientOriginalExtension(), // força o mesmo nome
+                    "{$key}.".$file->getClientOriginalExtension(), // força o mesmo nome
                     'public'
                 );
 
@@ -327,7 +339,7 @@ class Settings extends Component
     public function render()
     {
         $title = 'Configurações';
+
         return view('livewire.dashboard.settings')->with('title', $title);
     }
-    
 }

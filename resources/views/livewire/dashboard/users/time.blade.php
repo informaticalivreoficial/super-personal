@@ -1,81 +1,76 @@
 <div>
     @section('title', $title)
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1><i class="fas fa-users mr-2"></i> Time de Usuários</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('admin') }}">Painel de Controle</a></li>
-                        <li class="breadcrumb-item active">Time de Usuários</li>
-                    </ol>
-                </div>
+
+    {{-- Cabeçalho --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a wire:navigate href="{{ route('admin') }}" title="Voltar"
+                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                <x-icon name="arrow-left" class="h-5 w-5" />
+            </a>
+            <div>
+                <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
+                    <x-icon name="users" class="h-6 w-6 text-teal-600" />
+                    Time de Usuários
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">Usuários / Time</p>
             </div>
         </div>
+        <a wire:navigate href="{{ route('users.create') }}" class="btn btn-primary">
+            <x-icon name="plus" class="h-4 w-4" />
+            Cadastrar novo
+        </a>
     </div>
 
     <div class="card card-teal card-outline">
         <div class="card-header">
-            <div class="row">
-                <div class="col-12 col-sm-6 my-2">
-                    <div class="card-tools">
-                        <div style="width: 250px;">
-                            <form class="input-group input-group-sm" action="" method="post">
-                                <input type="text" wire:model.live="search" class="form-control float-right" placeholder="Pesquisar">               
-                                
-                            </form>
-                        </div>
-                      </div>
-                </div>
-                <div class="col-12 col-sm-6 my-2 text-right">
-                    <a wire:navigate href="cadastrar" class="btn btn-sm btn-default"><i class="fas fa-plus mr-2"></i> Cadastrar Novo</a>
+            <div class="w-full max-w-xs">
+                <div class="input-group input-group-sm">
+                    <input type="text" wire:model.live="search" class="form-control" placeholder="Pesquisar">
                 </div>
             </div>
-        </div>  
+        </div>
+
         <div class="card-body">
-            <div class="row">
-                <div class="col-12"></div>
-            </div>
-            <div class="row d-flex align-items-stretch">
-                @if(!empty($users) && $users->count() > 0)
-                    @foreach($users as $user) 
-                        <div class="col-12 col-sm-6 col-md-4 d-flex align-items-stretch">
-                            <div class="card bg-light" style="{{ ($user->status == true ? '' : 'background: #fffed8 !important;')  }}">
-                                <div class="card-header text-muted border-bottom-0"></div>
-                                <div class="card-body pt-0">
-                                    <div class="row">
-                                        <div class="col-7">
-                                            <h2 class="lead"><b>{{$user->name}}</b></h2>
-                                            <p class="text-muted text-sm">{{$user->cargo}}</p>
-                                            <p class="text-muted text-sm"><b>Data de Entrada: </b><br>
+            @if (!empty($users) && $users->count() > 0)
+                <div class="row">
+                    @foreach ($users as $user)
+                        <div wire:key="time-user-{{ $user->id }}" class="col-12 col-sm-6 col-md-4">
+                            <div class="card h-full {{ $user->status ? 'bg-gray-50' : 'bg-amber-50' }}">
+                                <div class="card-body">
+                                    <div class="flex items-start gap-4">
+                                        <div class="min-w-0 flex-1">
+                                            <p class="truncate text-base font-semibold text-gray-900">
+                                                {{ $user->name }}
+                                            </p>
+                                            <p class="text-sm text-gray-500">{{ $user->cargo }}</p>
+                                            <p class="mt-2 text-xs text-gray-500">
+                                                <span class="font-semibold text-gray-600">Data de Entrada:</span><br>
                                                 05/05/2025
                                             </p>
-                                            <ul class="ml-4 mb-0 fa-ul text-muted">
-                                                <li class="small">sss</li>
+                                            <ul class="mt-1 ml-4 list-inside list-disc text-xs text-gray-500">
+                                                <li>sss</li>
                                             </ul>
                                         </div>
                                         @php
-                                            if(!empty($user->avatar) && \Illuminate\Support\Facades\Storage::exists($user->avatar)){
+                                            if (!empty($user->avatar) && \Illuminate\Support\Facades\Storage::exists($user->avatar)) {
                                                 $cover = \Illuminate\Support\Facades\Storage::url($user->avatar);
                                             } else {
-                                                if($user->gender == 'masculino'){
-                                                    $cover = url(asset('theme/images/avatar5.png'));
-                                                }elseif($user->gender == 'feminino'){
-                                                    $cover = url(asset('theme/images/avatar3.png'));
-                                                }else{
-                                                    $cover = url(asset('theme/images/image.jpg'));
+                                                if ($user->gender == 'masculino') {
+                                                    $cover = url(asset('images/avatar5.png'));
+                                                } elseif ($user->gender == 'feminino') {
+                                                    $cover = url(asset('images/avatar3.png'));
+                                                } else {
+                                                    $cover = url(asset('images/image.jpg'));
                                                 }
                                             }
                                         @endphp
-                                        <div class="col-5 text-center">
-                                            <img src="{{$cover}}" alt="{{$user->name}}" class="img-circle img-fluid">
-                                        </div>
+                                        <img src="{{ $cover }}" alt="{{ $user->name }}"
+                                            class="h-20 w-20 shrink-0 rounded-full object-cover ring-4 ring-white">
                                     </div>
                                 </div>
                                 <div class="card-footer">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex flex-wrap items-center gap-2">
                                         <x-forms.switch-toggle
                                             wire:key="safe-switch-{{ $user->id }}"
                                             wire:click="toggleStatus({{ $user->id }})"
@@ -83,78 +78,46 @@
                                             size="sm"
                                             color="green"
                                         />
-                                        @if($user->whatsapp != '')
-                                            <a target="_blank" 
-                                                href="{{\App\Helpers\WhatsApp::getNumZap($user->whatsapp)}}" 
-                                                class="btn btn-xs bg-teal"><i class="fab fa-whatsapp"></i>
+                                        @if ($user->whatsapp != '')
+                                            <a target="_blank" title="WhatsApp"
+                                                href="{{ \App\Helpers\WhatsApp::getNumZap($user->whatsapp) }}"
+                                                class="btn btn-xs btn-teal">
+                                                <x-icon name="whatsapp" class="h-4 w-4" />
                                             </a>
                                         @endif
-                                        <button 
-                                            class="btn btn-xs btn-success" 
-                                            title="Enviar Email"
-                                            wire:click="#">
-                                            <i class="fas fa-envelope"></i>
-                                        </button>                                             
-                                        <a href="#" 
-                                            title="Visualizar"
-                                            class="btn btn-xs btn-info"><i class="fas fa-search"></i>
-                                        </a> 
-                                        <a href="{{ route('users.edit', [ 'userId' => $user->id ]) }}" 
-                                            class="btn btn-xs btn-default" 
-                                            title="Editar">
-                                            <i class="fas fa-pen"></i>
+                                        <button class="btn btn-xs btn-success" title="Enviar Email" wire:click="#">
+                                            <x-icon name="envelope" class="h-4 w-4" />
+                                        </button>
+                                        <a href="#" title="Visualizar" class="btn btn-xs btn-secondary">
+                                            <x-icon name="eye" class="h-4 w-4" />
                                         </a>
-                                        <button type="button" 
-                                            class="btn btn-xs bg-danger text-white" 
+                                        <a href="{{ route('users.edit', ['userId' => $user->id]) }}"
+                                            class="btn btn-xs btn-secondary" title="Editar">
+                                            <x-icon name="pencil" class="h-4 w-4" />
+                                        </a>
+                                        <button type="button" class="btn btn-xs btn-danger"
                                             title="Excluir Colaborador"
                                             wire:click="setDeleteId({{ $user->id }})">
-                                            <i class="fas fa-trash"></i>
+                                            <x-icon name="trash" class="h-4 w-4" />
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     @endforeach
-                @else                    
-                    <div class="col-12">                                                        
-                        <div class="alert alert-info p-3">
-                            Não foram encontrados registros!
-                        </div>                                                        
-                    </div>                    
-                @endif
-            </div>
+                </div>
+            @else
+                <div class="py-10 text-center">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                        <x-icon name="users" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm text-gray-500">Nenhum registro encontrado.</p>
+                </div>
+            @endif
         </div>
-        <div class="card-footer paginacao">{{ $users->links() }}</div>
+
+        <div class="card-footer">
+            {{ $users->links() }}
+        </div>
     </div>
 </div>
-
-<script>
-    
-    document.addEventListener('livewire:initialized', () => {
-        @this.on('swal', (event) => {
-            const data = event
-            swal.fire({
-                icon:data[0]['icon'],
-                title:data[0]['title'],
-                text:data[0]['text'],
-            })
-        })
-
-        @this.on('delete-prompt', (event) => {
-            swal.fire({
-                icon: 'warning',
-                title: 'Atenção',
-                text: 'Você tem certeza que deseja excluir este Usuário?',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sim, excluir!',
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    @this.dispatch('goOn-Delete')
-                }
-            })
-        })
-    });
-
-</script>

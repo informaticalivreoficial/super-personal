@@ -149,6 +149,41 @@ sports ──1:N── training_sessions (restrict)
   Pagamentos; Settings só para admin); `top-navigation` sem notificações fake
   nem `users.edit`.
 
+### Visual — painel 100% Tailwind (sem AdminLTE)
+
+- **AdminLTE, jQuery, FontAwesome e o diretório `public/theme/` (12 MB) foram
+  removidos.** Imagens do tema migraram para `public/images/` (referências
+  `theme/images` → `images` em `app/` e `resources/`).
+- Layouts:
+  - `components/layouts/app.blade.php` — estado global `Alpine.store('nav')`
+    (`mini` persistido em `localStorage['navMini']`, `mobile`), listeners
+    globais `swal:*`/`swal:confirm`, integração Quill (`x-data="quillEditor"`),
+    `@stack('scripts')`. Alpine vem do bundle do Livewire 3; SweetAlert2 e
+    flatpickr entram pelo bundle Vite (`resources/js/app.js`).
+  - `components/layouts/guest.blade.php` — auth (login/registro) em card central.
+- **Sistema de ícones**: `<x-icon name="..." class="h-4 w-4" />` — componentes
+  gerados pelo `scripts/generate-icons.py` a partir do pacote npm `heroicons`
+  (83 nomes, inclui aliases FA: `times`→`x-mark`, `search`→`magnifying-glass`...).
+  `name` DEVE ser literal (Blade trata `:name` como binding PHP).
+- **Camada de compatibilidade** em `resources/css/app.css` (`@layer components`):
+  classes herdadas do AdminLTE/Bootstrap continuam válidas (`card`, `btn-*`,
+  `form-*`, `table*`, `badge*`, `alert*`, `info-box*`, `row`/`col-*`...), o que
+  permitiu migrar as views legadas sem tocar em bindings. Cores de fundo
+  legadas (`bg-danger` etc.) NÃO existem — usar utilitários Tailwind.
+- Toast global sem CDN: `livewire/components/toastr-notification.blade.php`
+  (Alpine, escuta `window` `toast`/`toastr`, normaliza detail array/objeto e
+  `session('toast')`); `dispatch('toast')` do PHP já aparece sozinho.
+- Confirmação de exclusão: `<x-confirm-delete>` / partial
+  `components/confirm-delete.blade.php` (`$deleteId` + `wire:click="delete"`).
+- Paginação Livewire no tema `tailwind` (8 componentes).
+- Convenções de página: cabeçalho com botão voltar (rota index) + ícone teal +
+  subtítulo `Categoria / Ação`; tabelas em card com `overflow-x-auto`;
+  `wire:loading` em botões de salvar.
+- Views legadas (settings, sitemap, users, posts, reports) migradas para o
+  mesmo padrão; scripts `toastr`/jQuery removidos; Chart.js carregado por CDN
+  só em `reports/posts`. Órfãos removidos: `roles/*`, `permissions/*`,
+  `reports/dashboard-stats`, `Users/Create`.
+
 ## Testes
 
 - `phpunit.xml` → SQLite `:memory:`, `RefreshDatabase`.
@@ -174,8 +209,8 @@ sports ──1:N── training_sessions (restrict)
 ## Fora do escopo atual
 
 - Próximos incrementos da Fase 2: edição de `items` de sessão no painel
-  (composição avançada), gestão de exercícios/modalidades, resíduos do starter
-  (rotas/views legadas de blog), reconciliar roles spatie.
+  (composição avançada), gestão de exercícios/modalidades,
+  reconciliar roles spatie; Pint pendente em ~31 arquivos legados do starter.
 - Swagger (docs manuais), refresh token, gateway de pagamento,
   integrações Strava/Garmin.
 - App Android (Fase 3).

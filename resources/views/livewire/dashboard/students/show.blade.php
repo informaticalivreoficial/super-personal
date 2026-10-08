@@ -1,18 +1,26 @@
 <div>
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0 text-dark"><i class="fas fa-id-card mr-2"></i>{{ $student->name }}</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a wire:navigate href="{{ route('admin') }}">Painel</a></li>
-                        <li class="breadcrumb-item"><a wire:navigate href="{{ route('students.index') }}">Alunos</a></li>
-                        <li class="breadcrumb-item active">Detalhes</li>
-                    </ol>
-                </div>
+    {{-- Cabeçalho --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a wire:navigate href="{{ route('students.index') }}" title="Voltar"
+                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                <x-icon name="arrow-left" class="h-5 w-5" />
+            </a>
+            <div>
+                <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
+                    <x-icon name="identification" class="h-6 w-6 text-teal-600" />
+                    {{ $student->name }}
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">Alunos / Detalhes</p>
             </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <a wire:navigate href="{{ route('students.edit', $student) }}" class="btn btn-primary btn-sm">
+                <x-icon name="pencil" class="h-4 w-4" /> Editar
+            </a>
+            <a wire:navigate href="{{ route('students.index') }}" class="btn btn-secondary btn-sm">
+                <x-icon name="arrow-left" class="h-4 w-4" /> Voltar
+            </a>
         </div>
     </div>
 
@@ -20,7 +28,7 @@
         <div class="col-12">
             <div class="card card-teal card-outline">
                 <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-user mr-2"></i>Dados cadastrais</h3>
+                    <h3 class="card-title"><x-icon name="user" class="h-4 w-4 text-teal-600" />Dados cadastrais</h3>
                     <div class="card-tools">
                         <span class="badge {{ $student->active ? 'badge-success' : 'badge-secondary' }}">
                             {{ $student->active ? 'Ativo' : 'Inativo' }}
@@ -79,21 +87,13 @@
                         <p class="mb-0">{{ $student->observations }}</p>
                     @endif
                 </div>
-                <div class="card-footer">
-                    <a wire:navigate href="{{ route('students.edit', $student) }}" class="btn btn-teal btn-sm">
-                        <i class="fas fa-pen mr-1"></i> Editar
-                    </a>
-                    <a wire:navigate href="{{ route('students.index') }}" class="btn btn-default btn-sm">
-                        <i class="fas fa-arrow-left mr-1"></i> Voltar
-                    </a>
-                </div>
             </div>
         </div>
 
         <div class="col-12 col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-clipboard-list mr-2"></i>Plano ativo</h3>
+                    <h3 class="card-title"><x-icon name="clipboard-document-list" class="h-4 w-4 text-teal-600" />Plano ativo</h3>
                 </div>
                 <div class="card-body">
                     @if ($activePlan)
@@ -115,7 +115,7 @@
         <div class="col-12 col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-dollar-sign mr-2"></i>Últimos pagamentos</h3>
+                    <h3 class="card-title"><x-icon name="currency-dollar" class="h-4 w-4 text-teal-600" />Últimos pagamentos</h3>
                 </div>
                 <div class="card-body p-0">
                     @if ($recentPayments->count())

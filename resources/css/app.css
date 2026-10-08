@@ -1,8 +1,674 @@
 @import 'flatpickr/dist/flatpickr.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+    html {
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+            'Helvetica Neue', Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+        @apply bg-gray-50 text-gray-900;
+    }
+
+    label {
+        @apply mb-1.5 block text-sm font-medium text-gray-700;
+    }
+
+    ::selection {
+        @apply bg-teal-100 text-teal-900;
+    }
+}
+
+/* ==========================================================================
+   Componentes (Tailwind) — cards, botões, formulários, tabelas etc.
+   ========================================================================== */
+
+@layer components {
+    /* --- Cartões -------------------------------------------------------- */
+    .card {
+        @apply rounded-xl border border-gray-200 bg-white shadow-sm;
+    }
+
+    .card-outline {
+        @apply border-gray-200;
+    }
+
+    .card-teal {
+        @apply border-t-2 border-t-teal-600;
+    }
+
+    .card-header {
+        @apply flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4;
+    }
+
+    .card-title {
+        @apply text-sm font-semibold text-gray-900;
+    }
+
+    .card-body {
+        @apply p-5;
+    }
+
+    .card-footer {
+        @apply border-t border-gray-100 bg-gray-50/70 px-5 py-3;
+    }
+
+    .card-tools {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .btn-tool {
+        @apply rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600;
+    }
+
+    /* --- Botões --------------------------------------------------------- */
+    .btn {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg
+            px-4 py-2 text-sm font-medium leading-none transition
+            focus:outline-none focus:ring-2 focus:ring-offset-1
+            disabled:pointer-events-none disabled:opacity-60;
+    }
+
+    .btn-primary {
+        @apply bg-teal-600 text-white shadow-sm hover:bg-teal-700 focus:ring-teal-500;
+    }
+
+    .btn-secondary,
+    .btn-default {
+        @apply border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-gray-300;
+    }
+
+    .btn-success {
+        @apply bg-green-600 text-white shadow-sm hover:bg-green-700 focus:ring-green-500;
+    }
+
+    .btn-danger {
+        @apply bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-500;
+    }
+
+    .btn-warning {
+        @apply bg-amber-500 text-white shadow-sm hover:bg-amber-600 focus:ring-amber-500;
+    }
+
+    .btn-info {
+        @apply bg-sky-600 text-white shadow-sm hover:bg-sky-700 focus:ring-sky-500;
+    }
+
+    .btn-teal,
+    .btn-teal-outline {
+        @apply border border-teal-600 bg-teal-600 text-white shadow-sm hover:bg-teal-700 focus:ring-teal-500;
+    }
+
+    .btn-link {
+        @apply bg-transparent px-0 text-teal-600 underline hover:text-teal-800;
+    }
+
+    .btn-flat {
+        @apply rounded-md;
+    }
+
+    .btn-sm {
+        @apply px-2.5 py-1.5 text-xs;
+    }
+
+    .btn-xs {
+        @apply rounded-md px-2 py-1 text-xs;
+    }
+
+    .btn-block,
+    .w-100 {
+        @apply w-full;
+    }
+
+    .btn-icon {
+        @apply inline-flex h-8 w-8 items-center justify-center rounded-lg p-0;
+    }
+
+    /* --- Formulários ---------------------------------------------------- */
+    .form-group {
+        @apply mb-4;
+    }
+
+    .form-control,
+    .form-select {
+        @apply block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900
+            shadow-sm transition placeholder:text-gray-400
+            focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30
+            disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500;
+    }
+
+    .form-control-sm,
+    .form-select-sm {
+        @apply px-2.5 py-1.5 text-xs;
+    }
+
+    textarea.form-control {
+        @apply min-h-[80px];
+    }
+
+    .form-control.is-invalid {
+        @apply border-red-400 focus:border-red-500 focus:ring-red-500/30;
+    }
+
+    .invalid-feedback,
+    .erro-feedback,
+    .error {
+        @apply mt-1 block text-xs font-medium text-red-600;
+    }
+
+    .form-check {
+        @apply flex items-start gap-2;
+    }
+
+    .form-check-input {
+        @apply mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-gray-300 text-teal-600
+            focus:ring-teal-500;
+    }
+
+    .form-check-label {
+        @apply mb-0 block cursor-pointer text-sm font-normal text-gray-700;
+    }
+
+    .form-control-plaintext {
+        @apply block w-full border border-transparent bg-transparent px-3 py-2 text-sm;
+    }
+
+    .input-group {
+        @apply flex w-full items-stretch;
+    }
+
+    .input-group-prepend,
+    .input-group-append {
+        @apply flex items-center;
+    }
+
+    .input-group-text {
+        @apply flex items-center whitespace-nowrap border border-gray-300 bg-gray-50 px-3 text-sm
+            text-gray-600;
+    }
+
+    .input-group-prepend .input-group-text,
+    .input-group > .input-group-text:first-child {
+        @apply rounded-l-lg border-r-0;
+    }
+
+    .input-group-append .input-group-text,
+    .input-group > .input-group-text:last-child {
+        @apply rounded-r-lg border-l-0;
+    }
+
+    .input-group-append .form-control,
+    .input-group > .form-control:last-child {
+        @apply rounded-l-none;
+    }
+
+    .input-group-prepend .form-control,
+    .input-group > .form-control:first-child {
+        @apply rounded-r-none;
+    }
+
+    .input-group-sm .form-control,
+    .input-group-sm .input-group-text {
+        @apply px-2.5 py-1.5 text-xs;
+    }
+
+    .input-group-md .form-control,
+    .input-group-md .input-group-text {
+        @apply px-3 py-2 text-sm;
+    }
+
+    /* --- Tabelas -------------------------------------------------------- */
+    .table-responsive {
+        @apply w-full overflow-x-auto;
+    }
+
+    .table {
+        @apply w-full border-collapse text-left text-sm;
+    }
+
+    .table > thead > tr > th {
+        @apply border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase
+            tracking-wider text-gray-500;
+    }
+
+    .table > tbody > tr > td {
+        @apply border-b border-gray-100 px-4 py-3 align-middle text-gray-700;
+    }
+
+    .table-striped > tbody > tr:nth-of-type(odd) > td {
+        @apply bg-gray-50/60;
+    }
+
+    .table-hover > tbody > tr:hover > td {
+        @apply bg-teal-50/60;
+    }
+
+    .table-bordered,
+    .table-bordered > tbody > tr > td,
+    .table-bordered > thead > tr > th {
+        @apply border border-gray-200;
+    }
+
+    .table-sm > tbody > tr > td,
+    .table-sm > thead > tr > th {
+        @apply px-2 py-1.5;
+    }
+
+    /* --- Badges --------------------------------------------------------- */
+    .badge {
+        @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5
+            text-xs font-medium;
+    }
+
+    .badge-success {
+        @apply bg-green-100 text-green-700;
+    }
+
+    .badge-danger {
+        @apply bg-red-100 text-red-700;
+    }
+
+    .badge-warning {
+        @apply bg-amber-100 text-amber-700;
+    }
+
+    .badge-info {
+        @apply bg-sky-100 text-sky-700;
+    }
+
+    .badge-primary,
+    .badge-teal {
+        @apply bg-teal-100 text-teal-700;
+    }
+
+    .badge-secondary,
+    .badge-default {
+        @apply bg-gray-100 text-gray-600;
+    }
+
+    .badge-dark {
+        @apply bg-gray-800 text-white;
+    }
+
+    .badge-light {
+        @apply border border-gray-200 bg-white text-gray-600;
+    }
+
+    /* --- Alertas -------------------------------------------------------- */
+    .alert {
+        @apply rounded-lg border px-4 py-3 text-sm;
+    }
+
+    .alert-info {
+        @apply border-sky-200 bg-sky-50 text-sky-800;
+    }
+
+    .alert-success {
+        @apply border-green-200 bg-green-50 text-green-800;
+    }
+
+    .alert-danger,
+    .alert-error {
+        @apply border-red-200 bg-red-50 text-red-800;
+    }
+
+    .alert-warning {
+        @apply border-amber-200 bg-amber-50 text-amber-800;
+    }
+
+    /* --- Info boxes (KPIs) ---------------------------------------------- */
+    .info-box {
+        @apply flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm;
+    }
+
+    .info-box-icon {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-lg;
+    }
+
+    .info-box-content {
+        @apply min-w-0 flex-1;
+    }
+
+    .info-box-text {
+        @apply truncate text-sm font-medium text-gray-500;
+    }
+
+    .info-box-number {
+        @apply text-2xl font-semibold tracking-tight text-gray-900;
+    }
+
+    /* --- Listas --------------------------------------------------------- */
+    .list-group {
+        @apply overflow-hidden rounded-xl border border-gray-200 bg-white;
+    }
+
+    .list-group-item {
+        @apply border-b border-gray-100 px-4 py-3 text-sm last:border-b-0;
+    }
+
+    .list-group-unbordered > .list-group-item {
+        @apply border-b-0;
+    }
+
+    /* --- Cabeçalho de página / layout legado ----------------------------- */
+    .content-header {
+        @apply mb-6;
+    }
+
+    .container-fluid {
+        @apply mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .page-item.disabled .page-link {
+        @apply pointer-events-none opacity-50;
+    }
+
+    /* --- Grade Bootstrap (ponte) ---------------------------------------- */
+    .row {
+        @apply grid grid-cols-12 gap-4;
+    }
+
+    .form-row {
+        @apply grid grid-cols-12 gap-3;
+    }
+
+    .col-5 {
+        @apply col-span-5;
+    }
+
+    .col-7 {
+        @apply col-span-7;
+    }
+
+    .col-12 {
+        @apply col-span-12;
+    }
+
+    .col-sm-3 {
+        @apply col-span-12 sm:col-span-3;
+    }
+
+    .col-sm-4 {
+        @apply col-span-12 sm:col-span-4;
+    }
+
+    .col-sm-5 {
+        @apply col-span-12 sm:col-span-5;
+    }
+
+    .col-sm-6 {
+        @apply col-span-12 sm:col-span-6;
+    }
+
+    .col-sm-7 {
+        @apply col-span-12 sm:col-span-7;
+    }
+
+    .col-sm-8 {
+        @apply col-span-12 sm:col-span-8;
+    }
+
+    .col-sm-12 {
+        @apply col-span-12;
+    }
+
+    .col-md-2 {
+        @apply col-span-12 md:col-span-2;
+    }
+
+    .col-md-3 {
+        @apply col-span-12 md:col-span-3;
+    }
+
+    .col-md-4 {
+        @apply col-span-12 md:col-span-4;
+    }
+
+    .col-md-5 {
+        @apply col-span-12 md:col-span-5;
+    }
+
+    .col-md-6 {
+        @apply col-span-12 md:col-span-6;
+    }
+
+    .col-md-9 {
+        @apply col-span-12 md:col-span-9;
+    }
+
+    .col-md-12 {
+        @apply col-span-12;
+    }
+
+    .col-lg-2 {
+        @apply col-span-12 lg:col-span-2;
+    }
+
+    .col-lg-3 {
+        @apply col-span-12 lg:col-span-3;
+    }
+
+    .col-lg-4 {
+        @apply col-span-12 lg:col-span-4;
+    }
+
+    .col-lg-6 {
+        @apply col-span-12 lg:col-span-6;
+    }
+
+    .col-lg-8 {
+        @apply col-span-12 lg:col-span-8;
+    }
+
+    .col-lg-9 {
+        @apply col-span-12 lg:col-span-9;
+    }
+
+    .col-lg-12 {
+        @apply col-span-12;
+    }
+
+    .col-xl-2 {
+        @apply col-span-12 xl:col-span-2;
+    }
+
+    .col-xl-3 {
+        @apply col-span-12 xl:col-span-3;
+    }
+
+    .col-xl-4 {
+        @apply col-span-12 xl:col-span-4;
+    }
+
+    /* --- Utilitários Bootstrap (ponte) ----------------------------------- */
+    .d-flex {
+        @apply flex;
+    }
+
+    .d-inline-flex {
+        @apply inline-flex;
+    }
+
+    .d-inline {
+        @apply inline;
+    }
+
+    .d-inline-block {
+        @apply inline-block;
+    }
+
+    .d-block {
+        @apply block;
+    }
+
+    .d-grid {
+        @apply grid;
+    }
+
+    .d-none {
+        @apply hidden;
+    }
+
+    .flex-column {
+        @apply flex-col;
+    }
+
+    .flex-fill {
+        @apply flex-1;
+    }
+
+    .justify-content-start {
+        @apply justify-start;
+    }
+
+    .justify-content-center {
+        @apply justify-center;
+    }
+
+    .justify-content-end {
+        @apply justify-end;
+    }
+
+    .justify-content-between {
+        @apply justify-between;
+    }
+
+    .justify-content-around {
+        @apply justify-around;
+    }
+
+    .align-items-start {
+        @apply items-start;
+    }
+
+    .align-items-center {
+        @apply items-center;
+    }
+
+    .align-items-end {
+        @apply items-end;
+    }
+
+    .align-items-stretch {
+        @apply items-stretch;
+    }
+
+    .align-self-center {
+        @apply self-center;
+    }
+
+    .font-weight-bold {
+        @apply font-semibold;
+    }
+
+    .font-weight-normal {
+        @apply font-normal;
+    }
+
+    .font-weight-light {
+        @apply font-light;
+    }
+
+    .text-muted {
+        @apply text-gray-500;
+    }
+
+    .text-dark {
+        @apply text-gray-900;
+    }
+
+    .text-uppercase {
+        @apply uppercase;
+    }
+
+    .text-truncate {
+        @apply truncate;
+    }
+
+    .text-nowrap {
+        @apply whitespace-nowrap;
+    }
+
+    .text-danger {
+        @apply text-red-600;
+    }
+
+    .text-success {
+        @apply text-green-600;
+    }
+
+    .text-warning {
+        @apply text-amber-600;
+    }
+
+    .text-info {
+        @apply text-sky-600;
+    }
+
+    .text-primary {
+        @apply text-teal-600;
+    }
+
+    .text-secondary {
+        @apply text-gray-600;
+    }
+
+    .float-sm-right {
+        @apply float-right;
+    }
+
+    .font-italic {
+        @apply italic;
+    }
+
+    .small {
+        @apply text-xs;
+    }
+
+    .shadow-lg-up {
+        @apply shadow-lg;
+    }
+
+    /* --- Breadcrumb ------------------------------------------------------ */
+    .breadcrumb {
+        @apply flex flex-wrap items-center gap-1 text-sm;
+    }
+
+    .breadcrumb-item {
+        @apply text-gray-400;
+    }
+
+    .breadcrumb-item + .breadcrumb-item {
+        @apply before:mr-1 before:text-gray-300 before:content-['/'];
+    }
+
+    .breadcrumb-item a {
+        @apply text-gray-500 transition hover:text-teal-600;
+    }
+
+    .breadcrumb-item.active {
+        @apply font-medium text-gray-700;
+    }
+
+    .breadcrumb-item.active a {
+        @apply font-medium text-gray-700;
+    }
+}
+
+/* ==========================================================================
+   Temas específicos
+   ========================================================================== */
+
+/* Flatpickr no tom do painel */
 .flatpickr-calendar * {
     box-sizing: border-box;
 }
@@ -22,23 +688,17 @@
 }
 
 .flatpickr-day.selected {
-    @apply bg-green-600 border-green-600 text-white;
+    @apply border-teal-600 bg-teal-600 text-white;
+}
+
+.flatpickr-day.selected:hover {
+    @apply border-teal-700 bg-teal-700;
 }
 
 .flatpickr-day.inRange {
-    @apply bg-green-100;
+    @apply bg-teal-100;
 }
 
-@layer components {
-  .input-form {
-    @apply w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring focus:border-blue-400;
-  }
-
-  .btn-primary {
-    @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition;
-  }
-
-  .btn-danger {
-    @apply bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 transition;
-  }
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    background: transparent;
 }

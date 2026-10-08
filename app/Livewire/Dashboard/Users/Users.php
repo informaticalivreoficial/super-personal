@@ -3,17 +3,16 @@
 namespace App\Livewire\Dashboard\Users;
 
 use App\Models\User;
-use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Masmerise\Toaster\Toaster;
 
 class Users extends Component
 {
     use WithPagination;
 
-    protected $paginationTheme = 'bootstrap';
+    protected $paginationTheme = 'tailwind';
 
     public string $search = '';
 
@@ -27,8 +26,7 @@ class Users extends Component
 
     public bool $updateMode = false;
 
-        
-    #{Url}
+    // {Url}
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -51,14 +49,15 @@ class Users extends Component
     {
         $users = User::query()
             ->role('employee')
-            ->when($this->search, function($query){
+            ->when($this->search, function ($query) {
                 $query->orWhere('name', 'LIKE', "%{$this->search}%");
                 $query->orWhere('email', "%{$this->search}%");
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(35);
-        return view('livewire.dashboard.users.users',[
-            'users' => $users
+
+        return view('livewire.dashboard.users.users', [
+            'users' => $users,
         ]);
     }
 
@@ -73,13 +72,14 @@ class Users extends Component
             'cancelButtonText' => 'Cancelar',
             'confirmEvent' => 'deleteUser',
             'confirmParams' => [$id],
-        ]);        
+        ]);
     }
+
     #[On('deleteUser')]
     public function deleteUser($id): void
     {
         $user = User::where('id', $id)->first();
-        if(!empty($user)){
+        if (! empty($user)) {
             $this->authorize('delete', $user);
             $user->delete();
 
@@ -87,15 +87,15 @@ class Users extends Component
                 'title' => 'Excluído!',
                 'text' => 'Usuário removido com sucesso!',
                 'timer' => 2000,
-                'showConfirmButton' => false
+                'showConfirmButton' => false,
             ]);
         }
     }
 
     public function toggleStatus($id)
-    {              
+    {
         $user = User::findOrFail($id);
-        $user->status = !$user->status;        
+        $user->status = ! $user->status;
         $user->save();
     }
 
@@ -105,5 +105,4 @@ class Users extends Component
         $this->dispatch('userId');
         $this->updateMode = true;
     }
-
 }

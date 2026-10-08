@@ -184,7 +184,7 @@ class User extends Authenticatable
             return Storage::url($this->avatar);
         }
 
-        return asset('theme/images/image.jpg');
+        return asset('images/image.jpg');
     }
 
     public function setCellPhoneAttribute($value)

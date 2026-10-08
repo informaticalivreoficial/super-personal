@@ -1,10 +1,17 @@
 <div>
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1><i class="fas fa-sitemap mr-2"></i> Sitemap</h1>
-                </div>
+    {{-- Cabeçalho --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a wire:navigate href="{{ route('admin') }}" title="Voltar"
+                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                <x-icon name="arrow-left" class="h-5 w-5" />
+            </a>
+            <div>
+                <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
+                    <x-icon name="link" class="h-6 w-6 text-teal-600" />
+                    Sitemap
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">SEO / Gerador de sitemap</p>
             </div>
         </div>
     </div>
@@ -14,7 +21,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="info-box">
-                        <span class="info-box-icon bg-info"><i class="fas fa-link"></i></span>
+                        <span class="info-box-icon bg-sky-50 text-sky-600"><x-icon name="link" class="h-6 w-6" /></span>
                         <div class="info-box-content">
                             <span class="info-box-text">Total de URLs</span>
                             <span class="info-box-number">{{ $totalUrls }}</span>
@@ -24,7 +31,7 @@
 
                 <div class="col-md-6">
                     <div class="info-box">
-                        <span class="info-box-icon bg-success"><i class="fas fa-clock"></i></span>
+                        <span class="info-box-icon bg-green-50 text-green-600"><x-icon name="clock" class="h-6 w-6" /></span>
                         <div class="info-box-content">
                             <span class="info-box-text">Última Geração</span>
                             <span class="info-box-number">{{ $lastGenerated ?? 'Nunca gerado' }}</span>
@@ -33,59 +40,34 @@
                 </div>
             </div>
 
-            <div class="row mt-3">
-                <div class="col-12">
-                    <button wire:click="generate" class="btn btn-primary btn-lg">
-                        <i class="fas fa-sync-alt mr-2"></i> Gerar Sitemap Agora
-                    </button>
+            <div class="mt-6 flex flex-wrap gap-3">
+                <button wire:click="generate" class="btn btn-primary btn-lg"
+                    wire:loading.attr="disabled" wire:target="generate">
+                    <span wire:loading.remove wire:target="generate" class="flex items-center gap-2">
+                        <x-icon name="arrow-path" class="h-4 w-4" /> Gerar Sitemap Agora
+                    </span>
+                    <span wire:loading wire:target="generate" class="flex items-center gap-2">
+                        <x-icon name="arrow-path" class="h-4 w-4 animate-spin" /> Gerando...
+                    </span>
+                </button>
 
-                    @if($lastGenerated)
-                        <a href="{{ asset('sitemap.xml') }}" target="_blank" class="btn btn-success btn-lg ml-2">
-                            <i class="fas fa-eye mr-2"></i> Visualizar Sitemap
-                        </a>
-                    @endif
-                </div>
+                @if($lastGenerated)
+                    <a href="{{ asset('sitemap.xml') }}" target="_blank" class="btn btn-success btn-lg">
+                        <x-icon name="eye" class="h-4 w-4" /> Visualizar Sitemap
+                    </a>
+                @endif
             </div>
 
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <h5><i class="icon fas fa-info"></i> Informações</h5>
-                        <ul>
-                            <li>O sitemap é salvo em: <code class="text-lime-200">{{ public_path('sitemap.xml') }}</code></li>
-                            <li>Adicione no Google Search Console: <code class="text-lime-200">{{ url('sitemap.xml') }}</code></li>
-                            <li>Configure para gerar automaticamente via cron job</li>
-                        </ul>
-                    </div>
+            <div class="mt-6">
+                <div class="alert alert-info">
+                    <h5 class="flex items-center gap-2 font-semibold"><x-icon name="information-circle" class="h-5 w-5" /> Informações</h5>
+                    <ul class="mt-2 list-disc space-y-1 pl-5">
+                        <li>O sitemap é salvo em: <code class="rounded bg-sky-100 px-1 py-0.5 text-xs">{{ public_path('sitemap.xml') }}</code></li>
+                        <li>Adicione no Google Search Console: <code class="rounded bg-sky-100 px-1 py-0.5 text-xs">{{ url('sitemap.xml') }}</code></li>
+                        <li>Configure para gerar automaticamente via cron job</li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-@push('scripts') 
-    <script>
-        document.addEventListener('livewire:init', () => {
-            // Configurações do Toastr
-            toastr.options = {
-                "closeButton": true,
-                "progressBar": true,
-                "positionClass": "toast-top-right",
-                "timeOut": "4000",
-                "extendedTimeOut": "1000",
-                "showEasing": "swing",
-                "hideEasing": "linear",
-                "showMethod": "fadeIn",
-                "hideMethod": "fadeOut",
-                "preventDuplicates": false,
-                "newestOnTop": true
-            };
-
-            // Listener para o evento toast
-            Livewire.on('toast', (event) => {
-                const data = Array.isArray(event) ? event[0] : event;
-                toastr[data.type](data.message);
-            });
-        });
-    </script>
-@endpush

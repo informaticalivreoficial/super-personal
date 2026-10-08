@@ -5,7 +5,7 @@
         </a>
     @else
         <a href="{{ route('web.anunciar') }}" target="_blank">
-            <img src="{{ $plan?->getFallbackImageUrl() ?? asset('theme/images/banner728x90.jpg') }}" class="banner img-fluid">
+            <img src="{{ $plan?->getFallbackImageUrl() ?? asset('images/banner728x90.jpg') }}" class="banner img-fluid">
         </a>
     @endif
 </div>

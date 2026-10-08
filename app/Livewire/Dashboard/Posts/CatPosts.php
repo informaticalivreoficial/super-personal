@@ -3,8 +3,8 @@
 namespace App\Livewire\Dashboard\Posts;
 
 use App\Models\CatPost;
-use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class CatPosts extends Component
@@ -13,13 +13,14 @@ class CatPosts extends Component
 
     public int $perPage = 25;
 
-    protected $paginationTheme = 'bootstrap';
+    protected $paginationTheme = 'tailwind';
 
     public string $search = '';
 
     protected $updatesQueryString = ['search'];
 
     public string $sortField = 'created_at';
+
     public string $sortDirection = 'desc';
 
     protected $listeners = ['category-saved' => '$refresh'];
@@ -45,7 +46,7 @@ class CatPosts extends Component
     {
         $category = CatPost::with('children')->findOrFail($id);
 
-        $newStatus = !(bool) $category->status;
+        $newStatus = ! (bool) $category->status;
 
         $category->update([
             'status' => $newStatus,
@@ -65,9 +66,10 @@ class CatPosts extends Component
         if ($category->children_count > 0) {
             $this->dispatch('swal', [
                 'title' => 'Erro!',
-                'icon'  => 'error',
-                'text'  => 'Não é possível excluir uma categoria que possui subcategorias.',
+                'icon' => 'error',
+                'text' => 'Não é possível excluir uma categoria que possui subcategorias.',
             ]);
+
             return;
         }
 
@@ -97,8 +99,8 @@ class CatPosts extends Component
 
         $this->dispatch('swal', [
             'title' => 'Excluído!',
-            'text'  => 'Categoria excluída com sucesso.',
-            'icon'  => 'success',
+            'text' => 'Categoria excluída com sucesso.',
+            'icon' => 'success',
             'timer' => 2000,
             'showConfirmButton' => false,
         ]);
@@ -120,7 +122,7 @@ class CatPosts extends Component
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
-        
+
         return view('livewire.dashboard.posts.cat-posts', [
             'title' => 'Categorias de Posts',
             'categories' => $categories,

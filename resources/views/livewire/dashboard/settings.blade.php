@@ -1,22 +1,23 @@
 <div x-data="{ open: false }" x-cloak>
     @section('title', $title)
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1><i class="fas fa-cog mr-2"></i> Configurações</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">                    
-                        <li class="breadcrumb-item"><a href="{{route('admin')}}">Painel de Controle</a></li>
-                        <li class="breadcrumb-item active">Configurações</li>
-                    </ol>
-                </div>
+
+    {{-- Cabeçalho --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a wire:navigate href="{{ route('admin') }}" title="Voltar"
+                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                <x-icon name="arrow-left" class="h-5 w-5" />
+            </a>
+            <div>
+                <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
+                    <x-icon name="cog" class="h-6 w-6 text-teal-600" />
+                    Configurações
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">Configurações / Geral</p>
             </div>
-        </div>    
+        </div>
     </div>
 
-    
     <div x-data="{
             tab: @entangle('currentTab'),
             init() {
@@ -38,34 +39,35 @@
             }
         }" class="w-full">
         <!-- Abas -->
-        <div class="flex space-x-2 border-b border-green-300">
+        <div class="card overflow-hidden">
+        <div class="flex flex-wrap gap-1 border-b border-gray-200 px-2 pt-2">
             <button type="button"
-                    class="px-4 py-4 text-sm font-medium rounded-t-lg focus:outline-none transition-all duration-200"
-                    :class="tab === 'dados' ? 'bg-white border-l border-t border-r text-blue-600' : 'text-gray-500 hover:text-blue-500'"
+                    class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
+                    :class="tab === 'dados' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'dados'">
-                📝 Dados
+                <x-icon name="document-text" class="h-4 w-4" /> Dados
             </button>
             <button type="button"
-                    class="px-4 py-2 text-sm font-medium rounded-t-lg focus:outline-none transition-all duration-200"
-                    :class="tab === 'seo' ? 'bg-white border-l border-t border-r text-blue-600' : 'text-gray-500 hover:text-blue-500'"
+                    class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
+                    :class="tab === 'seo' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'seo'">
-                📷 Seo
+                <x-icon name="magnifying-glass" class="h-4 w-4" /> Seo
             </button>
             <button type="button"
-                    class="px-4 py-2 text-sm font-medium rounded-t-lg focus:outline-none transition-all duration-200"
-                    :class="tab === 'contato' ? 'bg-white border-l border-t border-r text-blue-600' : 'text-gray-500 hover:text-blue-500'"
+                    class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
+                    :class="tab === 'contato' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'contato'">
-                📷 Informações de Contato
+                <x-icon name="envelope" class="h-4 w-4" /> Informações de Contato
             </button>
             <button type="button"
-                    class="px-4 py-2 text-sm font-medium rounded-t-lg focus:outline-none transition-all duration-200"
-                    :class="tab === 'imagens' ? 'bg-white border-l border-t border-r text-blue-600' : 'text-gray-500 hover:text-blue-500'"
+                    class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
+                    :class="tab === 'imagens' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'imagens'">
-                📷 Imagens
+                <x-icon name="photo" class="h-4 w-4" /> Imagens
             </button>
         </div>
 
-        <div class="card-body text-muted bg-white">
+        <div class="card-body">
             <form wire:submit.prevent="update" autocomplete="off"> 
                 <!-- Conteúdo da aba Dados -->
                 <div x-show="tab === 'dados'" class="bg-white" x-transition>                    
@@ -74,7 +76,7 @@
                             <div class="row mb-2 text-muted">
                                 <div class="col-12 col-md-6 col-sm-6 col-lg-6 mb-2" x-ref="configData_app_name">
                                     <div class="form-group">
-                                        <label class="labelforms"><b>Nome do site</b></label> 
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>Nome do site</b></label> 
                                         <input type="text" class="form-control @error('configData.app_name') is-invalid @enderror" placeholder="Nome do site" wire:model="configData.app_name" id="app_name">
                                         @error('configData.app_name')
                                             <span class="error erro-feedback">{{ $message }}</span>
@@ -84,25 +86,25 @@
                                 <div class="col-12 col-md-6 col-sm-6 col-lg-6 mb-2">
                                     @if(\Illuminate\Support\Facades\Auth::user()->isAdmin() || \Illuminate\Support\Facades\Auth::user()->isSuperAdmin())
                                         <div class="form-group">
-                                            <label class="labelforms"><b>URL do site</b></label>
+                                            <label class="mb-1 block text-sm font-medium text-gray-700"><b>URL do site</b></label>
                                             <div class="input-group">
                                                 <input type="text" class="form-control" placeholder="URL do site"  wire:model="configData.domain"/>
                                                 <div class="input-group-append">
                                                     <div class="input-group-text">
-                                                        <a href="#" @click.prevent="open = true" title="QrCode"><i class="fa fa-qrcode"></i></a>
+                                                        <a href="#" @click.prevent="open = true" title="QrCode"><x-icon name="solid-qr-code" class="h-4 w-4" /></a>
                                                     </div>                                                            
                                                 </div>
                                             </div>
                                         </div>
                                     @else
                                         <div class="form-group">
-                                            <label class="labelforms"><b>URL do site</b></label>
+                                            <label class="mb-1 block text-sm font-medium text-gray-700"><b>URL do site</b></label>
                                             <div class="input-group">
                                                 <input type="text" class="form-control" placeholder="URL do site" wire:model="configData.domain" disabled>
                                                 <div class="input-group-append">
                                                     <div class="input-group-text">
                                                         <a href="#" @click.prevent="open = true" title="QrCode">
-                                                            <i class="fa fa-qrcode"></i>
+                                                            <x-icon name="solid-qr-code" class="h-4 w-4" />
                                                         </a>
                                                     </div>                                                            
                                                 </div>
@@ -118,7 +120,7 @@
                             <div class="row mb-2">
                                 <div class="col-12 col-md-6 col-lg-2" x-ref="configData_zipcode"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>*CEP:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>*CEP:</b></label>
                                         <input type="text" x-mask="99.999-999" class="form-control @error('configData.zipcode') is-invalid @enderror" id="zipcode" wire:model.lazy="configData.zipcode">
                                         @error('configData.zipcode')
                                             <span class="error erro-feedback">{{ $message }}</span>
@@ -128,19 +130,19 @@
                                 
                                 <div class="col-12 col-md-4 col-lg-3"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>*Estado:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>*Estado:</b></label>
                                         <input type="text" class="form-control" id="state" wire:model="configData.state" readonly>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 col-lg-4"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>*Cidade:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>*Cidade:</b></label>
                                         <input type="text" class="form-control" id="city" wire:model="configData.city" readonly>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6 col-lg-3"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>*Rua:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>*Rua:</b></label>
                                         <input type="text" class="form-control" id="street" wire:model="configData.street" readonly>
                                     </div>
                                 </div>                                            
@@ -148,19 +150,19 @@
                             <div class="row mb-2">
                                 <div class="col-12 col-md-4 col-lg-3"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>*Bairro:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>*Bairro:</b></label>
                                         <input type="text" class="form-control" id="neighborhood" wire:model="configData.neighborhood" readonly>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6 col-lg-2"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>*Número:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>*Número:</b></label>
                                         <input type="text" class="form-control" placeholder="Número do Endereço" id="number" wire:model="configData.number">
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6 col-lg-3"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>Complemento:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>Complemento:</b></label>
                                         <input type="text" class="form-control" id="complement" wire:model="configData.complement"/>
                                     </div>
                                 </div>   
@@ -172,19 +174,19 @@
                             <div class="row mb-2">                                                        
                                 <div class="col-12 col-md-4 col-sm-4 col-lg-4"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>CNPJ:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>CNPJ:</b></label>
                                         <input type="text" class="form-control cnpjmask" placeholder="CNPJ" wire:model="configData.cnpj" id="cnpj">
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 col-sm-4 col-lg-4"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>Inscrição Estadual:</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>Inscrição Estadual:</b></label>
                                         <input type="text" class="form-control" placeholder="Inscrição Estadual" wire:model="configData.ie" id="ie">
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 col-sm-4 col-lg-4"> 
                                     <div class="form-group">
-                                        <label class="labelforms"><b>Ano de ínicio</b></label>
+                                        <label class="mb-1 block text-sm font-medium text-gray-700"><b>Ano de ínicio</b></label>
                                         <input type="text" class="form-control" placeholder="Ano de ínicio" wire:model="configData.init_date" id="init_date">
                                     </div>
                                 </div>
@@ -193,7 +195,7 @@
                     </div>
                     <div class="row mb-2">
                         <div class="col-12 pt-4" wire:ignore>   
-                            <label class="labelforms text-muted"><b>Política de Privacidade</b></label>
+                            <label class="mb-1 block text-sm font-medium text-gray-500"><b>Política de Privacidade</b></label>
                             <x-editor-quill 
                                 :value="$configData['privacy_policy']" 
                                 model="configData.privacy_policy" 
@@ -202,7 +204,7 @@
                     </div>                                       
                     <div class="row mb-2">
                         <div class="col-12 pt-4" wire:ignore>   
-                            <label class="labelforms text-muted"><b>Termos e Condições</b></label>
+                            <label class="mb-1 block text-sm font-medium text-gray-500"><b>Termos e Condições</b></label>
                             <x-editor-quill 
                                 :value="$configData['terms_condicions']" 
                                 model="configData.terms_condicions" 
@@ -273,31 +275,31 @@
                         </div>                            
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Facebook:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Facebook:</b></label>
                                 <input type="text" class="form-control" placeholder="Facebook" wire:model="configData.facebook" id="facebook">
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Twitter:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Twitter:</b></label>
                                 <input type="text" class="form-control" placeholder="Twitter" wire:model="configData.twitter" id="twitter">
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Youtube:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Youtube:</b></label>
                                 <input type="text" class="form-control" placeholder="Youtube" wire:model="configData.youtube" id="youtube">
                             </div>
                         </div>                        
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Instagram:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Instagram:</b></label>
                                 <input type="text" class="form-control" placeholder="Instagram" wire:model="configData.instagram" id="instagram">
                             </div>
                         </div>                        
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Linkedin:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Linkedin:</b></label>
                                 <input type="text" class="form-control" placeholder="Linkedin" wire:model="configData.linkedin" id="linkedin">
                             </div>
                         </div>
@@ -309,7 +311,7 @@
                         </div>
                         <div class="col-12 col-md-6 col-sm-6 col-lg-6">   
                             <div class="form-group">
-                                <label class="labelforms"><b>Mapa do Google</b> <small class="text-info">(Copie o código de incorporação do Google Maps e cole abaixo)</small></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Mapa do Google</b> <small class="text-info">(Copie o código de incorporação do Google Maps e cole abaixo)</small></label>
                                 <textarea id="inputDescription" class="form-control" rows="14" wire:model="configData.maps_google">{{ $configData['maps_google'] ?? '' }}</textarea> 
                             </div>                                                     
                         </div>
@@ -324,14 +326,14 @@
                     <div class="row p-4 border rounded shadow">
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Telefone fixo:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Telefone fixo:</b></label>
                                 <input type="text" class="form-control" placeholder="(00) 0000-0000"
                                     x-mask="(99) 9999-9999" wire:model="configData.phone" id="phone">
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>*Celular:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>*Celular:</b></label>
                                 <input type="text" class="form-control" placeholder="(00) 00000-0000"
                                     x-mask="(99) 99999-9999" wire:model="configData.cell_phone"
                                     id="cell_phone">                                    
@@ -339,7 +341,7 @@
                         </div>
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>WhatsApp:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>WhatsApp:</b></label>
                                 <input type="text" class="form-control" placeholder="(00) 00000-0000"
                                     x-mask="(99) 99999-9999" wire:model="configData.whatsapp"
                                     id="whatsapp">
@@ -347,21 +349,21 @@
                         </div>
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Email:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Email:</b></label>
                                 <input type="text" class="form-control" placeholder="Email" 
                                     wire:model="configData.email" id="email">
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Email Adicional:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Email Adicional:</b></label>
                                 <input type="text" class="form-control" placeholder="Email Alternativo" 
                                     wire:model="configData.additional_email" id="additional_email">
                             </div>
                         </div>                            
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
-                                <label class="labelforms"><b>Telegram:</b></label>
+                                <label class="mb-1 block text-sm font-medium text-gray-700"><b>Telegram:</b></label>
                                 <input type="text" class="form-control" placeholder="Telegram" 
                                     wire:model="configData.telegram" id="telegram">
                             </div>
@@ -410,10 +412,7 @@
                                     wire:loading wire:target="logo" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                    </svg>
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
                                 </div>
 
                                 <input 
@@ -469,10 +468,7 @@
                                     wire:loading wire:target="logo_admin" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                    </svg>
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
                                 </div>
 
                                 <input 
@@ -529,10 +525,7 @@
                                     wire:loading wire:target="logo_footer" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                    </svg>
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
                                 </div>
 
                                 <input 
@@ -585,10 +578,7 @@
                                     wire:loading wire:target="favicon" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                    </svg>
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
                                 </div>
 
                                 <input 
@@ -641,10 +631,7 @@
                                     wire:loading wire:target="watermark" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                    </svg>
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
                                 </div>
 
                                 <input 
@@ -699,10 +686,7 @@
                                     wire:loading wire:target="metaimg" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                    </svg>
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
                                 </div>
 
                                 <input 
@@ -754,10 +738,7 @@
                                     wire:loading wire:target="imgheader" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                    </svg>
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
                                 </div>
 
                                 <input 
@@ -778,15 +759,21 @@
                     </div>
                 </div>
 
-                <div class="row text-right mt-3">
-                    <div class="col-12 mb-4">
-                        <button type="button" wire:click="update" class="btn btn-lg btn-success p-3">
-                            <i class="nav-icon fas fa-check mr-2"></i> Atualizar Configurações
-                        </button>
-                    </div>
+                <div class="mt-6 flex justify-end border-t border-gray-100 pt-4">
+                    <button type="button" wire:click="update" class="btn btn-primary"
+                        wire:loading.attr="disabled" wire:target="update">
+                        <span wire:loading.remove wire:target="update" class="flex items-center gap-2">
+                            <x-icon name="check" class="h-4 w-4" /> Atualizar Configurações
+                        </span>
+                        <span wire:loading wire:target="update" class="flex items-center gap-2">
+                            <x-icon name="arrow-path" class="h-4 w-4 animate-spin" /> Salvando...
+                        </span>
+                    </button>
                 </div>
             </form>
-        </div>
+        </div> {{-- card-body --}}
+        </div> {{-- card --}}
+    </div>
     </div>
 
         
@@ -807,12 +794,8 @@
             <!-- Header -->
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-800">QrCode do site</h2>
-                <button @click="open = false" class="text-gray-500 hover:text-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+                <button @click="open = false" title="Fechar" class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700">
+                    <x-icon name="x-mark" class="h-5 w-5" />
                 </button>
             </div>
 

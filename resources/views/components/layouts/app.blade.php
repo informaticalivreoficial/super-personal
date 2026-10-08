@@ -4,144 +4,69 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield( 'title', env('APP_NAME') )</title>
+    <title>{{ $title ?? 'Painel' }} | {{ config('app.name', 'Super Personal') }}</title>
 
-    <link rel="icon" href="{{ asset('theme/images/chave.png')}}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('images/chave.png') }}" type="image/x-icon">
 
-    {{-- FontAwesome --}}
-    <link rel="stylesheet" href="{{ asset('theme/plugins/fontawesome-free/css/all.min.css') }}">
-    {{-- Bootstrap 4 --}}
-    <link rel="stylesheet" href="{{ asset('theme/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css') }}">
-
-    <link rel="stylesheet" href="{{ asset('theme/plugins/icheck-bootstrap/icheck-bootstrap.min.css') }}">
-    {{-- JQVMap --}}
-    <link rel="stylesheet" href="{{ asset('theme/plugins/jqvmap/jqvmap.min.css') }}">
-
-    
-    {{-- Theme style --}}
-    <link rel="stylesheet" href="{{ asset('theme/dist/css/adminlte.min.css') }}">
-    {{-- overlayScrollbars --}}
-    <link rel="stylesheet" href="{{ asset('theme/plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
-    
-    {{-- Tom Select --}}
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    
-    {{-- Toastr --}}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-
-    {{-- General Styles --}}
-    <link rel="stylesheet" href="{{ asset('theme/dist/css/styles.css') }}">
-    <link rel="stylesheet" href="{{ asset('theme/dist/css/action-buttons.css') }}">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basiclightbox@5/dist/basicLightbox.min.css">
-
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-
-    <style>
-        .basicLightbox {
-            z-index: 9999 !important;
-        }
-
-        .basicLightbox__placeholder {
-            z-index: 9999 !important;
-        }
-    </style>
-    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- Editor rico (views de posts/config legadas) --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.6/dist/quill.snow.css">
+
+    {{-- Estado da navegação (sidebar) compartilhado com os componentes --}}
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('nav', {
+                mini: localStorage.getItem('navMini') === '1',
+                mobile: false,
+                toggleMini() {
+                    this.mini = !this.mini;
+                    localStorage.setItem('navMini', this.mini ? '1' : '0');
+                },
+                openMobile() { this.mobile = true; },
+                closeMobile() { this.mobile = false; },
+            });
+        });
+    </script>
+
+    <style>[x-cloak] { display: none !important; }</style>
+    @stack('head')
 </head>
 
-<body class="hold-transition sidebar-mini text-sm">
-    <div class="wrapper">
-        <livewire:navigation.top-navigation />
-
+<body class="antialiased">
+    <div x-cloak class="min-h-screen">
         <livewire:navigation.side-navigation />
 
-        <div class="content-wrapper">
-            {{-- <div class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2">
-                        <div class="col-sm-6">
-                            <h1 class="m-0">Dashboard</h1>
-                        </div>
+        {{-- Backdrop do menu no mobile --}}
+        <div x-show="$store.nav.mobile" x-transition.opacity
+            @click="$store.nav.closeMobile()"
+            class="fixed inset-0 z-30 bg-gray-950/60 backdrop-blur-sm lg:hidden"></div>
 
-                        <div class="col-sm-6">
-                            <ol class="breadcrumb float-sm-right">
-                                <li class="breadcrumb-item"><a href="#">Home</a></li>
-                                <li class="breadcrumb-item active">Dashboard v1</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div> --}}
+        <div class="flex min-h-screen flex-col transition-[padding] duration-200"
+            :class="$store.nav.mini ? 'lg:pl-20' : 'lg:pl-64'">
+            <livewire:navigation.top-navigation />
 
-            <section class="content">
-                <div class="container-fluid">
-                    {{ $slot }}
-                </div>
-            </section>
+            <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+                {{ $slot }}
+            </main>
+
+            <livewire:navigation.footer />
         </div>
-
-        <livewire:navigation.footer />
     </div>
 
     @auth
         <livewire:components.support-modal />
-        <livewire:components.toastr-notification />
     @endauth
+    <livewire:components.toastr-notification />
 
-    {{-- jQuery --}}
-    <script src="{{ asset('theme/plugins/jquery/jquery.min.js') }}"></script> 
-
-    {{-- Bootstrap 4 --}}
-    <script src="{{ asset('theme/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-
-    <script src="{{ asset('theme/plugins/sparklines/sparkline.js') }}"></script>
-
-    {{-- JQVMap --}}
-    <script src="{{ asset('theme/plugins/jqvmap/jquery.vmap.min.js') }}"></script>
-    
-    {{-- daterangepicker --}}
-    <script src="{{ asset('theme/plugins/moment/moment.min.js') }}"></script>
-
-    {{-- Tempusdominus Bootstrap 4 --}}
-    <script src="{{ asset('theme/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js') }}"></script>
-
-    
-    {{-- Tom Select --}}
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-
-    {{-- overlayScrollbars --}}
-    <script src="{{ asset('theme/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
-
-    <script src="{{ asset('theme/dist/js/adminlte.js') }}"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    {{-- Toastr --}}
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/basiclightbox@5/dist/basicLightbox.min.js"></script>
-
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-    <script src="https://unpkg.com/quill-image-resize-module/image-resize.min.js"></script>
-
-    {{-- 👈 Registra UMA vez aqui, antes do alpine:init --}}
+    {{-- SweetAlert global: eventos dispatch('swal:*') --}}
     <script>
-        if (typeof ImageResize !== 'undefined') {
-            Quill.register('modules/imageResize', ImageResize.default, true);
-        }
-    </script>
-
-    @stack('scripts') 
-
-    <script>
-        // Listener genérico para todos os tipos de SweetAlert
         ['swal', 'swal:error', 'swal:success', 'swal:info', 'swal:warning'].forEach(eventName => {
             window.addEventListener(eventName, (event) => {
                 const data = event.detail?.[0] ?? {};
 
-                // Define o ícone baseado no tipo de evento
                 let defaultIcon = 'info';
                 if (eventName === 'swal:error') defaultIcon = 'error';
                 if (eventName === 'swal:success') defaultIcon = 'success';
@@ -158,7 +83,6 @@
             });
         });
 
-        // Listener para confirmação (precisa de lógica especial)
         window.addEventListener('swal:confirm', (event) => {
             const data = event.detail?.[0] ?? {};
 
@@ -175,7 +99,18 @@
                 }
             });
         });
+    </script>
 
+    {{-- Editor Quill integrado ao Livewire (views legadas) --}}
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.6/dist/quill.min.js"></script>
+    <script src="https://unpkg.com/quill-image-resize-module/image-resize.min.js"></script>
+    <script>
+        if (typeof ImageResize !== 'undefined') {
+            Quill.register('modules/imageResize', ImageResize.default, true);
+        }
+    </script>
+
+    <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('quillEditor', ({ value, model }) => ({
                 quill: null,
@@ -306,5 +241,8 @@
             }));
         });
     </script>
+
+    @stack('scripts')
 </body>
+
 </html>

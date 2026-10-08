@@ -3,15 +3,15 @@
 namespace App\Livewire\Dashboard\Users;
 
 use App\Models\User;
-use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class Time extends Component
 {
     use WithPagination;
 
-    protected $paginationTheme = 'bootstrap';
+    protected $paginationTheme = 'tailwind';
 
     public string $search = '';
 
@@ -21,9 +21,9 @@ class Time extends Component
 
     public string $sortDirection = 'asc';
 
-    public bool $active;    
+    public bool $active;
 
-    #{Url}
+    // {Url}
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -42,9 +42,9 @@ class Time extends Component
     }
 
     public function toggleStatus($id)
-    {              
+    {
         $user = User::findOrFail($id);
-        $user->status = !$user->status;        
+        $user->status = ! $user->status;
         $user->save();
     }
 
@@ -59,13 +59,14 @@ class Time extends Component
             'cancelButtonText' => 'Cancelar',
             'confirmEvent' => 'deleteUser',
             'confirmParams' => [$id],
-        ]);        
+        ]);
     }
+
     #[On('deleteUser')]
     public function deleteUser($id): void
     {
         $user = User::where('id', $id)->first();
-        if(!empty($user)){
+        if (! empty($user)) {
             $this->authorize('delete', $user);
             $user->delete();
 
@@ -73,7 +74,7 @@ class Time extends Component
                 'title' => 'Excluído!',
                 'text' => 'Usuário removido com sucesso!',
                 'timer' => 2000,
-                'showConfirmButton' => false
+                'showConfirmButton' => false,
             ]);
         }
     }
@@ -83,17 +84,17 @@ class Time extends Component
         $title = 'Time de Usuários';
 
         $users = User::role(['manager', 'super-admin']) // Filtra por roles
-            ->when($this->search, function($query) {
-                $query->where(function($q) {
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
                     $q->where('name', 'LIKE', "%{$this->search}%")
-                    ->orWhere('email', 'LIKE', "%{$this->search}%");
+                        ->orWhere('email', 'LIKE', "%{$this->search}%");
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(15);
 
         return view('livewire.dashboard.users.time', [
-            'users' => $users
-        ])->with('title', $title);        
+            'users' => $users,
+        ])->with('title', $title);
     }
 }

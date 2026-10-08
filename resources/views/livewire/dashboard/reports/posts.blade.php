@@ -1,19 +1,20 @@
 <div>
     @section('title', $title)
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1><i class="fas fa-chart-bar mr-2"></i> Relatórios de Posts</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">                    
-                        <li class="breadcrumb-item"><a href="{{route('admin')}}">Painel de Controle</a></li>
-                        <li class="breadcrumb-item active">Relatórios de posts</li>
-                    </ol>
-                </div>
+    {{-- Cabeçalho --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a wire:navigate href="{{ route('admin') }}" title="Voltar"
+                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                <x-icon name="arrow-left" class="h-5 w-5" />
+            </a>
+            <div>
+                <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
+                    <x-icon name="chart-bar" class="h-6 w-6 text-teal-600" />
+                    Relatórios de Posts
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">Posts / Relatórios</p>
             </div>
-        </div>    
+        </div>
     </div>
 
     <div class="card">
@@ -69,6 +70,7 @@
 </div>
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('livewire:init', function () {
     let chart;
