@@ -7,6 +7,7 @@ use App\Http\Requests\StoreProgressRequest;
 use App\Http\Resources\StudentProgressResource;
 use App\Models\Student;
 use App\Models\StudentProgress;
+use App\Services\StudentProgressService;
 use Illuminate\Http\Request;
 
 class ProgressController extends ApiController
@@ -21,15 +22,11 @@ class ProgressController extends ApiController
         return StudentProgressResource::collection($progress);
     }
 
-    public function store(StoreProgressRequest $request, Student $student)
+    public function store(StoreProgressRequest $request, Student $student, StudentProgressService $service)
     {
         $this->authorize('create', [StudentProgress::class, $student]);
 
-        $progress = new StudentProgress;
-        $progress->teacher_id = $student->teacher_id;
-        $progress->student_id = $student->id;
-        $progress->fill($request->validated());
-        $progress->save();
+        $progress = $service->store($student, $request->validated());
 
         return (new StudentProgressResource($progress))->response()->setStatusCode(201);
     }

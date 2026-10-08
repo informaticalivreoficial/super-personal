@@ -167,7 +167,7 @@ sports ──1:N── training_sessions (restrict)
     global (`teacher_id` null) ou do tenant, `deleted_at` null.
 - **Biblioteca (modalidades + exercícios)** — menu "Biblioteca":
   - **Modalidades (`sports`)** — catálogo **global** (compartilhado por todos
-    os tenants). Mutuações **exclusivas do admin** de plataforma:
+    os tenants). Mutações **exclusivas do admin** de plataforma:
     `SportPolicy::before()` + rotas `sports.*` com `role:admin`;
     `SportService::delete` lança `ValidationException` se houver exercises/
     sessions vinculados.
@@ -179,6 +179,22 @@ sports ──1:N── training_sessions (restrict)
   - Componentes `Sports/{SportIndex,SportForm}` e
     `Exercises/{ExerciseIndex,ExerciseForm}` + Form Requests
     `Store/Update{Sport,Exercise}Request` + `SportService`/`ExerciseService`.
+- **Acompanhamento do aluno** — `GET /admin/alunos/{id}/acompanhamento`
+  (`students.tracking`) → `Students\StudentTracking` (botão no cabeçalho do
+  `StudentShow`):
+  - KPIs: execuções concluídas no mês, aderência ao plano ativo
+    (concluídas/(total − canceladas)), última execução e nº de avaliações.
+  - **Avaliações** (`student_progress`): histórico paginado (paginator
+    `avaliacoes`) + formulário "Nova avaliação" validado por
+    `StoreProgressRequest`; escrita via `StudentProgressService::store`
+    (também usado pela API `Teacher\ProgressController::store` — caminho
+    único; `teacher_id`/`student_id` vêm do aluno).
+  - **Execuções** (`training_executions`): histórico paginado (paginator
+    `execucoes`) com status, duração (segundos) e distância (metros)
+    formatados; duração/distância são unidades canônicas da API.
+  - Cuidados: `TrainingPlan::sessions()` é `HasManyThrough` (retorno
+    corrigido) e as colunas `status` são qualificadas
+    (`training_sessions.status`) porque `training_weeks` também tem `status`.
 
 ### Visual — painel 100% Tailwind (sem AdminLTE)
 
@@ -233,7 +249,7 @@ sports ──1:N── training_sessions (restrict)
     semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
   - `PaymentCrudTest` — isolamento, `paid_at` automático, marcar como pago,
     404 cross-tenant, smoke das 3 rotas.
-  - `PanelRoutesSmokeTest` — as 25 rotas do domínio `/admin/*` retornam 200
+  - `PanelRoutesSmokeTest` — as 26 rotas do domínio `/admin/*` retornam 200
     para teacher (cria ConfigTableSeeder; pegou o 500 de Configurações);
     fase admin cobre as rotas exclusivas de plataforma (`/admin/usuarios/{id}/editar`,
     `/admin/usuarios/{id}/visualizar`, `/admin/modalidades*`); teacher recebe
@@ -244,7 +260,11 @@ sports ──1:N── training_sessions (restrict)
     exclusão com vínculos, isolamento global.
   - `ExerciseCrudTest` (11) — professor só edita os próprios, globais somente
     leitura, admin edita todos, unique por dono, 404 cross-tenant.
-  - **Total: 102 testes / 271 assertions** (23 API + 79 painel).
+  - `StudentTrackingTest` (11) — página de acompanhamento (resumo, aderência
+    50%, estados vazios), acesso (login/papel/404 cross-tenant), registro de
+    avaliação (ownership, data, ranges), AuthorizationException no componente
+    cross-tenant, admin preservando `teacher_id` do aluno.
+  - **Total: 113 testes / 306 assertions** (23 API + 90 painel).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -270,8 +290,8 @@ sports ──1:N── training_sessions (restrict)
 
 ## Fora do escopo atual
 
-- Próximo incremento da Fase 2: acompanhamento de execuções/progresso dos
-  alunos no painel (usa `TrainingExecutionService`/`student_progress`).
+- Próximo incremento da Fase 2: gestão de notificações/mensagens aos alunos
+  no painel ou CRUD de notas do aluno (`student_notes`).
 - Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
   (foram des-spatiadas, mas podem ser removidas num futuro product pass).
 - Swagger (docs manuais), refresh token, gateway de pagamento,

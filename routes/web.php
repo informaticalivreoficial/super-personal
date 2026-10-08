@@ -23,6 +23,7 @@ use App\Livewire\Dashboard\Sports\SportIndex;
 use App\Livewire\Dashboard\Students\StudentForm;
 use App\Livewire\Dashboard\Students\StudentIndex;
 use App\Livewire\Dashboard\Students\StudentShow;
+use App\Livewire\Dashboard\Students\StudentTracking;
 use App\Livewire\Dashboard\Users\Form;
 use App\Livewire\Dashboard\Users\Time;
 use App\Livewire\Dashboard\Users\Users;
@@ -60,6 +61,7 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
     Route::get('alunos', StudentIndex::class)->name('students.index');
     Route::get('alunos/cadastrar', StudentForm::class)->name('students.create');
     Route::get('alunos/{student}/editar', StudentForm::class)->name('students.edit');
+    Route::get('alunos/{student}/acompanhamento', StudentTracking::class)->name('students.tracking');
     Route::get('alunos/{student}', StudentShow::class)->name('students.show');
 
     // *********************** Planos de treino *************************************/
