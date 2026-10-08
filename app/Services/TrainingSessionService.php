@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SessionItemType;
 use App\Models\TrainingSession;
 use App\Models\TrainingSessionItem;
 use App\Models\TrainingWeek;
@@ -48,6 +49,82 @@ class TrainingSessionService
         $session->delete();
     }
 
+    // *********************** Itens da sessão **************************************/
+
+    /**
+     * Adiciona um item ao fim da composição da sessão.
+     */
+    public function storeItem(TrainingSession $session, array $data): TrainingSessionItem
+    {
+        return DB::transaction(function () use ($session, $data) {
+            $nextOrder = (int) $session->items()->max('sort_order') + 1;
+
+            $item = new TrainingSessionItem;
+            $item->training_session_id = $session->id;
+            $item->fill($this->filterItem($data));
+            $item->type = $data['type'] ?? SessionItemType::WORK;
+            $item->sort_order = $nextOrder;
+            $item->save();
+
+            return $item;
+        });
+    }
+
+    public function updateItem(TrainingSessionItem $item, array $data): TrainingSessionItem
+    {
+        return DB::transaction(function () use ($item, $data) {
+            $item->fill($this->filterItem($data));
+
+            if (array_key_exists('type', $data)) {
+                $item->type = $data['type'];
+            }
+
+            $item->save();
+
+            return $item;
+        });
+    }
+
+    public function deleteItem(TrainingSessionItem $item): void
+    {
+        DB::transaction(function () use ($item) {
+            $session = $item->session;
+            $item->delete();
+            $this->renumberItems($session);
+        });
+    }
+
+    /**
+     * Move o item uma posição para cima (-1) ou para baixo (+1).
+     */
+    public function moveItem(TrainingSessionItem $item, int $direction): void
+    {
+        DB::transaction(function () use ($item, $direction) {
+            $items = $item->session->items()->get()->values();
+            $index = $items->search(fn (TrainingSessionItem $candidate) => $candidate->id === $item->id);
+
+            if ($index === false) {
+                return;
+            }
+
+            $target = $index + $direction;
+
+            if ($target < 0 || $target >= $items->count()) {
+                return;
+            }
+
+            $items->splice($index, 1);
+            $items->splice($target, 0, [$item]);
+
+            foreach ($items as $position => $candidate) {
+                if ($candidate->sort_order !== $position + 1) {
+                    $candidate->sort_order = $position + 1;
+                    $candidate->save();
+                }
+            }
+        });
+    }
+
     /**
      * Remove chaves que não são preenchíveis no model (ex.: itens).
      *
@@ -60,14 +137,40 @@ class TrainingSessionService
             ->all();
     }
 
+    /**
+     * Chaves preenchíveis de um item (ids/ordem são responsabilidade do service).
+     *
+     * @return array<string, mixed>
+     */
+    private function filterItem(array $data): array
+    {
+        return collect($data)
+            ->except(['training_session_id', 'sort_order', 'type'])
+            ->all();
+    }
+
     private function syncItems(TrainingSession $session, array $items): void
     {
         foreach (array_values($items) as $index => $item) {
             $model = new TrainingSessionItem;
             $model->training_session_id = $session->id;
             $model->fill(collect($item)->except(['training_session_id', 'sort_order'])->all());
+            $model->type = $item['type'] ?? SessionItemType::WORK;
             $model->sort_order = $item['sort_order'] ?? $index + 1;
             $model->save();
         }
+    }
+
+    /**
+     * Renumera 1..N após remoção (mantém a ordem estável para a UI).
+     */
+    private function renumberItems(TrainingSession $session): void
+    {
+        $session->items()->get()->each(function (TrainingSessionItem $item, int $index) {
+            if ($item->sort_order !== $index + 1) {
+                $item->sort_order = $index + 1;
+                $item->save();
+            }
+        });
     }
 }

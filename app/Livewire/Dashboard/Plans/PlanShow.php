@@ -47,6 +47,9 @@ class PlanShow extends Component
     // Estado do formulário de sessão
     public $expandedWeekId = null;
 
+    // Sessão com a composição (itens) expandida
+    public $expandedItemsId = null;
+
     public bool $showSessionForm = false;
 
     public $editingSessionId = null;
@@ -155,6 +158,7 @@ class PlanShow extends Component
             $this->closeSessionForm();
         }
 
+        $this->expandedItemsId = null;
         $this->resetWeekForm();
         $this->toastSuccess('Semana excluída com sucesso.');
     }
@@ -164,7 +168,28 @@ class PlanShow extends Component
     public function toggleSessions($weekId): void
     {
         $this->closeSessionForm();
+        $this->expandedItemsId = null;
         $this->expandedWeekId = $this->expandedWeekId === $weekId ? null : $weekId;
+    }
+
+    /**
+     * Abre/fecha a composição (itens) de uma sessão.
+     */
+    public function toggleItems($sessionId): void
+    {
+        $session = TrainingSession::findOrFail($sessionId);
+        Gate::authorize('view', $session);
+
+        if ($this->expandedItemsId === $sessionId) {
+            $this->expandedItemsId = null;
+
+            return;
+        }
+
+        $this->closeSessionForm();
+        $this->expandedItemsId = $sessionId;
+        // Garante que a semana da sessão esteja exposta (a composição vive no acordeão).
+        $this->expandedWeekId = $session->training_week_id;
     }
 
     public function openSessionForm($weekId): void
@@ -173,6 +198,7 @@ class PlanShow extends Component
         Gate::authorize('create', TrainingSession::class);
 
         $this->resetSessionForm();
+        $this->expandedItemsId = null;
         $this->sessionWeekId = $week->id;
         $this->session['scheduled_date'] = $week->start_date?->format('Y-m-d');
         $this->showSessionForm = true;
@@ -185,6 +211,7 @@ class PlanShow extends Component
         Gate::authorize('update', $session);
 
         $this->resetSessionForm();
+        $this->expandedItemsId = null;
         $this->editingSessionId = $session->id;
         $this->sessionWeekId = $session->training_week_id;
         $this->session = [
@@ -246,6 +273,11 @@ class PlanShow extends Component
         Gate::authorize('delete', $session);
 
         $service->delete($session);
+
+        if ($this->expandedItemsId === $sessionId) {
+            $this->expandedItemsId = null;
+        }
+
         $this->toastSuccess('Sessão excluída com sucesso.');
     }
 

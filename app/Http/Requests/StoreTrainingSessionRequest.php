@@ -51,7 +51,14 @@ class StoreTrainingSessionRequest extends FormRequest
             'items.*.target' => ['nullable', 'string', 'max:30'],
             'items.*.intensity' => ['nullable', 'string', 'max:30'],
             'items.*.sort_order' => ['nullable', 'integer', 'min:0'],
-            'items.*.exercise_id' => ['nullable', 'exists:exercises,id'],
+            'items.*.exercise_id' => [
+                'nullable',
+                Rule::exists('exercises', 'id')
+                    ->whereNull('deleted_at')
+                    ->where(function ($query) use ($teacherId) {
+                        $query->whereNull('teacher_id')->orWhere('teacher_id', $teacherId);
+                    }),
+            ],
         ];
     }
 }

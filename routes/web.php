@@ -4,6 +4,8 @@ use App\Http\Controllers\Web\SiteController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Dashboard\Dashboard;
+use App\Livewire\Dashboard\Exercises\ExerciseForm;
+use App\Livewire\Dashboard\Exercises\ExerciseIndex;
 use App\Livewire\Dashboard\Payments\PaymentForm;
 use App\Livewire\Dashboard\Payments\PaymentIndex;
 use App\Livewire\Dashboard\Plans\PlanForm;
@@ -16,6 +18,8 @@ use App\Livewire\Dashboard\Posts\Posts;
 use App\Livewire\Dashboard\Reports\Posts as ReportsPosts;
 use App\Livewire\Dashboard\Settings;
 use App\Livewire\Dashboard\Sitemap\SitemapGenerator;
+use App\Livewire\Dashboard\Sports\SportForm;
+use App\Livewire\Dashboard\Sports\SportIndex;
 use App\Livewire\Dashboard\Students\StudentForm;
 use App\Livewire\Dashboard\Students\StudentIndex;
 use App\Livewire\Dashboard\Students\StudentShow;
@@ -68,6 +72,20 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
     Route::get('pagamentos', PaymentIndex::class)->name('payments.index');
     Route::get('pagamentos/cadastrar', PaymentForm::class)->name('payments.create');
     Route::get('pagamentos/{payment}/editar', PaymentForm::class)->name('payments.edit');
+
+    // *********************** Biblioteca de exercícios *****************************/
+    Route::get('exercicios', ExerciseIndex::class)->name('exercises.index');
+    Route::get('exercicios/cadastrar', ExerciseForm::class)->name('exercises.create');
+    Route::get('exercicios/{exercise}/editar', ExerciseForm::class)->name('exercises.edit');
+
+    // *********************** Modalidades (catálogo global) ************************
+    // Sports não têm tenant: criação/edição/exclusão é exclusiva do admin da
+    // plataforma (SportPolicy); o professor apenas consulta no dropdown das sessões.
+    Route::group(['middleware' => 'role:admin'], function () {
+        Route::get('modalidades', SportIndex::class)->name('sports.index');
+        Route::get('modalidades/cadastrar', SportForm::class)->name('sports.create');
+        Route::get('modalidades/{sport}/editar', SportForm::class)->name('sports.edit');
+    });
 
     // *********************** Resíduos do starter (remover na Fase 2) *************/
     Route::get('configuracoes', Settings::class)->name('settings');

@@ -256,9 +256,9 @@
 
                                                     <div class="col-md-3">
                                                         <div class="form-group">
-                                                            <label for="session_duration">Duração (min)</label>
+                                                            <label for="session_duration">Duração (s)</label>
                                                             <input type="number" min="0" class="form-control @error('session.estimated_duration') is-invalid @enderror"
-                                                                id="session_duration" wire:model="session.estimated_duration">
+                                                                id="session_duration" wire:model="session.estimated_duration" placeholder="Ex.: 3600">
                                                             @error('session.estimated_duration')
                                                                 <span class="invalid-feedback">{{ $message }}</span>
                                                             @enderror
@@ -367,7 +367,7 @@
                                                             @endif
                                                         </td>
                                                         <td>{{ $sessionItem->sport?->name ?? '—' }}</td>
-                                                        <td class="text-center">{{ $sessionItem->estimated_duration ? $sessionItem->estimated_duration . ' min' : '—' }}</td>
+                                                        <td class="text-center">{{ $sessionItem->estimated_duration ? round($sessionItem->estimated_duration / 60) . ' min' : '—' }}</td>
                                                         <td class="text-center">{{ $sessionItem->distance ? number_format($sessionItem->distance / 1000, 2, ',', '.') . ' km' : '—' }}</td>
                                                         <td class="text-center">
                                                             <span class="badge {{ $sessionItem->status->value === 'completed' ? 'badge-success' : ($sessionItem->status->value === 'planned' ? 'badge-info' : 'badge-secondary') }}">
@@ -376,6 +376,11 @@
                                                         </td>
                                                         <td>
                                                             <div class="flex items-center justify-center gap-1">
+                                                                <button type="button" class="btn btn-xs btn-secondary"
+                                                                    wire:click="toggleItems({{ $sessionItem->id }})"
+                                                                    title="Composição (itens)">
+                                                                    <x-icon name="list-bullet" class="h-4 w-4" />
+                                                                </button>
                                                                 <button type="button" class="btn btn-xs btn-secondary"
                                                                     wire:click="editSession({{ $sessionItem->id }})" title="Editar">
                                                                     <x-icon name="pencil" class="h-4 w-4" />
@@ -388,6 +393,9 @@
                                                             </div>
                                                         </td>
                                                     </tr>
+                                                    @if ($expandedItemsId === $sessionItem->id)
+                                                        @livewire('dashboard.plans.session-items', ['session' => $sessionItem], key('session-items-' . $sessionItem->id))
+                                                    @endif
                                                 @endforeach
                                             </tbody>
                                         </table>

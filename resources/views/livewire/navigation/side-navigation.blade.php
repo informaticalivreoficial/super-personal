@@ -112,6 +112,48 @@
                 </a>
             </li>
 
+            {{-- Biblioteca (exercícios + modalidades) --}}
+            <li x-data="{ open: {{ Route::is(['exercises.*', 'sports.*']) ? 'true' : 'false' }} }">
+                <button type="button" @click="open = !open"
+                    @class([
+                        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                        Route::is(['exercises.*', 'sports.*'])
+                            ? 'bg-teal-600/15 text-teal-300'
+                            : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                    ])>
+                    <x-icon name="queue-list" class="h-5 w-5 shrink-0" />
+                    <span class="flex-1 truncate text-left" :class="$store.nav.mini ? 'lg:hidden' : ''">Biblioteca</span>
+                    <x-icon name="chevron-down"
+                        class="h-4 w-4 shrink-0 transition-transform"
+                        x-bind:class="open && 'rotate-180'" />
+                </button>
+                <ul x-show="open" x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+                    class="mt-1 space-y-1 border-l border-white/10 pl-4 ml-5"
+                    :class="$store.nav.mini ? 'lg:hidden' : ''">
+                    <li>
+                        <a href="{{ route('exercises.index') }}" wire:navigate
+                            @class([
+                                'block rounded-lg px-3 py-2 text-sm transition',
+                                Route::is('exercises.*') ? 'text-teal-300' : 'text-gray-500 hover:text-white',
+                            ])>
+                            Exercícios
+                        </a>
+                    </li>
+                    @if (auth()->user()->isPlatformAdmin())
+                        <li>
+                            <a href="{{ route('sports.index') }}" wire:navigate
+                                @class([
+                                    'block rounded-lg px-3 py-2 text-sm transition',
+                                    Route::is('sports.*') ? 'text-teal-300' : 'text-gray-500 hover:text-white',
+                                ])>
+                                Modalidades
+                            </a>
+                        </li>
+                    @endif
+                </ul>
+            </li>
+
             @if (auth()->user()->isPlatformAdmin())
                 <li class="pt-4">
                     <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-600"
