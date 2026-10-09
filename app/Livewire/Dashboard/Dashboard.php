@@ -7,7 +7,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Painel do SaaS: visão geral do professor (ou do admin, com dados globais).
+ * Painel do SaaS: visão geral do professor (tenant) ou do admin
+ * (visão da plataforma: tenants, alunos e assinaturas).
  * Substitui o dashboard legado de blog (imports inexistentes removidos).
  */
 class Dashboard extends Component
@@ -15,9 +16,13 @@ class Dashboard extends Component
     #[Title('Painel de Controle')]
     public function render(DashboardService $dashboard)
     {
-        // Admin vê globais (global scope sem filtro); professor vê só o próprio tenant.
+        $isAdmin = (bool) auth()->user()?->isPlatformAdmin();
+
         return view('livewire.dashboard.dashboard', [
-            'stats' => $dashboard->teacherDashboard(),
+            'isAdmin' => $isAdmin,
+            'stats' => $isAdmin
+                ? $dashboard->platformDashboard()
+                : $dashboard->teacherDashboard(),
         ]);
     }
 }

@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Enums\PaymentStatus;
+use App\Enums\SubscriptionStatus;
 use App\Enums\TrainingSessionStatus;
 use App\Models\Payment;
 use App\Models\Student;
+use App\Models\Subscription;
+use App\Models\Teacher;
 use App\Models\TrainingPlan;
 use App\Models\TrainingSession;
 
@@ -44,6 +47,49 @@ class DashboardService
                     ->whereMonth('paid_at', now()->month)
                     ->whereYear('paid_at', now()->year)
                     ->sum('amount'),
+            ],
+        ];
+    }
+
+    /**
+     * Visão geral da plataforma (admin) — tenants, alunos e assinaturas.
+     * Só é chamada para isPlatformAdmin(); os modelos com escopo `tenant`
+     * não filtram para admin (acesso global).
+     *
+     * @return array<string, mixed>
+     */
+    public function platformDashboard(): array
+    {
+        return [
+            'teachers' => [
+                'total' => Teacher::count(),
+                'active' => Teacher::where('active', true)->count(),
+                'new_this_month' => Teacher::whereBetween('created_at', [
+                    now()->startOfMonth(),
+                    now()->endOfMonth(),
+                ])->count(),
+            ],
+            'students' => [
+                'total' => Student::count(),
+                'active' => Student::where('active', true)->count(),
+            ],
+            'subscriptions' => [
+                'active' => Subscription::where('status', SubscriptionStatus::ACTIVE)->count(),
+                'trial' => Subscription::where('status', SubscriptionStatus::TRIAL)->count(),
+                'past_due' => Subscription::where('status', SubscriptionStatus::PAST_DUE)->count(),
+                'without' => Teacher::whereDoesntHave('subscription')->count(),
+                'monthly_amount' => (float) Subscription::where('status', SubscriptionStatus::ACTIVE)->sum('amount'),
+            ],
+            'trainings' => [
+                'today' => TrainingSession::whereDate('scheduled_date', now()->toDateString())->count(),
+            ],
+            'payments' => [
+                'overdue_count' => Payment::where('status', PaymentStatus::OVERDUE)
+                    ->orWhere(function ($query) {
+                        $query->where('status', PaymentStatus::PENDING)
+                            ->where('due_date', '<', now()->toDateString());
+                    })
+                    ->count(),
             ],
         ];
     }

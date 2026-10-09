@@ -119,6 +119,15 @@ sports ──1:N── training_sessions (restrict)
   usuário inativo (`status != 1`), student, professor inativo (`teachers.active = false`).
 - Assets Vite: `vendor/bin/sail npm install && vendor/bin/sail npm run build`
   (sem `public/build` as views 500 com "Vite manifest not found").
+- **Dashboard** — `/admin` (`App\Livewire\Dashboard\Dashboard`) bifurca por
+  perfil: professor vê os KPIs do próprio tenant (`teacherDashboard()`);
+  **admin vê a visão da plataforma** (`isPlatformAdmin()` →
+  `DashboardService::platformDashboard()`): professores (total/ativos/novos
+  no mês), alunos (total/ativos), assinaturas (ativas/trial/em atraso/sem
+  assinatura + receita mensal = soma dos planos ativos), treinos hoje,
+  pagamentos/assinaturas em atraso e acesso rápido (Professores, Novo
+  professor, Modalidades, Configurações). A API `GET /teacher/dashboard`
+  continua em `teacherDashboard()` (inalterada).
 - **CRUD de Alunos** — componentes full-page em `app/Livewire/Dashboard/Students/`:
   - `StudentIndex` (busca/paginação/toggle ativo/exclusão lógica), `StudentForm`
     (create+edit), `StudentShow` (dados + plano ativo + pagamentos).
@@ -344,7 +353,9 @@ sports ──1:N── training_sessions (restrict)
   - `SubscriptionManagementTest` (7) — assinaturas do professor no admin
     (badge no index, card na edição, criação/atualização, validação,
     `cancelled_at` automático, 403 para professor).
-  - **Total: 162 testes / 475 assertions** (23 API + 120 painel + 11 console
+  - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
+    receita, agregação cross-tenant via service, professor vê o próprio).
+  - **Total: 165 testes / 494 assertions** (23 API + 123 painel + 11 console
     + 8 notificações).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
@@ -372,8 +383,9 @@ sports ──1:N── training_sessions (restrict)
 ## Fora do escopo atual
 
 - Próximo incremento da Fase 2: product pass para remover as páginas
-  legadas de blog/usuarios/settings, dashboard/métricas da plataforma para
-  o admin, ou início da Fase 3 (app Android sobre a API REST).
+  legadas de blog/usuarios/settings, ou início da Fase 3 (app Android sobre
+  a API REST), ou refinos do MVP (ex.: página de assinatura vista pelo
+  próprio professor).
 - Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
   (foram des-spatiadas, mas podem ser removidas num futuro product pass).
 - Swagger (docs manuais), refresh token, gateway de pagamento,
