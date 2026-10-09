@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Assinatura do professor COM a plataforma SaaS.
- * Não misturar com Payment (cobrança do aluno ao professor).
+ * Assinatura do treinador COM a plataforma SaaS.
+ * Não misturar com Payment (cobrança do aluno ao treinador).
  * Estrutura preparada — regras de billing virão numa fase futura.
  */
 class Subscription extends Model

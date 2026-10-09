@@ -28,7 +28,7 @@ class StudentProgressPolicy
     }
 
     /**
-     * Só o professor dono do aluno registra avaliação.
+     * Só o treinador dono do aluno registra avaliação.
      */
     public function create(User $user, Student $student): bool
     {

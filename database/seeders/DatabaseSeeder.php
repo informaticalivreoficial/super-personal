@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             ConfigTableSeeder::class,
-            // SaaS — base de dados do Super Personal
+            // SaaS — base de dados do SportPlan
             AdminSeeder::class,
             TeacherSeeder::class,
             SportSeeder::class,

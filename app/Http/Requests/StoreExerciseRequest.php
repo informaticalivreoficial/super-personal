@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Exercício da biblioteca (global do catálogo ou do próprio professor).
+ * Exercício da biblioteca (global do catálogo ou do próprio treinador).
  */
 class StoreExerciseRequest extends FormRequest
 {

@@ -30,7 +30,7 @@ Route::prefix('v1')->group(function () {
 
     /** Autenticação */
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
-    // Registro do aluno no app com o código de convite do professor.
+    // Registro do aluno no app com o código de convite do treinador.
     Route::post('auth/student-register', [AuthController::class, 'studentRegister'])->middleware('throttle:10,1');
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -59,7 +59,7 @@ Route::prefix('v1')->group(function () {
             Route::get('notifications', [StudentNotifications::class, 'index']);
         });
 
-        /** Professor (gestão de alunos, treinos e pagamentos) */
+        /** Treinador (gestão de alunos, treinos e pagamentos) */
         Route::middleware('role:teacher')->prefix('teacher')->group(function () {
             Route::get('dashboard', TeacherDashboard::class);
 

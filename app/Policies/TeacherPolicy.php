@@ -6,8 +6,8 @@ use App\Models\Teacher;
 use App\Models\User;
 
 /**
- * Gestão de professores (tenants) é exclusiva do admin da plataforma.
- * O professor não gerencia outros professores; o próprio perfil
+ * Gestão de treinadores (tenants) é exclusiva do admin da plataforma.
+ * O treinador não gerencia outros treinadores; o próprio perfil
  * (edição de dados públicos) entra num incremento próprio depois.
  */
 class TeacherPolicy

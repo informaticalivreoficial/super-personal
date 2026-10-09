@@ -33,10 +33,10 @@ class PlatformDashboardTest extends TestCase
         $this->get(route('admin'))
             ->assertOk()
             ->assertSee('Visão geral da plataforma')
-            ->assertSee('Professores (tenants)')
+            ->assertSee('Treinadores (tenants)')
             ->assertSee('Assinaturas ativas')
             ->assertSee('R$ 199,90')
-            ->assertSee('Novo professor')
+            ->assertSee('Novo treinador')
             ->assertDontSee('Visão geral do seu trabalho');
     }
 

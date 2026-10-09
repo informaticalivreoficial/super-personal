@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Assinatura do professor COM a plataforma (billing manual — sem gateway).
+ * Assinatura do treinador COM a plataforma (billing manual — sem gateway).
  * Reaproveitada no create e no update (não há restrição única).
  */
 class StoreSubscriptionRequest extends FormRequest

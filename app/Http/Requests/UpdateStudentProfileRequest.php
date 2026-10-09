@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Edição do próprio perfil pelo aluno (campos seguros).
- * Campos de treino/avaliação são de responsabilidade do professor.
+ * Campos de treino/avaliação são de responsabilidade do treinador.
  */
 class UpdateStudentProfileRequest extends FormRequest
 {

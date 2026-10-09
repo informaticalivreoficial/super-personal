@@ -7,17 +7,17 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Isolamento multi-tenant (tenant = professor).
+ * Isolamento multi-tenant (tenant = treinador).
  *
- * Aplica automaticamente "WHERE teacher_id = <professor autenticado>"
- * em toda query do modelo, impedindo que um professor acesse dados
+ * Aplica automaticamente "WHERE teacher_id = <treinador autenticado>"
+ * em toda query do modelo, impedindo que um treinador acesse dados
  * de outro mesmo que uma Policy seja esquecida em algum endpoint.
  *
  * Regras:
  * - Convidado (sem autenticação): sem filtro (seeders/console).
  * - Administrador da plataforma: sem filtro (acesso global).
- * - Professor: filtra pelo próprio tenant.
- * - Aluno: filtra pelo professor ao qual pertence.
+ * - Treinador: filtra pelo próprio tenant.
+ * - Aluno: filtra pelo treinador ao qual pertence.
  * - Perfil não resolvido: filtra por id impossível (0) → nada visível.
  */
 trait BelongsToTeacher

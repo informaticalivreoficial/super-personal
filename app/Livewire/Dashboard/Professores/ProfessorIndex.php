@@ -12,7 +12,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * Lista de professores (tenants) da plataforma — gestão exclusiva do admin.
+ * Lista de treinadores (tenants) da plataforma — gestão exclusiva do admin.
  */
 class ProfessorIndex extends Component
 {
@@ -41,12 +41,12 @@ class ProfessorIndex extends Component
 
         $this->toastSuccess(
             $teacher->active
-                ? "Professor {$teacher->name} ativado."
-                : "Professor {$teacher->name} desativado (login bloqueado)."
+                ? "Treinador {$teacher->name} ativado."
+                : "Treinador {$teacher->name} desativado (login bloqueado)."
         );
     }
 
-    #[Title('Professores')]
+    #[Title('Treinadores')]
     public function render()
     {
         $teachers = Teacher::query()

@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                <x-icon name="squares-2x2" class="h-6 w-6 text-teal-600" />
+                <x-icon name="squares-2x2" class="h-6 w-6 text-brand-600" />
                 Painel de Controle
             </h1>
             <p class="mt-1 text-sm text-gray-500">
@@ -17,11 +17,11 @@
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <a href="{{ route('professors.index') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
                 <div class="flex items-center gap-4">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                         <x-icon name="users" class="h-6 w-6" />
                     </span>
                     <div class="min-w-0">
-                        <p class="text-sm font-medium text-gray-500">Professores (tenants)</p>
+                        <p class="text-sm font-medium text-gray-500">Treinadores (tenants)</p>
                         <p class="text-2xl font-semibold tracking-tight text-gray-900">
                             {{ $stats['teachers']['total'] }}
                         </p>
@@ -124,18 +124,18 @@
         <div class="card mt-6">
             <div class="card-header">
                 <h3 class="card-title flex items-center gap-2">
-                    <x-icon name="bolt" class="h-5 w-5 text-teal-600" />
+                    <x-icon name="bolt" class="h-5 w-5 text-brand-600" />
                     Acesso rápido
                 </h3>
             </div>
             <div class="card-body flex flex-wrap gap-2">
                 <a wire:navigate href="{{ route('professors.index') }}" class="btn btn-secondary">
                     <x-icon name="users" class="h-4 w-4" />
-                    Professores
+                    Treinadores
                 </a>
                 <a wire:navigate href="{{ route('professors.create') }}" class="btn btn-primary">
                     <x-icon name="user-plus" class="h-4 w-4" />
-                    Novo professor
+                    Novo treinador
                 </a>
                 <a wire:navigate href="{{ route('sports.index') }}" class="btn btn-secondary">
                     <x-icon name="fire" class="h-4 w-4" />
@@ -152,7 +152,7 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <a href="{{ route('students.index') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
             <div class="flex items-center gap-4">
-                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <x-icon name="academic-cap" class="h-6 w-6" />
                 </span>
                 <div class="min-w-0">
@@ -218,7 +218,7 @@
     <div class="card mt-6">
         <div class="card-header">
             <h3 class="card-title flex items-center gap-2">
-                <x-icon name="bolt" class="h-5 w-5 text-teal-600" />
+                <x-icon name="bolt" class="h-5 w-5 text-brand-600" />
                 Acesso rápido
             </h3>
         </div>

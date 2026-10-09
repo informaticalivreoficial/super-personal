@@ -3,14 +3,14 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                <x-icon name="users" class="h-6 w-6 text-teal-600" />
-                Professores
+                <x-icon name="users" class="h-6 w-6 text-brand-600" />
+                Treinadores
             </h1>
-            <p class="mt-1 text-sm text-gray-500">Professores (tenants) cadastrados na plataforma</p>
+            <p class="mt-1 text-sm text-gray-500">Treinadores (tenants) cadastrados na plataforma</p>
         </div>
         <a wire:navigate href="{{ route('professors.create') }}" class="btn btn-primary">
             <x-icon name="user-plus" class="h-4 w-4" />
-            Novo professor
+            Novo treinador
         </a>
     </div>
 
@@ -37,7 +37,7 @@
                 <table class="table table-hover table-striped">
                     <thead>
                         <tr>
-                            <th>Professor</th>
+                            <th>Treinador</th>
                             <th>E-mail</th>
                             <th class="text-center">Alunos</th>
                             <th class="text-center">Assinatura</th>
@@ -80,7 +80,7 @@
                                             class="btn btn-xs {{ $teacher->active ? 'btn-danger' : 'btn-success' }}"
                                             title="{{ $teacher->active ? 'Desativar' : 'Ativar' }}"
                                             wire:click="toggleActive({{ $teacher->id }})"
-                                            wire:confirm="Alterar o status do professor {{ $teacher->name }}?">
+                                            wire:confirm="Alterar o status do treinador {{ $teacher->name }}?">
                                             <x-icon name="{{ $teacher->active ? 'minus' : 'check' }}"
                                                 class="h-4 w-4" />
                                         </button>
@@ -101,15 +101,15 @@
                     </span>
                     <p class="mt-3 text-sm font-medium text-gray-900">
                         @if ($search)
-                            Nenhum professor encontrado para "<strong>{{ $search }}</strong>".
+                            Nenhum treinador encontrado para "<strong>{{ $search }}</strong>".
                         @else
-                            Nenhum professor cadastrado ainda.
+                            Nenhum treinador cadastrado ainda.
                         @endif
                     </p>
                     @if (! $search)
                         <a wire:navigate href="{{ route('professors.create') }}"
-                            class="mt-2 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
-                            Cadastre o primeiro professor
+                            class="mt-2 inline-block text-sm font-semibold text-brand-600 hover:text-brand-700">
+                            Cadastre o primeiro treinador
                         </a>
                     @endif
                 </div>

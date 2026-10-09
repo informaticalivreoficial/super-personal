@@ -28,7 +28,7 @@ class ProfessorCrudTest extends TestCase
 
         $this->get(route('professors.index'))
             ->assertOk()
-            ->assertSee('Professores')
+            ->assertSee('Treinadores')
             ->assertSee($teacher->name)
             ->assertSee($teacher->user->email);
     }
@@ -108,7 +108,7 @@ class ProfessorCrudTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(ProfessorForm::class)
-            ->set('name', 'Outro Professor')
+            ->set('name', 'Outro Treinador')
             ->set('email', $taken)
             ->set('password', 'senha12345')
             ->set('password_confirmation', 'senha12345')
@@ -181,7 +181,7 @@ class ProfessorCrudTest extends TestCase
     public function test_new_professor_can_access_panel(): void
     {
         $teacher = app(TeacherService::class)->store([
-            'name' => 'Professor Novo',
+            'name' => 'Treinador Novo',
             'email' => 'novo@exemplo.com',
             'phone' => null,
             'specialty' => null,

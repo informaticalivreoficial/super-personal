@@ -7,8 +7,8 @@ use App\Models\Subscription;
 use App\Models\Teacher;
 
 /**
- * Assinatura do professor COM a plataforma SaaS (billing manual, sem gateway).
- * Não misturar com PaymentService (cobrança do aluno ao professor).
+ * Assinatura do treinador COM a plataforma SaaS (billing manual, sem gateway).
+ * Não misturar com PaymentService (cobrança do aluno ao treinador).
  */
 class SubscriptionService
 {

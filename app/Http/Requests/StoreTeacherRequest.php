@@ -27,7 +27,7 @@ class StoreTeacherRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'O nome do professor é obrigatório.',
+            'name.required' => 'O nome do treinador é obrigatório.',
             'email.required' => 'O e-mail é obrigatório.',
             'email.unique' => 'Já existe um usuário com este e-mail.',
             'password.required' => 'A senha é obrigatória.',

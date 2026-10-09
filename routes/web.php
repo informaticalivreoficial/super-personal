@@ -31,7 +31,7 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
 });
 
 /*
- * Painel do SaaS (professores + admin da plataforma).
+ * Painel do SaaS (treinadores + admin da plataforma).
  * Papéis garantidos pelo middleware `role`; tenant isolado por Policies/global scope.
  * Obs.: middleware `verified` removido — e-mail não é verificado no MVP (sem MustVerifyEmail).
  */
@@ -64,25 +64,25 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
 
     // *********************** Modalidades (catálogo global) ************************
     // Sports não têm tenant: criação/edição/exclusão é exclusiva do admin da
-    // plataforma (SportPolicy); o professor apenas consulta no dropdown das sessões.
+    // plataforma (SportPolicy); o treinador apenas consulta no dropdown das sessões.
     Route::group(['middleware' => 'role:admin'], function () {
         Route::get('modalidades', SportIndex::class)->name('sports.index');
         Route::get('modalidades/cadastrar', SportForm::class)->name('sports.create');
         Route::get('modalidades/{sport}/editar', SportForm::class)->name('sports.edit');
     });
 
-    // *********************** Professores (tenants da plataforma) ****************
+    // *********************** Treinadores (tenants da plataforma) ****************
     // Cadastro de tenants: exclusivo do admin (TeacherPolicy). Cria
-    // users.role=teacher + perfil em teachers — o professor só gerencia o próprio tenant.
+    // users.role=teacher + perfil em teachers — o treinador só gerencia o próprio tenant.
     Route::group(['middleware' => 'role:admin'], function () {
-        Route::get('professores', ProfessorIndex::class)->name('professors.index');
+        Route::get('treinadores', ProfessorIndex::class)->name('professors.index');
         Route::get('professores/cadastrar', ProfessorForm::class)->name('professors.create');
         Route::get('professores/{teacher}/editar', ProfessorForm::class)->name('professors.edit');
     });
 
     // *********************** Minha assinatura ***********************************
-    // Visão somente leitura do professor sobre a própria assinatura COM a
-    // plataforma (billing manual gerido pelo admin). Exclusiva do professor:
+    // Visão somente leitura do treinador sobre a própria assinatura COM a
+    // plataforma (billing manual gerido pelo admin). Exclusiva do treinador:
     // o admin não tem tenant — ele gerencia em /admin/professores/{id}/editar.
     Route::get('assinatura', MySubscription::class)
         ->name('subscription.show')

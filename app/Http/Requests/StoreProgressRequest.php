@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Avaliação física/evolução registrada pelo professor.
+ * Avaliação física/evolução registrada pelo treinador.
  * Cada chamada cria um novo registro no histórico (nunca sobrescreve).
  */
 class StoreProgressRequest extends FormRequest

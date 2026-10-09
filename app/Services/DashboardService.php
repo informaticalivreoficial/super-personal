@@ -15,7 +15,7 @@ use App\Models\TrainingSession;
 class DashboardService
 {
     /**
-     * Visão geral do professor (tenant autenticado).
+     * Visão geral do treinador (tenant autenticado).
      *
      * @return array<string, mixed>
      */

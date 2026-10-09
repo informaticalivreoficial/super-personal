@@ -71,7 +71,7 @@ class PanelRoutesSmokeTest extends TestCase
         $routes = [
             '/admin/modalidades',
             '/admin/modalidades/cadastrar',
-            '/admin/professores',
+            '/admin/treinadores',
             '/admin/professores/cadastrar',
             '/admin/professores/'.$teacher->id.'/editar',
         ];
@@ -95,6 +95,6 @@ class PanelRoutesSmokeTest extends TestCase
         $this->actingAs($teacher->user);
 
         $this->get('/admin/modalidades')->assertForbidden();
-        $this->get('/admin/professores')->assertForbidden();
+        $this->get('/admin/treinadores')->assertForbidden();
     }
 }

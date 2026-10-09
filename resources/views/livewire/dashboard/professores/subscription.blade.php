@@ -3,7 +3,7 @@
         <div class="card-header">
             <h2 class="text-base font-semibold text-gray-900">Assinatura da plataforma</h2>
             <p class="mt-0.5 text-xs text-gray-500">
-                Billing manual: o admin controla plano, status e vigência do professor.
+                Billing manual: o admin controla plano, status e vigência do treinador.
             </p>
         </div>
 

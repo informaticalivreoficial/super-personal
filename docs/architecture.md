@@ -1,4 +1,4 @@
-# Arquitetura — Super Personal (Fase 1)
+# Arquitetura — SportPlan (Fase 1)
 
 > Documento técnico da base API-first. Visão de produto e histórico: `AGENTS.md`.
 > Referência de endpoints: `docs/api.md`.
@@ -13,7 +13,7 @@
 
 ## Multi-tenancy (3 camadas)
 
-O **tenant é o professor** (`teachers.id`). Todo dado de domínio carrega `teacher_id`.
+O **tenant é o treinador** (`teachers.id`). Todo dado de domínio carrega `teacher_id`.
 
 1. **Coluna `teacher_id`** em Students, TrainingPlans, TrainingWeeks, TrainingSessions,
    TrainingExecutions, StudentProgress, StudentNotes, Payments, Subscriptions.
@@ -33,7 +33,7 @@ Responsabilidade de `teacher_id`: **sempre definida pelos Services**
 |---|---|
 | `null` | Admin de plataforma (`role = admin`) — sem filtro de tenant |
 | `0` | Perfil não encontrado — nada visível |
-| `>0` | id do professor — escopo ativo |
+| `>0` | id do treinador — escopo ativo |
 
 `shouldUse('tenant')` só aplica o global scope quando `auth()->check()`.
 
@@ -113,20 +113,20 @@ sports ──1:N── training_sessions (restrict)
 - Rotas `/admin/*` com middleware `['auth', 'role:teacher,admin']`.
   **Student não acessa** o painel (usa o app Android via API); middleware
   `verified` removido (sem `MustVerifyEmail` no MVP).
-- **Auto-cadastro** (`/auth/register`) cria conta de professor: `users.role = teacher`
-  + perfil `teachers` + redirect `/admin`. Alunos são cadastrados pelo professor.
+- **Auto-cadastro** (`/auth/register`) cria conta de treinador: `users.role = teacher`
+  + perfil `teachers` + redirect `/admin`. Alunos são cadastrados pelo treinador.
 - Login do painel (`App\Livewire\Auth\Login`) bloqueia: senha inválida,
-  usuário inativo (`status != 1`), student, professor inativo (`teachers.active = false`).
+  usuário inativo (`status != 1`), student, treinador inativo (`teachers.active = false`).
 - Assets Vite: `vendor/bin/sail npm install && vendor/bin/sail npm run build`
   (sem `public/build` as views 500 com "Vite manifest not found").
 - **Dashboard** — `/admin` (`App\Livewire\Dashboard\Dashboard`) bifurca por
-  perfil: professor vê os KPIs do próprio tenant (`teacherDashboard()`);
+  perfil: treinador vê os KPIs do próprio tenant (`teacherDashboard()`);
   **admin vê a visão da plataforma** (`isPlatformAdmin()` →
-  `DashboardService::platformDashboard()`): professores (total/ativos/novos
+  `DashboardService::platformDashboard()`): treinadores (total/ativos/novos
   no mês), alunos (total/ativos), assinaturas (ativas/trial/em atraso/sem
   assinatura + receita mensal = soma dos planos ativos), treinos hoje,
-  pagamentos/assinaturas em atraso e acesso rápido (Professores, Novo
-  professor, Modalidades, Configurações). A API `GET /teacher/dashboard`
+  pagamentos/assinaturas em atraso e acesso rápido (Treinadores, Novo
+  treinador, Modalidades, Configurações). A API `GET /teacher/dashboard`
   continua em `teacherDashboard()` (inalterada).
 - **CRUD de Alunos** — componentes full-page em `app/Livewire/Dashboard/Students/`:
   - `StudentIndex` (busca/paginação/toggle ativo/exclusão lógica), `StudentForm`
@@ -180,7 +180,7 @@ sports ──1:N── training_sessions (restrict)
     `SportPolicy::before()` + rotas `sports.*` com `role:admin`;
     `SportService::delete` lança `ValidationException` se houver exercises/
     sessions vinculados.
-  - **Exercícios (`exercises`)** — professor vê os próprios + globais somente
+  - **Exercícios (`exercises`)** — treinador vê os próprios + globais somente
     leitura; admin vê/edita todos (ownership preservado no update —
     `ExerciseService::store` seta `teacher_id` de `resolveTenantId()`;
     admin → `null` = global). Validação unique por dono
@@ -215,7 +215,7 @@ sports ──1:N── training_sessions (restrict)
     `data`: title, message, student_id, teacher_id, sent_by. Lista as últimas
     10 enviadas; aluno sem usuário → card avisa e bloqueia envio. A leitura
     pelo aluno é a API `GET /api/v1/student/notifications` (app Android).
-- **Professores (tenants) pela plataforma** — `/admin/professores`
+- **Treinadores (tenants) pela plataforma** — `/admin/professores`
   (grupo `role:admin`, menu "Plataforma" no sidebar):
   - `ProfessorIndex` (busca por nome/e-mail, `students_count`, toggle
     ativo/inativo) e `ProfessorForm` (criar/editar) com `StoreTeacherRequest`
@@ -226,9 +226,9 @@ sports ──1:N── training_sessions (restrict)
     bloqueado); `ensureProfile` idempotente;
   - `TeacherPolicy` — tudo exclusivo do `isPlatformAdmin()`;
   - **Fix**: a tela legada de usuários (`Users\Form::create/update`) chama
-    `ensureProfile` quando o papel é `teacher` — antes o professor criado
+    `ensureProfile` quando o papel é `teacher` — antes o treinador criado
     ali ficava sem tenant e o painel dele ficava vazio.
-- **Assinaturas do professor (billing manual)** — tabela `subscriptions`
+- **Assinaturas do treinador (billing manual)** — tabela `subscriptions`
   (Fase 1) ganhou uso no admin:
   - card aninhado `Professores\ProfessorSubscription` no `ProfessorForm`
     (edição): cria/atualiza a assinatura (plano, status
@@ -238,7 +238,7 @@ sports ──1:N── training_sessions (restrict)
     status `cancelled` (rastro manual de billing — sem gateway);
   - coluna "Assinatura" no `ProfessorIndex` com badge por status;
   - autorização herda `TeacherPolicy::update` (exclusivo do admin).
-  - **Refino (2026-10-09) — página do próprio professor**:
+  - **Refino (2026-10-09) — página do próprio treinador**:
     `/admin/assinatura` (`App\Livewire\Dashboard\MySubscription`, rota
     `subscription.show` com middleware `role:teacher` — o admin recebe 403,
     já que ele não tem tenant): **somente leitura** (badge de status, plano,
@@ -315,9 +315,9 @@ sports ──1:N── training_sessions (restrict)
 - `phpunit.xml` → SQLite `:memory:`, `RefreshDatabase`.
 - Suíte Fase 1 em `tests/Feature/Api`:
   - `AuthTest` — login/logout/401/403 por papel.
-  - `TeacherIsolationTest` — professor não vê/edita dados de outro (404/403).
+  - `TeacherIsolationTest` — treinador não vê/edita dados de outro (404/403).
   - `StudentTrainingTest` — aluno vê só os próprios treinos, `complete` cria
-    execução vinculada ao aluno correto, execução visível só ao professor dono.
+    execução vinculada ao aluno correto, execução visível só ao treinador dono.
 - Suíte do painel em `tests/Feature/Panel`:
   - `PanelAccessTest` — redirecionamento de guest, acesso por papel (teacher/admin
     200, student 403), login por papel (student/inativo bloqueados), registro cria tenant.
@@ -337,7 +337,7 @@ sports ──1:N── training_sessions (restrict)
     isolamento por tenant.
   - `SportCrudTest` (11) — CRUD admin-only, 403 para teacher, bloqueio de
     exclusão com vínculos, isolamento global.
-  - `ExerciseCrudTest` (11) — professor só edita os próprios, globais somente
+  - `ExerciseCrudTest` (11) — treinador só edita os próprios, globais somente
     leitura, admin edita todos, unique por dono, 404 cross-tenant.
   - `StudentTrackingTest` (11) — página de acompanhamento (resumo, aderência
     50%, estados vazios), acesso (login/papel/404 cross-tenant), registro de
@@ -348,20 +348,20 @@ sports ──1:N── training_sessions (restrict)
   - `StudentMessagesTest` (5) — envio de mensagem (payload da notificação),
     validação, card no `StudentShow`, aluno sem usuário, cross-tenant.
   - `ProfessorCrudTest` (11) — gestão de professores/tenants pelo admin
-    (rotas admin/403 professor/guest, criação com tenant nascido, validações,
+    (rotas admin/403 treinador/guest, criação com tenant nascido, validações,
     update com ignore de e-mail + senha opcional, toggle ativo/inativo, acesso
-    do novo professor ao painel, idempotência do `ensureProfile`).
+    do novo treinador ao painel, idempotência do `ensureProfile`).
   - **Console**: `SendRemindersTest` (11) — lembretes automáticos (janelas de
     vencimento, hoje/amanhã, pagado/concluído não notifica, aluno sem conta
     pulado, idempotência com 2 execuções).
   - **Notificações**: `NewTrainingAvailableTest` (8) — plano publicado por
     evento (criar ativo, publicar rascunho, editar sem reaviso, reativar
     avisa de novo, aluno sem conta, fim a fim via API e painel).
-  - `SubscriptionManagementTest` (7) — assinaturas do professor no admin
+  - `SubscriptionManagementTest` (7) — assinaturas do treinador no admin
     (badge no index, card na edição, criação/atualização, validação,
-    `cancelled_at` automático, 403 para professor).
+    `cancelled_at` automático, 403 para treinador).
   - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
-    receita, agregação cross-tenant via service, professor vê o próprio).
+    receita, agregação cross-tenant via service, treinador vê o próprio).
   - **Total: 181 testes / 550 assertions** (33 API + 129 painel + 11 console
     + 8 notificações).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
@@ -410,7 +410,7 @@ sports ──1:N── training_sessions (restrict)
   - **API**: `POST /api/v1/auth/student-register` (público, throttle 10/min,
     payload `{invite_code, password, password_confirmation}`) → `201` com
     `{token, token_type, user}` (app sai logado); `StudentResource` expõe
-    `invite_code` ao professor.
+    `invite_code` ao treinador.
   - **Validação antecipada**: `StoreStudentRequest`/`UpdateStudentRequest`
     rejeitam e-mail já existente em `users` (conflito detectado no cadastro,
     não no registro do aluno).
@@ -450,7 +450,7 @@ sports ──1:N── training_sessions (restrict)
 - **Telas**: `LoginScreen` (e-mail+senha, spinner local, erros da API),
   `SplashScreen` (restauração de sessão) e `HomeScreen` (saudação + tiles das
   próximas telas: Dashboard/Calendário/Treinos/Progresso/Notificações).
-- **Plataforma**: label "Super Personal" + `usesCleartextTraffic` (Android);
+- **Plataforma**: label "SportPlan" + `usesCleartextTraffic` (Android);
   `NSAllowsArbitraryLoads` (iOS ATS) — HTTP de dev.
 - **Qualidade**: `dart analyze` = *No issues found*; `flutter test` = 6/6
   (`test/auth_repository_test.dart` com `HttpClientAdapter` fake: login ok,

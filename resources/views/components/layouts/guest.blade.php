@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>{{ $title ?? 'Acesso' }} | {{ config('app.name', 'Super Personal') }}</title>
+    <title>{{ $title ?? 'Acesso' }} | {{ config('app.name', 'SportPlan') }}</title>
 
     <link rel="icon" href="{{ asset('images/chave.png') }}" type="image/x-icon">
 
@@ -15,7 +15,7 @@
     @stack('head')
 </head>
 
-<body class="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-teal-950 antialiased">
+<body class="min-h-screen bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 antialiased">
     <div class="flex min-h-screen items-center justify-center px-4 py-10">
         {{ $slot }}
     </div>

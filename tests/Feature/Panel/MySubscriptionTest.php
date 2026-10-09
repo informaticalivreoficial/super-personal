@@ -82,13 +82,13 @@ class MySubscriptionTest extends TestCase
 
     public function test_teacher_sees_only_own_subscription(): void
     {
-        $mine = Teacher::factory()->create(['name' => 'Professor Dono']);
+        $mine = Teacher::factory()->create(['name' => 'Treinador Dono']);
         Subscription::factory()->forTeacher($mine)->create([
             'status' => SubscriptionStatus::ACTIVE,
             'plan' => 'ALPHA-UNICO',
         ]);
 
-        $other = Teacher::factory()->create(['name' => 'Professor Outro']);
+        $other = Teacher::factory()->create(['name' => 'Treinador Outro']);
         Subscription::factory()->forTeacher($other)->create([
             'status' => SubscriptionStatus::TRIAL,
             'plan' => 'BETA-MARCADO',
@@ -100,7 +100,7 @@ class MySubscriptionTest extends TestCase
             ->assertOk()
             ->assertSee('ALPHA-UNICO')
             ->assertDontSee('BETA-MARCADO')
-            ->assertDontSee('Professor Outro');
+            ->assertDontSee('Treinador Outro');
     }
 
     public function test_sidebar_shows_link_only_for_teacher(): void

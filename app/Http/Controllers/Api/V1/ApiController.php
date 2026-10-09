@@ -23,13 +23,13 @@ abstract class ApiController extends Controller
     }
 
     /**
-     * Tenant (professor) do usuário autenticado.
+     * Tenant (treinador) do usuário autenticado.
      */
     protected function currentTeacherId(): int
     {
         $teacherId = auth()->user()->resolveTenantId();
 
-        abort_if(! $teacherId, 403, 'Perfil de professor não encontrado.');
+        abort_if(! $teacherId, 403, 'Perfil de treinador não encontrado.');
 
         return (int) $teacherId;
     }

@@ -85,9 +85,9 @@ class Login extends Component
             return;
         }
 
-        // Professor inativo não entra no painel.
+        // Treinador inativo não entra no painel.
         if ($user->isTeacher() && ! $user->teacher?->active) {
-            $this->toastError('Sua conta de professor está inativa. Entre em contato com o administrador.');
+            $this->toastError('Sua conta de treinador está inativa. Entre em contato com o administrador.');
 
             return;
         }

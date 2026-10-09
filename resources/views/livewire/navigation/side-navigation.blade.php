@@ -1,5 +1,5 @@
 <aside x-cloak
-    class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-gray-950 text-gray-300 shadow-2xl transition-all duration-200 lg:translate-x-0"
+    class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-brand-950 text-gray-300 shadow-2xl transition-all duration-200 lg:translate-x-0"
     :class="[
         $store.nav.mini ? 'lg:w-20' : 'lg:w-64',
         $store.nav.mobile ? 'translate-x-0' : '-translate-x-full',
@@ -8,7 +8,7 @@
     {{-- Marca --}}
     <a href="{{ route('admin') }}" wire:navigate
         class="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-4">
-        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
             <x-icon name="bolt" class="h-5 w-5" />
         </span>
         <span class="truncate text-sm font-semibold tracking-tight text-white" :class="$store.nav.mini ? 'lg:hidden' : ''">
@@ -25,7 +25,7 @@
                 {{ auth()->user()->name }}
             </p>
             <p class="truncate text-xs text-gray-500">
-                {{ auth()->user()->isPlatformAdmin() ? 'Administrador' : 'Professor' }}
+                {{ auth()->user()->isPlatformAdmin() ? 'Administrador' : 'Treinador' }}
             </p>
         </div>
     </div>
@@ -38,7 +38,7 @@
                     @class([
                         'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         Route::is('admin')
-                            ? 'bg-teal-600/15 text-teal-300'
+                            ? 'bg-brand-400/15 text-brand-400'
                             : 'text-gray-400 hover:bg-white/5 hover:text-white',
                     ])>
                     <x-icon name="squares-2x2" class="h-5 w-5 shrink-0" />
@@ -52,7 +52,7 @@
                     @class([
                         'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         Route::is('students.*')
-                            ? 'bg-teal-600/15 text-teal-300'
+                            ? 'bg-brand-400/15 text-brand-400'
                             : 'text-gray-400 hover:bg-white/5 hover:text-white',
                     ])>
                     <x-icon name="academic-cap" class="h-5 w-5 shrink-0" />
@@ -69,7 +69,7 @@
                         <a href="{{ route('students.index') }}" wire:navigate
                             @class([
                                 'block rounded-lg px-3 py-2 text-sm transition',
-                                Route::is('students.index') ? 'text-teal-300' : 'text-gray-500 hover:text-white',
+                                Route::is('students.index') ? 'text-brand-400' : 'text-gray-500 hover:text-white',
                             ])>
                             Listar alunos
                         </a>
@@ -78,7 +78,7 @@
                         <a href="{{ route('students.create') }}" wire:navigate
                             @class([
                                 'block rounded-lg px-3 py-2 text-sm transition',
-                                Route::is('students.create') ? 'text-teal-300' : 'text-gray-500 hover:text-white',
+                                Route::is('students.create') ? 'text-brand-400' : 'text-gray-500 hover:text-white',
                             ])>
                             Cadastrar aluno
                         </a>
@@ -91,7 +91,7 @@
                     @class([
                         'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         Route::is('plans.*')
-                            ? 'bg-teal-600/15 text-teal-300'
+                            ? 'bg-brand-400/15 text-brand-400'
                             : 'text-gray-400 hover:bg-white/5 hover:text-white',
                     ])>
                     <x-icon name="clipboard-document-list" class="h-5 w-5 shrink-0" />
@@ -104,7 +104,7 @@
                     @class([
                         'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         Route::is('payments.*')
-                            ? 'bg-teal-600/15 text-teal-300'
+                            ? 'bg-brand-400/15 text-brand-400'
                             : 'text-gray-400 hover:bg-white/5 hover:text-white',
                     ])>
                     <x-icon name="currency-dollar" class="h-5 w-5 shrink-0" />
@@ -118,7 +118,7 @@
                     @class([
                         'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                         Route::is(['exercises.*', 'sports.*'])
-                            ? 'bg-teal-600/15 text-teal-300'
+                            ? 'bg-brand-400/15 text-brand-400'
                             : 'text-gray-400 hover:bg-white/5 hover:text-white',
                     ])>
                     <x-icon name="queue-list" class="h-5 w-5 shrink-0" />
@@ -135,19 +135,19 @@
                         <a href="{{ route('exercises.index') }}" wire:navigate
                             @class([
                                 'block rounded-lg px-3 py-2 text-sm transition',
-                                Route::is('exercises.*') ? 'text-teal-300' : 'text-gray-500 hover:text-white',
+                                Route::is('exercises.*') ? 'text-brand-400' : 'text-gray-500 hover:text-white',
                             ])>
                             Exercícios
                         </a>
                     </li>
-            {{-- Minha assinatura (professor; billing da conta na plataforma) --}}
+            {{-- Minha assinatura (treinador; billing da conta na plataforma) --}}
             @if (auth()->user()->isTeacher())
                 <li class="pt-4">
                     <a href="{{ route('subscription.show') }}" wire:navigate
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                             Route::is('subscription.show')
-                                ? 'bg-teal-600/15 text-teal-300'
+                                ? 'bg-brand-400/15 text-brand-400'
                                 : 'text-gray-400 hover:bg-white/5 hover:text-white',
                         ])>
                         <x-icon name="banknotes" class="h-5 w-5 shrink-0" />
@@ -161,7 +161,7 @@
                             <a href="{{ route('sports.index') }}" wire:navigate
                                 @class([
                                     'block rounded-lg px-3 py-2 text-sm transition',
-                                    Route::is('sports.*') ? 'text-teal-300' : 'text-gray-500 hover:text-white',
+                                    Route::is('sports.*') ? 'text-brand-400' : 'text-gray-500 hover:text-white',
                                 ])>
                                 Modalidades
                             </a>
@@ -180,17 +180,17 @@
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                             Route::is('professors.*')
-                                ? 'bg-teal-600/15 text-teal-300'
+                                ? 'bg-brand-400/15 text-brand-400'
                                 : 'text-gray-400 hover:bg-white/5 hover:text-white',
                         ])>
                         <x-icon name="users" class="h-5 w-5 shrink-0" />
-                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Professores</span>
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Treinadores</span>
                     </a>
                     <a href="{{ route('settings') }}" wire:navigate
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
                             Route::is('settings')
-                                ? 'bg-teal-600/15 text-teal-300'
+                                ? 'bg-brand-400/15 text-brand-400'
                                 : 'text-gray-400 hover:bg-white/5 hover:text-white',
                         ])>
                         <x-icon name="cog" class="h-5 w-5 shrink-0" />

@@ -20,7 +20,7 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
-        // Aluno avisado quando o professor publica (ativa) um plano de treino.
+        // Aluno avisado quando o treinador publica (ativa) um plano de treino.
         TrainingPlanPublished::class => [
             SendNewTrainingAvailableNotification::class,
         ],

@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 /**
- * Mensagens do professor ao aluno (aninhado no StudentShow).
+ * Mensagens do treinador ao aluno (aninhado no StudentShow).
  * Envia notificação database (canal único por enquanto; push Android no futuro)
  * — a lista do aluno é a API GET /api/v1/student/notifications.
  */

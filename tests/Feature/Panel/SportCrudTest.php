@@ -153,7 +153,7 @@ class SportCrudTest extends TestCase
 
     public function test_teacher_still_renders_session_form_with_sports_dropdown(): void
     {
-        // O professor consulta o catálogo (dropdown) mesmo sem gerenciá-lo.
+        // O treinador consulta o catálogo (dropdown) mesmo sem gerenciá-lo.
         $teacher = Teacher::factory()->create();
         $student = Student::factory()->forTeacher($teacher)->create();
         $plan = TrainingPlan::factory()->forStudent($student)->create();

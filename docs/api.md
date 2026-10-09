@@ -1,4 +1,4 @@
-# API REST — Super Personal v1
+# API REST — SportPlan v1
 
 > Base URL: `http://laravel.test/api/v1`
 > Arquitetura e regras de tenant: `docs/architecture.md`.
@@ -48,8 +48,8 @@ Erros: `401` credenciais inválidas · `403` conta inativa · `429` muitas tenta
 
 ### `POST /auth/student-register` — throttled (10/min) · registro do aluno no app
 
-Fluxo de convite: o professor cadastra o aluno (painel ou API) → o sistema gera
-um `invite_code` (8 letras/números sem ambíguos) → o professor compartilha →
+Fluxo de convite: o treinador cadastra o aluno (painel ou API) → o sistema gera
+um `invite_code` (8 letras/números sem ambíguos) → o treinador compartilha →
 o aluno cria a própria conta. Nome e e-mail vêm do cadastro
 (`students.email` é o login no app).
 
@@ -74,7 +74,7 @@ possui conta, aluno inativo ou e-mail já em uso por outra conta.
 ## Aluno (`role:student`) — futuro app Android
 
 > Pré-requisito de acesso: o aluno se registra em `POST /auth/student-register`
-> com o `invite_code` recebido do professor e, a partir daí, usa
+> com o `invite_code` recebido do treinador e, a partir daí, usa
 > `POST /auth/login` com `students.email` + senha definida no cadastro.
 
 | Método | Rota | Descrição |
@@ -115,7 +115,7 @@ Todos os campos são opcionais (mínimo aceito é a conclusão em si).
 
 ---
 
-## Professor (`role:teacher`)
+## Treinador (`role:teacher`)
 
 ### Dashboard
 
@@ -174,7 +174,7 @@ TOKEN=$(curl -s -X POST http://laravel.test/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"joao@superpersonal.test","password":"password"}' | jq -r .token)
 
-# Lista de alunos (professor)
+# Lista de alunos (treinador)
 curl -s http://laravel.test/api/v1/teacher/students \
   -H "Authorization: Bearer $TOKEN"
 
@@ -189,6 +189,6 @@ curl -s -X POST http://laravel.test/api/v1/student/trainings/1/complete \
 
 | Perfil | E-mail | Senha |
 |---|---|---|
-| Professor | `joao@superpersonal.test` | `password` |
+| Treinador | `joao@superpersonal.test` | `password` |
 | Alunos | `marcos@`, `ana@`, `pedro@superpersonal.test` | `password` |
 | Admin | `ADMIN_EMAIL` do `.env` | definido no seeder |

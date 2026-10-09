@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Registro do aluno no app com código de convite (POST /api/v1/auth/student-register).
- * Nome e e-mail vêm do cadastro feito pelo professor — só a senha é definida aqui.
+ * Nome e e-mail vêm do cadastro feito pelo treinador — só a senha é definida aqui.
  */
 class StudentRegisterRequest extends FormRequest
 {

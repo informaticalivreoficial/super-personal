@@ -12,8 +12,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Auto-cadastro de professor (novo tenant do SaaS).
- * Alunos são criados pelo professor; admin de plataforma é gerenciado via seed.
+ * Auto-cadastro de treinador (novo tenant do SaaS).
+ * Alunos são criados pelo treinador; admin de plataforma é gerenciado via seed.
  */
 #[Layout('components.layouts.guest')]
 class Register extends Component
@@ -52,13 +52,13 @@ class Register extends Component
 
         session()->flash('toast', [
             'type' => 'success',
-            'message' => 'Bem-vindo ao Super Personal! Cadastre seus alunos para começar.',
+            'message' => 'Bem-vindo ao SportPlan! Cadastre seus alunos para começar.',
         ]);
 
         return $this->redirect(route('admin'));
     }
 
-    #[Title('Cadastro de Professor')]
+    #[Title('Cadastro de Treinador')]
     public function render()
     {
         return view('livewire.auth.register');

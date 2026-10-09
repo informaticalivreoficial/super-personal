@@ -12,7 +12,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * Biblioteca de exercícios: o professor vê os próprios + os globais da
+ * Biblioteca de exercícios: o treinador vê os próprios + os globais da
  * plataforma; só edita os próprios (ExercisePolicy). Admin vê/edita todos.
  */
 class ExerciseIndex extends Component
@@ -37,7 +37,7 @@ class ExerciseIndex extends Component
 
     public function confirmDelete($exerciseId): void
     {
-        // Escopo de posse aplicado: exercício de outro professor → 404.
+        // Escopo de posse aplicado: exercício de outro treinador → 404.
         $exercise = $this->baseQuery()->find($exerciseId) ?? abort(404);
         Gate::authorize('delete', $exercise);
 
@@ -78,7 +78,7 @@ class ExerciseIndex extends Component
     }
 
     /**
-     * Query base: admin enxerga tudo; professor enxerga os próprios + globais.
+     * Query base: admin enxerga tudo; treinador enxerga os próprios + globais.
      */
     private function baseQuery()
     {

@@ -46,8 +46,8 @@
 
         <p class="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-500">
             Ainda não tem conta?
-            <a href="{{ route('register') }}" wire:navigate class="font-semibold text-teal-600 hover:text-teal-700">
-                Cadastre-se como professor
+            <a href="{{ route('register') }}" wire:navigate class="font-semibold text-brand-600 hover:text-brand-700">
+                Cadastre-se como treinador
             </a>
         </p>
     </div>

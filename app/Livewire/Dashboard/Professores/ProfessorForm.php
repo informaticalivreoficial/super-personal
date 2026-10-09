@@ -13,7 +13,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Cadastro/edição de professor (tenant) — exclusivo do admin da plataforma.
+ * Cadastro/edição de treinador (tenant) — exclusivo do admin da plataforma.
  */
 class ProfessorForm extends Component
 {
@@ -75,14 +75,14 @@ class ProfessorForm extends Component
             $validated = $this->validateWith(UpdateTeacherRequest::class, $data);
             $service->update($teacher, $validated);
 
-            $this->toastSuccess('Professor atualizado com sucesso.');
+            $this->toastSuccess('Treinador atualizado com sucesso.');
         } else {
             Gate::authorize('create', Teacher::class);
 
             $validated = $this->validateWith(StoreTeacherRequest::class, $data);
             $service->store($validated);
 
-            $this->toastSuccess('Professor cadastrado com sucesso.');
+            $this->toastSuccess('Treinador cadastrado com sucesso.');
         }
 
         return $this->redirect(route('professors.index'));
@@ -93,7 +93,7 @@ class ProfessorForm extends Component
         return $this->redirect(route('professors.index'));
     }
 
-    #[Title('Formulário de Professor')]
+    #[Title('Formulário de Treinador')]
     public function render()
     {
         return view('livewire.dashboard.professores.form', [

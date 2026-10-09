@@ -6,7 +6,7 @@ use App\Models\Student;
 use App\Models\StudentNote;
 
 /**
- * Observações do professor sobre o aluno (student_notes).
+ * Observações do treinador sobre o aluno (student_notes).
  * `teacher_id`/`student_id` vêm sempre do aluno — nunca do request.
  */
 class StudentNoteService

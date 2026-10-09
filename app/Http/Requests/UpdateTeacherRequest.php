@@ -34,7 +34,7 @@ class UpdateTeacherRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'O nome do professor é obrigatório.',
+            'name.required' => 'O nome do treinador é obrigatório.',
             'email.required' => 'O e-mail é obrigatório.',
             'email.unique' => 'Já existe um usuário com este e-mail.',
             'password.min' => 'A senha deve ter no mínimo 8 caracteres.',

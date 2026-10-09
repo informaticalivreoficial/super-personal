@@ -59,7 +59,7 @@ class AuthController extends ApiController
 
     /**
      * Registro do aluno no app: consome o código de convite gerado pelo
-     * professor, cria a conta (users.role = student) e emite o token —
+     * treinador, cria a conta (users.role = student) e emite o token —
      * o app sai logado após o cadastro.
      */
     public function studentRegister(StudentRegisterRequest $request, StudentService $students): JsonResponse

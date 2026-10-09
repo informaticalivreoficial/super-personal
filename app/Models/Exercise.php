@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
  *
  * teacher_id NULL = exercício global (catálogo da plataforma).
  * Por isso este modelo NÃO usa o trait BelongsToTeacher:
- * o professor deve ver os exercícios globais além dos próprios.
+ * o treinador deve ver os exercícios globais além dos próprios.
  * O isolamento de posse é garantido pela ExercisePolicy.
  */
 class Exercise extends Model

@@ -43,7 +43,7 @@ class ExerciseForm extends Component
     public function mount($exercise = null): void
     {
         if (is_string($exercise) || is_int($exercise)) {
-            // Escopo de posse: exercício de outro professor → 404.
+            // Escopo de posse: exercício de outro treinador → 404.
             $exercise = $this->baseQuery()->find($exercise) ?? abort(404);
         }
 
@@ -124,7 +124,7 @@ class ExerciseForm extends Component
     }
 
     /**
-     * Query base de posse (admin = tudo; professor = próprios + globais).
+     * Query base de posse (admin = tudo; treinador = próprios + globais).
      */
     private function baseQuery()
     {

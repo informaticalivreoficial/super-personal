@@ -90,7 +90,7 @@ class PaymentForm extends Component
 
         Gate::authorize('create', Payment::class);
 
-        // Escopo do tenant: aluno inexistente/de outro professor → null.
+        // Escopo do tenant: aluno inexistente/de outro treinador → null.
         $student = Student::find($this->student_id);
 
         if (! $student) {

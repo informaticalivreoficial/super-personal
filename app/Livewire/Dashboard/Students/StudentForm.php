@@ -68,7 +68,7 @@ class StudentForm extends Component
     public function mount($student = null): void
     {
         if (is_string($student) || is_int($student)) {
-            // Escopo do tenant aplicado: id de outro professor → null → 404.
+            // Escopo do tenant aplicado: id de outro treinador → null → 404.
             $student = Student::find($student) ?? abort(404);
         }
 

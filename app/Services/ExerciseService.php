@@ -9,7 +9,7 @@ class ExerciseService
 {
     /**
      * `teacher_id` é definido aqui (nunca via request): null = catálogo global
-     * (admin da plataforma), >0 = biblioteca do professor.
+     * (admin da plataforma), >0 = biblioteca do treinador.
      *
      * @param  array<string, mixed>  $data
      */

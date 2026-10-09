@@ -22,7 +22,7 @@ class SubscriptionManagementTest extends TestCase
         Subscription::factory()->forTeacher($withSubscription)->create([
             'status' => SubscriptionStatus::ACTIVE,
         ]);
-        $without = Teacher::factory()->create(['name' => 'Professor Sem Plano']);
+        $without = Teacher::factory()->create(['name' => 'Treinador Sem Plano']);
 
         $admin = User::factory(['role' => 'admin'])->create();
         $this->actingAs($admin);
@@ -32,7 +32,7 @@ class SubscriptionManagementTest extends TestCase
             ->assertSee('Ativa')
             ->assertSee('Sem assinatura')
             ->assertSee('Professora Assinante')
-            ->assertSee('Professor Sem Plano');
+            ->assertSee('Treinador Sem Plano');
     }
 
     public function test_subscription_card_is_embedded_on_professor_edit_page(): void

@@ -77,7 +77,7 @@ class PlanShow extends Component
     public function mount($plan = null): void
     {
         if (is_string($plan) || is_int($plan)) {
-            // Escopo do tenant aplicado: id de outro professor → null → 404.
+            // Escopo do tenant aplicado: id de outro treinador → null → 404.
             $plan = TrainingPlan::find($plan) ?? abort(404);
         }
 

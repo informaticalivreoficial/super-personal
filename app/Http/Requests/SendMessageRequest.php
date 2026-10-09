@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Mensagem do professor enviada ao aluno (notificação database — app Android).
+ * Mensagem do treinador enviada ao aluno (notificação database — app Android).
  */
 class SendMessageRequest extends FormRequest
 {

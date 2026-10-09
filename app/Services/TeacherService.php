@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Cadastro de professores (tenants) pela plataforma.
+ * Cadastro de treinadores (tenants) pela plataforma.
  *
  * O tenant nasce aqui: users.role = teacher + perfil em teachers.
  * Também garante o perfil em caminhos legados (tela de usuários do starter),
- * para nunca existir "professor" sem tenant (painel ficaria vazio).
+ * para nunca existir "treinador" sem tenant (painel ficaria vazio).
  */
 class TeacherService
 {
@@ -63,7 +63,7 @@ class TeacherService
 
     /**
      * Ativa/desativa o tenant: perfil (teachers.active) e login (users.status)
-     * mudam juntos — professor inativo não entra no painel.
+     * mudam juntos — treinador inativo não entra no painel.
      */
     public function toggleActive(Teacher $teacher): Teacher
     {

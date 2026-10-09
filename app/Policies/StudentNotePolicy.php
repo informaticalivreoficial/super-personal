@@ -7,8 +7,8 @@ use App\Models\StudentNote;
 use App\Models\User;
 
 /**
- * Observações do professor sobre o aluno (student_notes).
- * Admin tem bypass; professor só acessa as próprias (tenant).
+ * Observações do treinador sobre o aluno (student_notes).
+ * Admin tem bypass; treinador só acessa as próprias (tenant).
  */
 class StudentNotePolicy
 {
@@ -28,7 +28,7 @@ class StudentNotePolicy
     }
 
     /**
-     * Só o professor dono do aluno cria observação sobre ele.
+     * Só o treinador dono do aluno cria observação sobre ele.
      */
     public function create(User $user, Student $student): bool
     {

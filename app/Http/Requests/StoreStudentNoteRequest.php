@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Observação do professor sobre o aluno (student_notes).
+ * Observação do treinador sobre o aluno (student_notes).
  */
 class StoreStudentNoteRequest extends FormRequest
 {

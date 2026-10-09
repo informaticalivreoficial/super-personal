@@ -90,7 +90,7 @@ class PlanForm extends Component
 
         Gate::authorize('create', TrainingPlan::class);
 
-        // Escopo do tenant: aluno inexistente/de outro professor → null.
+        // Escopo do tenant: aluno inexistente/de outro treinador → null.
         $student = Student::find($this->student_id);
 
         if (! $student) {

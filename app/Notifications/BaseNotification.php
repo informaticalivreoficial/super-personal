@@ -6,7 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification as LaravelNotification;
 
 /**
- * Base das notificações do Super Personal.
+ * Base das notificações do SportPlan.
  * Arquitetura preparada: canal database hoje; push Android no futuro
  * basta acrescentar canais em via().
  */

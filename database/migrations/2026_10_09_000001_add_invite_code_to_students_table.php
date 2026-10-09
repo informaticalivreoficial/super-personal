@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Código de convite do aluno: o professor compartilha e o aluno cria a
+ * Código de convite do aluno: o treinador compartilha e o aluno cria a
  * própria conta de acesso (app Android) em POST /api/v1/auth/student-register.
  */
 return new class extends Migration

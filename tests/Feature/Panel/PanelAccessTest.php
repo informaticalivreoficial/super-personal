@@ -112,7 +112,7 @@ class PanelAccessTest extends TestCase
     public function test_register_creates_teacher_tenant_and_logs_in(): void
     {
         Livewire::test(Register::class)
-            ->set('name', 'Professor Novo')
+            ->set('name', 'Treinador Novo')
             ->set('email', 'novo@superpersonal.test')
             ->set('password', 'senha-forte-123')
             ->call('register')

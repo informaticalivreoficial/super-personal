@@ -7,8 +7,8 @@ use App\Models\User;
 
 /**
  * Modalidades (sports) são o catálogo GLOBAL da plataforma (sem tenant_id):
- * professores apenas consultam; criação/edição/exclusão é exclusiva do
- * administrador da plataforma (antes do MVP multi-tenant, um professor não
+ * treinadores apenas consultam; criação/edição/exclusão é exclusiva do
+ * administrador da plataforma (antes do MVP multi-tenant, um treinador não
  * pode alterar o catálogo visto por todos).
  */
 class SportPolicy

@@ -8,10 +8,10 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="user-plus" class="h-6 w-6 text-teal-600" />
-                    {{ $isEdit ? 'Editar' : 'Cadastrar' }} professor
+                    <x-icon name="user-plus" class="h-6 w-6 text-brand-600" />
+                    {{ $isEdit ? 'Editar' : 'Cadastrar' }} treinador
                 </h1>
-                <p class="mt-1 text-sm text-gray-500">Plataforma / {{ $isEdit ? 'Editar' : 'Novo' }} professor</p>
+                <p class="mt-1 text-sm text-gray-500">Plataforma / {{ $isEdit ? 'Editar' : 'Novo' }} treinador</p>
             </div>
         </div>
     </div>
@@ -34,7 +34,7 @@
                         <div class="form-group">
                             <label for="teacher_email">E-mail *</label>
                             <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                id="teacher_email" wire:model="email" placeholder="professor@exemplo.com">
+                                id="teacher_email" wire:model="email" placeholder="treinador@exemplo.com">
                             @error('email')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -84,7 +84,7 @@
 
                 @if (! $isEdit)
                     <p class="mt-2 text-xs text-gray-500">
-                        O professor receberá acesso ao painel e poderá cadastrar alunos, planos e pagamentos
+                        O treinador receberá acesso ao painel e poderá cadastrar alunos, planos e pagamentos
                         dentro do próprio tenant.
                     </p>
                 @endif
@@ -92,7 +92,7 @@
             <div class="card-footer">
                 <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="save">
                     <span wire:loading.remove wire:target="save" class="flex items-center gap-2">
-                        <x-icon name="check" class="h-4 w-4" /> {{ $isEdit ? 'Salvar alterações' : 'Cadastrar professor' }}
+                        <x-icon name="check" class="h-4 w-4" /> {{ $isEdit ? 'Salvar alterações' : 'Cadastrar treinador' }}
                     </span>
                     <span wire:loading wire:target="save">
                         <x-icon name="arrow-path" class="h-4 w-4 animate-spin" />
@@ -103,7 +103,7 @@
         </div>
     </form>
 
-    {{-- Assinatura do professor na plataforma (billing manual) --}}
+    {{-- Assinatura do treinador na plataforma (billing manual) --}}
     @if ($isEdit)
         <div class="mt-6">
             @livewire('dashboard.professores.professor-subscription', ['teacher' => $teacherId], key('professor-subscription'))

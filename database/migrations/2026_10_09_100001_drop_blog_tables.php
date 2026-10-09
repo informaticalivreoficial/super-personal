@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Remove as tabelas legadas do blog herdado do starter (posts, cat_post,
- * post_gb). O SaaS Super Personal não tem blog — models, factories e
+ * post_gb). O SaaS SportPlan não tem blog — models, factories e
  * migrations de criação foram removidos em 2026-10-09; esta migration
  * limpa o banco existente (no banco novo é apenas um no-op).
  */

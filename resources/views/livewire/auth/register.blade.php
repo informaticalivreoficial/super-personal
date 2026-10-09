@@ -4,7 +4,7 @@
             <img src="{{ ($config ?? null)?->getlogoadmin() ?? asset('images/image.jpg') }}"
                 alt="{{ ($config ?? null)?->app_name ?? config('app.name') }}"
                 class="mb-4 max-h-16 w-auto cursor-pointer">
-            <h1 class="text-xl font-semibold tracking-tight text-gray-900">Criar conta de professor</h1>
+            <h1 class="text-xl font-semibold tracking-tight text-gray-900">Criar conta de treinador</h1>
             <p class="mt-1 text-sm text-gray-500">
                 Gerencie seus alunos, treinos e cobranças em um só lugar.
             </p>
@@ -62,7 +62,7 @@
 
         <p class="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-500">
             Já tem conta?
-            <a href="{{ route('login') }}" wire:navigate class="font-semibold text-teal-600 hover:text-teal-700">
+            <a href="{{ route('login') }}" wire:navigate class="font-semibold text-brand-600 hover:text-brand-700">
                 Entrar
             </a>
         </p>

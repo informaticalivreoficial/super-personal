@@ -14,7 +14,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Card de assinatura do professor (billing manual da plataforma) —
+ * Card de assinatura do treinador (billing manual da plataforma) —
  * aninhado no ProfessorForm (edição); gestão exclusiva do admin.
  */
 class ProfessorSubscription extends Component

@@ -7,17 +7,17 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Página "Minha assinatura" — visão somente leitura do professor sobre a
+ * Página "Minha assinatura" — visão somente leitura do treinador sobre a
  * própria assinatura COM a plataforma (billing manual gerido pelo admin
- * no card ProfessorSubscription). Sem escrita aqui: o professor consulta
+ * no card ProfessorSubscription). Sem escrita aqui: o treinador consulta
  * plano, status e vigência; alterações são exclusivas do admin.
  */
 class MySubscription extends Component
 {
     public function mount(): void
     {
-        // Só o professor chega aqui (middleware role:teacher); garante perfil.
-        abort_unless(auth()->user()?->teacher, 403, 'Perfil de professor não encontrado.');
+        // Só o treinador chega aqui (middleware role:teacher); garante perfil.
+        abort_unless(auth()->user()?->teacher, 403, 'Perfil de treinador não encontrado.');
     }
 
     #[Title('Minha assinatura')]

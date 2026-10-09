@@ -50,7 +50,7 @@ class SessionItems extends Component
     public function mount($session = null): void
     {
         if (is_string($session) || is_int($session)) {
-            // Escopo do tenant aplicado: id de outro professor → null → 404.
+            // Escopo do tenant aplicado: id de outro treinador → null → 404.
             $session = TrainingSession::find($session) ?? abort(404);
         }
 

@@ -62,7 +62,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Cache do tenant (professor) resolvido nesta requisição.
+     * Cache do tenant (treinador) resolvido nesta requisição.
      */
     private bool $tenantResolved = false;
 
@@ -112,11 +112,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Resolve o tenant (professor) do usuário autenticado, com cache por requisição.
+     * Resolve o tenant (treinador) do usuário autenticado, com cache por requisição.
      *
      * @return ?int null = administrador da plataforma (sem filtro de tenant);
      *              0   = perfil não encontrado (nada visível);
-     *              >0  = id do professor (tenant).
+     *              >0  = id do treinador (tenant).
      */
     public function resolveTenantId(): ?int
     {

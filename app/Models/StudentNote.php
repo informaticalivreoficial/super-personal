@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Observações privadas do professor sobre o aluno.
+ * Observações privadas do treinador sobre o aluno.
  * visibility = private nunca aparece para o aluno.
  */
 class StudentNote extends Model

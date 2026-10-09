@@ -2,5 +2,5 @@
 
 namespace App\Notifications;
 
-/** Mensagem do professor para o aluno. */
+/** Mensagem do treinador para o aluno. */
 class TeacherMessage extends BaseNotification {}

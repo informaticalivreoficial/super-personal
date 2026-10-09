@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Cobrança do aluno ao professor (controle manual, sem gateway).
- * Não confundir com Subscription (assinatura do professor na plataforma).
+ * Cobrança do aluno ao treinador (controle manual, sem gateway).
+ * Não confundir com Subscription (assinatura do treinador na plataforma).
  */
 class Payment extends Model
 {

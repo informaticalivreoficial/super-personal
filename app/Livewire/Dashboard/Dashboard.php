@@ -7,7 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Painel do SaaS: visão geral do professor (tenant) ou do admin
+ * Painel do SaaS: visão geral do treinador (tenant) ou do admin
  * (visão da plataforma: tenants, alunos e assinaturas).
  * Substitui o dashboard legado de blog (imports inexistentes removidos).
  */

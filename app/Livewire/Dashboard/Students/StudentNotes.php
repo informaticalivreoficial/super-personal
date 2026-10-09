@@ -14,7 +14,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * Observações do professor sobre o aluno (aninhado no StudentShow).
+ * Observações do treinador sobre o aluno (aninhado no StudentShow).
  * visibility = private nunca aparece para o aluno.
  */
 class StudentNotes extends Component

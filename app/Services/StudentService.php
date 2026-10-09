@@ -19,7 +19,7 @@ class StudentService
      */
     public function store(array $data): Student
     {
-        // Admin da plataforma não tem tenant: CRUD de alunos é do professor.
+        // Admin da plataforma não tem tenant: CRUD de alunos é do treinador.
         abort_unless($this->teacherId() > 0, 403);
 
         $student = new Student;
@@ -76,7 +76,7 @@ class StudentService
     }
 
     /**
-     * Registro do aluno no app com o código de convite do professor.
+     * Registro do aluno no app com o código de convite do treinador.
      *
      * Cria users.role = student (e-mail = cadastro do aluno), vincula o
      * perfil students.user_id e consome o código. Retorna o usuário criado
@@ -103,13 +103,13 @@ class StudentService
 
         if (! $student->active) {
             throw ValidationException::withMessages([
-                'invite_code' => 'Cadastro de aluno inativo. Fale com o professor.',
+                'invite_code' => 'Cadastro de aluno inativo. Fale com o treinador.',
             ]);
         }
 
         if (User::where('email', $student->email)->exists()) {
             throw ValidationException::withMessages([
-                'invite_code' => 'Este e-mail já está em uso por outra conta. Solicite ao professor atualizar o cadastro do aluno.',
+                'invite_code' => 'Este e-mail já está em uso por outra conta. Solicite ao treinador atualizar o cadastro do aluno.',
             ]);
         }
 

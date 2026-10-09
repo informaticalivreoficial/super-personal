@@ -12,7 +12,7 @@ enum UserRole: string
     {
         return [
             self::ADMIN->value => 'Administrador',
-            self::TEACHER->value => 'Professor',
+            self::TEACHER->value => 'Treinador',
             self::STUDENT->value => 'Aluno',
         ];
     }
