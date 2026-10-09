@@ -4,7 +4,6 @@ namespace Tests\Feature\Panel;
 
 use App\Models\Exercise;
 use App\Models\Payment;
-use App\Models\Post;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TrainingPlan;
@@ -25,7 +24,6 @@ class PanelRoutesSmokeTest extends TestCase
         $student = Student::factory()->forTeacher($teacher)->create();
         $plan = TrainingPlan::factory()->forStudent($student)->create();
         $payment = Payment::factory()->forStudent($student)->create();
-        $post = Post::factory()->create();
         $exercise = Exercise::factory()->forTeacher($teacher)->create();
 
         $this->actingAs($teacher->user);
@@ -48,16 +46,6 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/exercicios/cadastrar',
             '/admin/exercicios/'.$exercise->id.'/editar',
             '/admin/configuracoes',
-            '/admin/sitemap-generator',
-            '/admin/usuarios/clientes',
-            '/admin/usuarios/time',
-            '/admin/usuarios/cadastrar',
-            '/admin/posts',
-            '/admin/posts/cadastrar',
-            '/admin/posts/'.$post->id.'/editar',
-            '/admin/posts/categorias',
-            '/admin/posts/lixeira',
-            '/admin/posts/reports',
         ];
 
         foreach ($routes as $route) {
@@ -74,15 +62,12 @@ class PanelRoutesSmokeTest extends TestCase
     {
         $this->seed(ConfigTableSeeder::class);
 
-        $member = User::factory()->create();
         $teacher = Teacher::factory()->create();
         $admin = User::factory(['role' => 'admin'])->create();
 
         $this->actingAs($admin);
 
         $routes = [
-            '/admin/usuarios/'.$member->id.'/editar',
-            '/admin/usuarios/'.$member->id.'/visualizar',
             '/admin/modalidades',
             '/admin/modalidades/cadastrar',
             '/admin/professores',

@@ -11,25 +11,15 @@ use App\Livewire\Dashboard\Payments\PaymentIndex;
 use App\Livewire\Dashboard\Plans\PlanForm;
 use App\Livewire\Dashboard\Plans\PlanIndex;
 use App\Livewire\Dashboard\Plans\PlanShow;
-use App\Livewire\Dashboard\Posts\CatPosts;
-use App\Livewire\Dashboard\Posts\Lixeira;
-use App\Livewire\Dashboard\Posts\PostForm;
-use App\Livewire\Dashboard\Posts\Posts;
 use App\Livewire\Dashboard\Professores\ProfessorForm;
 use App\Livewire\Dashboard\Professores\ProfessorIndex;
-use App\Livewire\Dashboard\Reports\Posts as ReportsPosts;
 use App\Livewire\Dashboard\Settings;
-use App\Livewire\Dashboard\Sitemap\SitemapGenerator;
 use App\Livewire\Dashboard\Sports\SportForm;
 use App\Livewire\Dashboard\Sports\SportIndex;
 use App\Livewire\Dashboard\Students\StudentForm;
 use App\Livewire\Dashboard\Students\StudentIndex;
 use App\Livewire\Dashboard\Students\StudentShow;
 use App\Livewire\Dashboard\Students\StudentTracking;
-use App\Livewire\Dashboard\Users\Form;
-use App\Livewire\Dashboard\Users\Time;
-use App\Livewire\Dashboard\Users\Users;
-use App\Livewire\Dashboard\Users\ViewUser;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
@@ -100,25 +90,11 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
         Route::get('professores/{teacher}/editar', ProfessorForm::class)->name('professors.edit');
     });
 
-    // *********************** Resíduos do starter (remover na Fase 2) *************/
+    // *********************** Configurações do site *******************************/
+    // Mantidas: o Config (nome do site etc.) é compartilhado em todas as views
+    // pelo AppServiceProvider. Páginas legadas de blog/usuarios/sitemap
+    // removidas no product pass da Fase 2 (2026-10-08).
     Route::get('configuracoes', Settings::class)->name('settings');
-    Route::get('sitemap-generator', SitemapGenerator::class)->name('sitemap.generator');
-
-    // *********************** Usuários **********************************************/
-    Route::get('usuarios/clientes', Users::class)->name('users.index');
-    Route::get('usuarios/time', Time::class)->name('users.time');
-    Route::get('usuarios/cadastrar', Form::class)->name('users.create');
-    Route::get('usuarios/{userId}/editar', Form::class)->name('users.edit');
-    Route::get('usuarios/{user}/visualizar', ViewUser::class)->name('users.view');
-
-    // *********************** Posts *********************************************/
-    Route::get('posts/{post}/editar', PostForm::class)->name('posts.edit');
-    Route::get('posts/cadastrar', PostForm::class)->name('posts.create');
-    Route::get('posts/categorias', CatPosts::class)->name('posts.categories.index');
-    Route::get('/posts/lixeira', Lixeira::class)->name('posts.lixeira');
-    Route::get('posts', Posts::class)->name('posts.index');
-
-    Route::get('posts/reports', ReportsPosts::class)->name('posts.reports');
 
 });
 

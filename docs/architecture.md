@@ -321,11 +321,11 @@ sports ──1:N── training_sessions (restrict)
     semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
   - `PaymentCrudTest` — isolamento, `paid_at` automático, marcar como pago,
     404 cross-tenant, smoke das 3 rotas.
-  - `PanelRoutesSmokeTest` — as 26 rotas do domínio `/admin/*` retornam 200
+  - `PanelRoutesSmokeTest` — as 17 rotas do domínio `/admin/*` retornam 200
     para teacher (cria ConfigTableSeeder; pegou o 500 de Configurações);
-    fase admin cobre as rotas exclusivas de plataforma (`/admin/usuarios/{id}/editar`,
-    `/admin/usuarios/{id}/visualizar`, `/admin/modalidades*`); teacher recebe
-    403 em `/admin/modalidades`.
+    fase admin cobre as rotas exclusivas de plataforma (`/admin/modalidades*`
+    e `/admin/professores*`); teacher recebe 403 em ambas. Rotas legadas de
+    posts/usuarios/sitemap saíram do smoke no product pass (incremento 11).
   - `SessionItemCrudTest` (9) — CRUD/move/renumber de itens, validação,
     isolamento por tenant.
   - `SportCrudTest` (11) — CRUD admin-only, 403 para teacher, bloqueio de
@@ -379,15 +379,25 @@ sports ──1:N── training_sessions (restrict)
   (guard com `Schema::hasTable('roles')`).
 - **Fix**: `public array $roleLabels` não pode inicializar com chamada de
   método (`UserRole::labels()` não é expressão constante) — setado no `mount()`.
+- **Product pass (incremento 11)** — páginas legadas **removidas do painel**
+  (29 arquivos): componentes/views/rotas de posts (5 + `Reports\Posts`),
+  usuarios/clientes/time/visualizar (4) e sitemap-generator; comandos
+  `posts:clean-old`/`posts:purge-deleted`/`sitemap:generate` + 3 linhas de
+  agendamento; `UserPolicy` (só era usada pelos componentes de usuários);
+  seeders `UsersTableSeeder`, `CatPostsTableSeeder`, `PostsTableSeeder`;
+  comentários mortos do `SideNavigation`. **Mantidos**: models `Post`/`CatPost`
+  + migrations/factories (o site público `/blog` do `SiteController` usa),
+  `Settings` (`Config` compartilhado em todas as views pelo AppServiceProvider)
+  e o site público. Painel `/admin` ficou só com 23 rotas de domínio.
 
 ## Fora do escopo atual
 
-- Próximo incremento da Fase 2: product pass para remover as páginas
-  legadas de blog/usuarios/settings, ou início da Fase 3 (app Android sobre
-  a API REST), ou refinos do MVP (ex.: página de assinatura vista pelo
-  próprio professor).
-- Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
-  (foram des-spatiadas, mas podem ser removidas num futuro product pass).
+- **Product pass concluído** (2026-10-08): páginas legadas de blog/usuarios/
+  sitemap removidas do painel. Mantidos: models `Post`/`CatPost` (o site
+  público `/blog` usa), `Settings` e o site público — removê-los também é
+  opcional futuro se o SaaS não tiver blog.
+- Próximo passo da Fase 2: início da Fase 3 (app Android sobre a API REST),
+  ou refinos do MVP (ex.: página de assinatura vista pelo próprio professor).
 - Swagger (docs manuais), refresh token, gateway de pagamento,
   integrações Strava/Garmin.
 - App Android (Fase 3).

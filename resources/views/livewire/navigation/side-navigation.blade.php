@@ -173,7 +173,7 @@
                     <a href="{{ route('settings') }}" wire:navigate
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                            Route::is(['settings', 'sitemap.generator'])
+                            Route::is('settings')
                                 ? 'bg-teal-600/15 text-teal-300'
                                 : 'text-gray-400 hover:bg-white/5 hover:text-white',
                         ])>
