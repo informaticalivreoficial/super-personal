@@ -411,15 +411,62 @@ sports ──1:N── training_sessions (restrict)
     "Conta ativa".
   - **Testes**: `StudentRegisterTest` (10) + `StudentInviteTest` (6).
 
+### Item 2 (2026-10-09) — app do aluno em Flutter (`mobile/`)
+
+- **Decisão de stack**: Flutter 3.47.1 stable (snap `/snap/flutter/bin/flutter`)
+  em monorepo na raiz (`mobile/`, `--org br.com.superpersonal
+  --project-name super_personal --platforms android,ios`) com **dio 5.11 +
+  Riverpod 3 (AsyncNotifier) + GoRouter 18 + flutter_secure_storage**.
+- **Ambiente**: Android SDK `~/Android/Sdk`; **JDK 21 portátil** (Temurin) em
+  `~/tools/jdk-21` — exportar **a cada comando** (não persiste entre chamadas
+  do shell):
+  `export JAVA_HOME=$HOME/tools/jdk-21; export PATH=$JAVA_HOME/bin:$PATH`.
+- **Camada core** (`mobile/lib/core/`):
+  - `config/api_config.dart` — base URL por `--dart-define=API_BASE_URL`
+    (default `http://10.0.2.2` p/ emulador; aparelho físico usa o IP do
+    notebook, ex.: `http://192.168.15.82`, mesma Wi-Fi e Sail no ar);
+  - `api/api_client.dart` — dio + interceptor Bearer + `onUnauthorized`
+    (401 derruba a sessão; dio lança `DioException` fora de 2xx);
+  - `api/api_exception.dart` — `ApiException.fromDio` com mensagens pt-BR e
+    `fieldErrors` (422);
+  - `storage/token_storage.dart` — `TokenStorage` abstrato
+    (`SecureTokenStorage` no aparelho / `InMemoryTokenStorage` em teste);
+  - `router/app_router.dart` — GoRouter com `refreshListenable` =
+    `ValueNotifier<AsyncValue>` escutando `authControllerProvider`
+    (guard splash → login → home).
+- **Auth** (`mobile/lib/features/auth/`): `User` (recorte do `UserResource`),
+  `AuthRepository` (`POST /auth/login` grava token; `GET /auth/me`
+  desembrulha `data`; `POST /auth/logout` descarta token mesmo com falha),
+  `AuthController extends AsyncNotifier<User?>` (build = token ? `me()` :
+  null; `login` sem loading global p/ o guard não pular p/ splash no submit).
+- **Telas**: `LoginScreen` (e-mail+senha, spinner local, erros da API),
+  `SplashScreen` (restauração de sessão) e `HomeScreen` (saudação + tiles das
+  próximas telas: Dashboard/Calendário/Treinos/Progresso/Notificações).
+- **Plataforma**: label "Super Personal" + `usesCleartextTraffic` (Android);
+  `NSAllowsArbitraryLoads` (iOS ATS) — HTTP de dev.
+- **Qualidade**: `dart analyze` = *No issues found*; `flutter test` = 6/6
+  (`test/auth_repository_test.dart` com `HttpClientAdapter` fake: login ok,
+  401, 422, offline, `me()`, logout); `flutter build apk --debug` concluído
+  (`mobile/build/app/outputs/flutter-apk/app-debug.apk`).
+- **Comandos úteis** (em `mobile/`):
+  ```bash
+  export JAVA_HOME=$HOME/tools/jdk-21; export PATH=$JAVA_HOME/bin:$PATH
+  dart analyze && flutter test
+  flutter run -d <serial> --dart-define=API_BASE_URL=http://<IP-do-notebook>
+  flutter build apk --debug
+  ```
+  > USB direto exige regra udev (Samsung `04e8`) ou `adb` como root; sem
+  > isso `adb devices` mostra `no permissions`.
+
 ## Fora do escopo atual
 
 - **Product pass concluído** (2026-10-08): páginas legadas de blog/usuarios/
   sitemap removidas do painel. Mantidos: models `Post`/`CatPost` (o site
   público `/blog` usa), `Settings` e o site público — removê-los também é
   opcional futuro se o SaaS não tiver blog.
-- Próximo passo da Fase 3: setup do projeto Android (Kotlin/Compose ou
-  Flutter) consumindo a API, ou refinos do backend (ex.: página de assinatura
-  vista pelo próprio professor).
+- Próximos passos da Fase 3: rodar o app no aparelho/visualizar login,
+  telas do aluno (dashboard, planos, treinos com start/complete, progresso)
+  sobre a API já existente.
 - Swagger (docs manuais), refresh token, gateway de pagamento,
   integrações Strava/Garmin.
 - Push FCM (notificações hoje são canal `database`; entra na etapa mobile).
