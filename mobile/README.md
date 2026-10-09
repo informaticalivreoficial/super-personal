@@ -1,6 +1,6 @@
-# super_personal
+# SportPlan
 
-A new Flutter project.
+App do aluno do SaaS de gestão de treinamentos esportivos (Flutter + Riverpod + GoRouter).
 
 ## Getting Started
 

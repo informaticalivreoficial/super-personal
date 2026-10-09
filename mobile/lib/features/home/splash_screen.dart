@@ -11,7 +11,7 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.fitness_center, size: 64, color: Color(0xFF0D9488)),
+            Icon(Icons.fitness_center, size: 64, color: Color(0xFFE96B18)),
             SizedBox(height: 24),
             CircularProgressIndicator(),
             SizedBox(height: 16),

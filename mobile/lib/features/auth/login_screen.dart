@@ -17,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   String? _error;
   bool _loading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -48,6 +49,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() => _error = error.message);
+    } catch (_) {
+      // Qualquer erro inesperado (rede, parse...) também vira mensagem.
+      if (!mounted) return;
+      setState(
+        () => _error = 'Não foi possível entrar. Tente novamente.',
+      );
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -72,7 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Icon(Icons.fitness_center, size: 64, color: scheme.primary),
                 const SizedBox(height: 12),
                 Text(
-                  'Super Personal',
+                  'SportPlan',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
@@ -80,7 +87,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Treinos do seu personal no seu bolso',
+                  'Treinos do seu treinador no seu bolso',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
@@ -100,13 +107,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   autofillHints: const [AutofillHints.password],
                   onSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Senha',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      tooltip: _obscurePassword
+                          ? 'Mostrar senha'
+                          : 'Ocultar senha',
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () => setState(
+                        () => _obscurePassword = !_obscurePassword,
+                      ),
+                    ),
                   ),
                 ),
                 if (_error != null) ...[
