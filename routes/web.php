@@ -15,6 +15,8 @@ use App\Livewire\Dashboard\Posts\CatPosts;
 use App\Livewire\Dashboard\Posts\Lixeira;
 use App\Livewire\Dashboard\Posts\PostForm;
 use App\Livewire\Dashboard\Posts\Posts;
+use App\Livewire\Dashboard\Professores\ProfessorForm;
+use App\Livewire\Dashboard\Professores\ProfessorIndex;
 use App\Livewire\Dashboard\Reports\Posts as ReportsPosts;
 use App\Livewire\Dashboard\Settings;
 use App\Livewire\Dashboard\Sitemap\SitemapGenerator;
@@ -87,6 +89,15 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
         Route::get('modalidades', SportIndex::class)->name('sports.index');
         Route::get('modalidades/cadastrar', SportForm::class)->name('sports.create');
         Route::get('modalidades/{sport}/editar', SportForm::class)->name('sports.edit');
+    });
+
+    // *********************** Professores (tenants da plataforma) ****************
+    // Cadastro de tenants: exclusivo do admin (TeacherPolicy). Cria
+    // users.role=teacher + perfil em teachers — o professor só gerencia o próprio tenant.
+    Route::group(['middleware' => 'role:admin'], function () {
+        Route::get('professores', ProfessorIndex::class)->name('professors.index');
+        Route::get('professores/cadastrar', ProfessorForm::class)->name('professors.create');
+        Route::get('professores/{teacher}/editar', ProfessorForm::class)->name('professors.edit');
     });
 
     // *********************** Resíduos do starter (remover na Fase 2) *************/

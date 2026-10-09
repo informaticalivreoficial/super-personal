@@ -75,6 +75,7 @@ class PanelRoutesSmokeTest extends TestCase
         $this->seed(ConfigTableSeeder::class);
 
         $member = User::factory()->create();
+        $teacher = Teacher::factory()->create();
         $admin = User::factory(['role' => 'admin'])->create();
 
         $this->actingAs($admin);
@@ -84,6 +85,9 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/usuarios/'.$member->id.'/visualizar',
             '/admin/modalidades',
             '/admin/modalidades/cadastrar',
+            '/admin/professores',
+            '/admin/professores/cadastrar',
+            '/admin/professores/'.$teacher->id.'/editar',
         ];
 
         foreach ($routes as $route) {
@@ -105,5 +109,6 @@ class PanelRoutesSmokeTest extends TestCase
         $this->actingAs($teacher->user);
 
         $this->get('/admin/modalidades')->assertForbidden();
+        $this->get('/admin/professores')->assertForbidden();
     }
 }

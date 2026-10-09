@@ -206,6 +206,40 @@ sports ──1:N── training_sessions (restrict)
     `data`: title, message, student_id, teacher_id, sent_by. Lista as últimas
     10 enviadas; aluno sem usuário → card avisa e bloqueia envio. A leitura
     pelo aluno é a API `GET /api/v1/student/notifications` (app Android).
+- **Professores (tenants) pela plataforma** — `/admin/professores`
+  (grupo `role:admin`, menu "Plataforma" no sidebar):
+  - `ProfessorIndex` (busca por nome/e-mail, `students_count`, toggle
+    ativo/inativo) e `ProfessorForm` (criar/editar) com `StoreTeacherRequest`
+    / `UpdateTeacherRequest` (e-mail único com ignore do próprio user);
+  - `TeacherService`: `store` cria `users.role=teacher` + perfil `teachers`
+    em transaction (o tenant nasce aqui); `update` (senha opcional);
+    `toggleActive` sincroniza `teachers.active` + `users.status` (login
+    bloqueado); `ensureProfile` idempotente;
+  - `TeacherPolicy` — tudo exclusivo do `isPlatformAdmin()`;
+  - **Fix**: a tela legada de usuários (`Users\Form::create/update`) chama
+    `ensureProfile` quando o papel é `teacher` — antes o professor criado
+    ali ficava sem tenant e o painel dele ficava vazio.
+
+### Notificações e lembretes automáticos
+
+- **Comando** `notifications:send-reminders` (`App\Console\Commands\SendReminders`),
+  agendado no `App\Console\Kernel` via `dailyAt('07:00')->withoutOverlapping()`
+  (rodando sem auth → global scope `tenant` não filtra: comando de plataforma):
+  - `PaymentDueSoon` — pagamento **pendente** com vencimento em até 3 dias
+    (mensagem "vence hoje" / "vence em X dia(s)");
+  - `PaymentOverdue` — vencido (pendente/overdue) com `due_date` no passado;
+  - `TrainingToday` — sessão **planejada** para hoje;
+  - `TrainingMissed` — sessão de ontem ainda planejada;
+  - payload `data`: `title`/`message` (pt-BR) + ids (`payment_id`/`session_id`,
+    `student_id`, `teacher_id`); pula aluno sem conta ou com login bloqueado;
+  - **deduplicação**: consulta `notifications.type` +
+    `data->payment_id`/`data->session_id` → reexecução segura (cron pode rodar
+    mais de uma vez no dia);
+  - entrega pelo canal `database` (`BaseNotification::via()`); push Android
+    entra no `via()` no futuro. Leitura do aluno: API existente
+    `GET /api/v1/student/notifications`.
+- `NewTrainingAvailable` permanece para gatilho **por evento** (plano/sessão
+  publicado ao aluno) — fora deste comando.
 
 ### Visual — painel 100% Tailwind (sem AdminLTE)
 
@@ -279,7 +313,14 @@ sports ──1:N── training_sessions (restrict)
     (criação/validação/exclusão, 404 cross-component, cross-tenant, admin).
   - `StudentMessagesTest` (5) — envio de mensagem (payload da notificação),
     validação, card no `StudentShow`, aluno sem usuário, cross-tenant.
-  - **Total: 125 testes / 345 assertions** (23 API + 102 painel).
+  - `ProfessorCrudTest` (11) — gestão de professores/tenants pelo admin
+    (rotas admin/403 professor/guest, criação com tenant nascido, validações,
+    update com ignore de e-mail + senha opcional, toggle ativo/inativo, acesso
+    do novo professor ao painel, idempotência do `ensureProfile`).
+  - **Console**: `SendRemindersTest` (11) — lembretes automáticos (janelas de
+    vencimento, hoje/amanhã, pagado/concluído não notifica, aluno sem conta
+    pulado, idempotência com 2 execuções).
+  - **Total: 147 testes / 429 assertions** (23 API + 113 painel + 11 console).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -305,9 +346,10 @@ sports ──1:N── training_sessions (restrict)
 
 ## Fora do escopo atual
 
-- Próximo incremento da Fase 2: gatilhos de notificação automáticos
-  (`PaymentDueSoon`/`PaymentOverdue`/`TrainingToday` via comando agendado)
-  ou product pass para remover as páginas legadas de blog/usuarios/settings.
+- Próximo incremento da Fase 2: `NewTrainingAvailable` como gatilho por
+  evento (plano/sessão publicados ao aluno), product pass para remover as
+  páginas legadas de blog/usuarios/settings, ou gestão de assinaturas
+  (`subscriptions`) do professor na plataforma.
 - Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
   (foram des-spatiadas, mas podem ser removidas num futuro product pass).
 - Swagger (docs manuais), refresh token, gateway de pagamento,

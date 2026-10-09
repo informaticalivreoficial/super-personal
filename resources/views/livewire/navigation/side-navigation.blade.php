@@ -160,6 +160,16 @@
                         :class="$store.nav.mini ? 'lg:hidden' : ''">
                         Plataforma
                     </p>
+                    <a href="{{ route('professors.index') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('professors.*')
+                                ? 'bg-teal-600/15 text-teal-300'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="users" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Professores</span>
+                    </a>
                     <a href="{{ route('settings') }}" wire:navigate
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',

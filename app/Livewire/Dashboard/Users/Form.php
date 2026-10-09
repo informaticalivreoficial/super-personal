@@ -4,6 +4,7 @@ namespace App\Livewire\Dashboard\Users;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\TeacherService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -188,6 +189,12 @@ class Form extends Component
             $user->role = UserRole::from($this->roleSelected);
             $user->save();
 
+            // Perfil do tenant: professor criado aqui também ganha o perfil
+            // (sem isso o painel do novo professor ficaria vazio).
+            if ($user->role === UserRole::TEACHER) {
+                app(TeacherService::class)->ensureProfile($user);
+            }
+
             $this->reset(['code', 'code_confirmation', 'foto']);
             $this->dispatch('user-cadastrado');
 
@@ -245,6 +252,11 @@ class Form extends Component
             if ($this->roleSelected && in_array($this->roleSelected, ['teacher', 'admin'], true)) {
                 $user->role = UserRole::from($this->roleSelected);
                 $user->save();
+
+                // Perfil do tenant: usuário virou professor → garante o perfil.
+                if ($user->role === UserRole::TEACHER) {
+                    app(TeacherService::class)->ensureProfile($user);
+                }
             }
 
             $this->reset(['code', 'code_confirmation', 'foto']);
