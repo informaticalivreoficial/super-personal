@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\StudentRegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\StudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -52,13 +54,19 @@ class AuthController extends ApiController
 
         RateLimiter::clear($key);
 
-        $token = $user->createToken('api-token', [$user->role->value])->plainTextToken;
+        return $this->respondWithToken($user);
+    }
 
-        return response()->json([
-            'token' => $token,
-            'token_type' => 'Bearer',
-            'user' => new UserResource($user->loadMissing('teacher', 'student')),
-        ]);
+    /**
+     * Registro do aluno no app: consome o código de convite gerado pelo
+     * professor, cria a conta (users.role = student) e emite o token —
+     * o app sai logado após o cadastro.
+     */
+    public function studentRegister(StudentRegisterRequest $request, StudentService $students): JsonResponse
+    {
+        $user = $students->registerWithInvite($request->validated());
+
+        return $this->respondWithToken($user, 201);
     }
 
     public function logout(): JsonResponse
@@ -71,5 +79,16 @@ class AuthController extends ApiController
     public function me(): UserResource
     {
         return new UserResource(auth()->user()->loadMissing('teacher', 'student'));
+    }
+
+    private function respondWithToken(User $user, int $status = 200): JsonResponse
+    {
+        $token = $user->createToken('api-token', [$user->role->value])->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => new UserResource($user->loadMissing('teacher', 'student')),
+        ], $status);
     }
 }

@@ -30,6 +30,8 @@ Route::prefix('v1')->group(function () {
 
     /** Autenticação */
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    // Registro do aluno no app com o código de convite do professor.
+    Route::post('auth/student-register', [AuthController::class, 'studentRegister'])->middleware('throttle:10,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);

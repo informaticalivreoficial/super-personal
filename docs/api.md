@@ -46,6 +46,25 @@
 
 Erros: `401` credenciais inválidas · `403` conta inativa · `429` muitas tentativas.
 
+### `POST /auth/student-register` — throttled (10/min) · registro do aluno no app
+
+Fluxo de convite: o professor cadastra o aluno (painel ou API) → o sistema gera
+um `invite_code` (8 letras/números sem ambíguos) → o professor compartilha →
+o aluno cria a própria conta. Nome e e-mail vêm do cadastro
+(`students.email` é o login no app).
+
+```json
+{ "invite_code": "K7M2P9QX", "password": "senha-segura-123", "password_confirmation": "senha-segura-123" }
+```
+
+**201** — mesmo shape do login: `{token, token_type, user}` com
+`user.role = "student"` (o app sai logado). O código é consumido
+(`invite_code` → `null`) e `students.user_id` passa a apontar para a conta.
+
+Erros `422` (`invite_code`): código inválido, código já consumido, aluno já
+possui conta, aluno inativo ou e-mail já em uso por outra conta.
+(`password`): senha com menos de 8 caracteres ou confirmação divergente.
+
 ### `POST /auth/logout` — revoga o token atual → `200`
 
 ### `GET /auth/me` — usuário autenticado → `200 {data: {...}}`
@@ -53,6 +72,10 @@ Erros: `401` credenciais inválidas · `403` conta inativa · `429` muitas tenta
 ---
 
 ## Aluno (`role:student`) — futuro app Android
+
+> Pré-requisito de acesso: o aluno se registra em `POST /auth/student-register`
+> com o `invite_code` recebido do professor e, a partir daí, usa
+> `POST /auth/login` com `students.email` + senha definida no cadastro.
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -105,7 +128,7 @@ Todos os campos são opcionais (mínimo aceito é a conclusão em si).
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/teacher/students` | lista paginada (filtros: `search`, `status` — ver controller) |
-| POST | `/teacher/students` | cria aluno (**sem `user_id`** — vínculo de login depois) |
+| POST | `/teacher/students` | cria aluno (**sem `user_id`** — gera `invite_code` para o aluno se registrar) |
 | GET | `/teacher/students/{student}` | aluno único |
 | PUT | `/teacher/students/{student}` | atualiza |
 | DELETE | `/teacher/students/{student}` | soft delete |

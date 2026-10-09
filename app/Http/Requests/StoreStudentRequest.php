@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\StudentGender;
 use App\Enums\StudentLevel;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +24,12 @@ class StoreStudentRequest extends FormRequest
                 Rule::unique('students', 'email')
                     ->where('teacher_id', $teacherId)
                     ->whereNull('deleted_at'),
+                // O e-mail do aluno será o login no app — detecta conflito já aqui.
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (User::where('email', $value)->exists()) {
+                        $fail('Este e-mail já está em uso por outra conta de acesso.');
+                    }
+                },
             ],
             'phone' => ['nullable', 'string', 'max:30'],
             'birth_date' => ['nullable', 'date'],

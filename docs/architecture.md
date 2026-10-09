@@ -355,7 +355,7 @@ sports ──1:N── training_sessions (restrict)
     `cancelled_at` automático, 403 para professor).
   - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
     receita, agregação cross-tenant via service, professor vê o próprio).
-  - **Total: 165 testes / 494 assertions** (23 API + 123 painel + 11 console
+  - **Total: 181 testes / 550 assertions** (33 API + 129 painel + 11 console
     + 8 notificações).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
@@ -390,14 +390,36 @@ sports ──1:N── training_sessions (restrict)
   `Settings` (`Config` compartilhado em todas as views pelo AppServiceProvider)
   e o site público. Painel `/admin` ficou só com 23 rotas de domínio.
 
+## Fase 3 — app Android (iniciada — contrato da API)
+
+- **Item 1 (2026-10-09) — credencial do aluno via código de convite**:
+  - Migration `invite_code` em `students` (8 chars, alfabeto sem ambíguos,
+    único; backfill para alunos sem conta).
+  - `StudentService::store` gera o código na criação (API e painel usam o
+    mesmo service); `regenerateInviteCode` troca (bloqueado se já há conta);
+    `registerWithInvite` cria `users.role = student` (e-mail =
+    `students.email`), vincula `user_id`, consome o código — em transaction.
+  - **API**: `POST /api/v1/auth/student-register` (público, throttle 10/min,
+    payload `{invite_code, password, password_confirmation}`) → `201` com
+    `{token, token_type, user}` (app sai logado); `StudentResource` expõe
+    `invite_code` ao professor.
+  - **Validação antecipada**: `StoreStudentRequest`/`UpdateStudentRequest`
+    rejeitam e-mail já existente em `users` (conflito detectado no cadastro,
+    não no registro do aluno).
+  - **Painel**: card "Acesso no app" na ficha do aluno (`StudentShow`) —
+    código + copiar + "Gerar novo código" (toast); aluno com conta mostra
+    "Conta ativa".
+  - **Testes**: `StudentRegisterTest` (10) + `StudentInviteTest` (6).
+
 ## Fora do escopo atual
 
 - **Product pass concluído** (2026-10-08): páginas legadas de blog/usuarios/
   sitemap removidas do painel. Mantidos: models `Post`/`CatPost` (o site
   público `/blog` usa), `Settings` e o site público — removê-los também é
   opcional futuro se o SaaS não tiver blog.
-- Próximo passo da Fase 2: início da Fase 3 (app Android sobre a API REST),
-  ou refinos do MVP (ex.: página de assinatura vista pelo próprio professor).
+- Próximo passo da Fase 3: setup do projeto Android (Kotlin/Compose ou
+  Flutter) consumindo a API, ou refinos do backend (ex.: página de assinatura
+  vista pelo próprio professor).
 - Swagger (docs manuais), refresh token, gateway de pagamento,
   integrações Strava/Garmin.
-- App Android (Fase 3).
+- Push FCM (notificações hoje são canal `database`; entra na etapa mobile).

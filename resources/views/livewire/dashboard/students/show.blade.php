@@ -96,6 +96,49 @@
         <div class="col-12 col-md-6">
             <div class="card">
                 <div class="card-header">
+                    <h3 class="card-title"><x-icon name="solid-qr-code" class="h-4 w-4 text-teal-600" />Acesso no app</h3>
+                    @if ($student->user_id)
+                        <span class="badge badge-success">Conta ativa</span>
+                    @endif
+                </div>
+                <div class="card-body">
+                    @if ($student->user_id)
+                        <p class="text-muted mb-0">
+                            Este aluno já possui conta de acesso. Login:
+                            <strong>{{ $student->email }}</strong>.
+                        </p>
+                    @else
+                        <p class="text-muted mb-2">
+                            Compartilhe o código com o aluno para ele criar a conta no app Android:
+                        </p>
+                        @if ($student->invite_code)
+                            <div class="flex flex-wrap items-center gap-2">
+                                <code class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-lg font-semibold tracking-widest text-gray-900">
+                                    {{ $student->invite_code }}
+                                </code>
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                    x-data="{ copied: false }"
+                                    x-on:click="navigator.clipboard?.writeText('{{ $student->invite_code }}'); copied = true; setTimeout(() => copied = false, 1500)">
+                                    <span x-show="!copied">Copiar</span>
+                                    <span x-show="copied" x-cloak>Copiado!</span>
+                                </button>
+                            </div>
+                        @else
+                            <p class="text-muted mb-2">Este aluno ainda não possui código de convite.</p>
+                        @endif
+                        <button type="button" class="btn btn-primary btn-sm mt-3" wire:click="regenerateInvite"
+                            wire:confirm="Gerar um novo código invalida o atual. Continuar?">
+                            <x-icon name="arrow-path" class="h-4 w-4" />
+                            {{ $student->invite_code ? 'Gerar novo código' : 'Gerar código' }}
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <div class="card">
+                <div class="card-header">
                     <h3 class="card-title"><x-icon name="clipboard-document-list" class="h-4 w-4 text-teal-600" />Plano ativo</h3>
                 </div>
                 <div class="card-body">
