@@ -238,6 +238,13 @@ sports ──1:N── training_sessions (restrict)
     status `cancelled` (rastro manual de billing — sem gateway);
   - coluna "Assinatura" no `ProfessorIndex` com badge por status;
   - autorização herda `TeacherPolicy::update` (exclusivo do admin).
+  - **Refino (2026-10-09) — página do próprio professor**:
+    `/admin/assinatura` (`App\Livewire\Dashboard\MySubscription`, rota
+    `subscription.show` com middleware `role:teacher` — o admin recebe 403,
+    já que ele não tem tenant): **somente leitura** (badge de status, plano,
+    valor mensal, vigências, `cancelled_at` e estado vazio "Sem assinatura
+    ativa"); link "Minha assinatura" no sidebar visível só para
+    `isTeacher()`. Escrita continua exclusiva do admin.
 
 ### Notificações e lembretes automáticos
 
@@ -384,11 +391,12 @@ sports ──1:N── training_sessions (restrict)
   usuarios/clientes/time/visualizar (4) e sitemap-generator; comandos
   `posts:clean-old`/`posts:purge-deleted`/`sitemap:generate` + 3 linhas de
   agendamento; `UserPolicy` (só era usada pelos componentes de usuários);
-  seeders `UsersTableSeeder`, `CatPostsTableSeeder`, `PostsTableSeeder`;
-  comentários mortos do `SideNavigation`. **Mantidos**: models `Post`/`CatPost`
-  + migrations/factories (o site público `/blog` do `SiteController` usa),
-  `Settings` (`Config` compartilhado em todas as views pelo AppServiceProvider)
-  e o site público. Painel `/admin` ficou só com 23 rotas de domínio.
+   seeders `UsersTableSeeder`, `CatPostsTableSeeder`, `PostsTableSeeder`;
+   comentários mortos do `SideNavigation`. **Mantidos na época**: models
+   `Post`/`CatPost` + migrations/factories e o site público — depois
+   **removidos em 2026-10-09** (ver "Blog do site público removido").
+   `Settings` (`Config` compartilhado em todas as views pelo AppServiceProvider)
+   permanece. Painel `/admin` ficou só com 23 rotas de domínio.
 
 ## Fase 3 — app Android (iniciada — contrato da API)
 
@@ -458,12 +466,28 @@ sports ──1:N── training_sessions (restrict)
   > USB direto exige regra udev (Samsung `04e8`) ou `adb` como root; sem
   > isso `adb devices` mostra `no permissions`.
 
+## Blog do site público removido (2026-10-09)
+
+- O SaaS não tem blog: as 7 rotas legadas (`/blog`, `/blog/artigo/{slug}`,
+  `/blog/categoria/{slug}`, `/noticias`, `/noticia/{slug}`,
+  `/noticias/categoria/{slug}`, `/pagina/{slug}`) apontavam para métodos
+  **inexistentes** no `SiteController` (só existe `home()`) — davam 500 se
+  acessadas. Removidas; o site público ficou só com `/` (`web.home`).
+- **Removidos**: models `Post`, `CatPost`, `PostGb`; enum `PostType`;
+  factories `PostFactory`/`CatPostFactory`; migrations de criação (2021);
+  relação `User::posts()`. Migration nova
+  `2026_10_09_100001_drop_blog_tables` dropa `post_gb`, `posts` e `cat_post`
+  (ordem das FKs; no banco novo é no-op).
+- **Mantidos**: `SiteController::home()` + views `web/default/*`, `Seo`,
+  `Settings`/`Config` e o link "Ver site" do topbar.
+- Verificação: varredura sem referências órfãs, `/blog` → 404, `/` → 200,
+  suíte completa verde.
+
 ## Fora do escopo atual
 
-- **Product pass concluído** (2026-10-08): páginas legadas de blog/usuarios/
-  sitemap removidas do painel. Mantidos: models `Post`/`CatPost` (o site
-  público `/blog` usa), `Settings` e o site público — removê-los também é
-  opcional futuro se o SaaS não tiver blog.
+- ~~Product pass do blog~~ **concluído por completo** (2026-10-09): além das
+  páginas do painel (2026-10-08), models/rotas/migrations do blog do site
+  público foram removidos. `Settings` e o site público (home) permanecem.
 - Próximos passos da Fase 3: rodar o app no aparelho/visualizar login,
   telas do aluno (dashboard, planos, treinos com start/complete, progresso)
   sobre a API já existente.

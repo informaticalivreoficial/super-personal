@@ -140,7 +140,23 @@
                             Exercícios
                         </a>
                     </li>
-                    @if (auth()->user()->isPlatformAdmin())
+            {{-- Minha assinatura (professor; billing da conta na plataforma) --}}
+            @if (auth()->user()->isTeacher())
+                <li class="pt-4">
+                    <a href="{{ route('subscription.show') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('subscription.show')
+                                ? 'bg-teal-600/15 text-teal-300'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="banknotes" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Minha assinatura</span>
+                    </a>
+                </li>
+            @endif
+
+            @if (auth()->user()->isPlatformAdmin())
                         <li>
                             <a href="{{ route('sports.index') }}" wire:navigate
                                 @class([

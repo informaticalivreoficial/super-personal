@@ -80,11 +80,6 @@ class User extends Authenticatable
     /**
      * Relacionamentos
      */
-    public function posts()
-    {
-        return $this->hasMany(Post::class, 'autor', 'id');
-    }
-
     public function teacher(): HasOne
     {
         return $this->hasOne(Teacher::class);

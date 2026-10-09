@@ -6,6 +6,7 @@ use App\Livewire\Auth\Register;
 use App\Livewire\Dashboard\Dashboard;
 use App\Livewire\Dashboard\Exercises\ExerciseForm;
 use App\Livewire\Dashboard\Exercises\ExerciseIndex;
+use App\Livewire\Dashboard\MySubscription;
 use App\Livewire\Dashboard\Payments\PaymentForm;
 use App\Livewire\Dashboard\Payments\PaymentIndex;
 use App\Livewire\Dashboard\Plans\PlanForm;
@@ -24,19 +25,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
 
-    /** Página Inicial */
+    /** Página Inicial do site público (o blog/notícias legados foram removidos). */
     Route::get('/', [SiteController::class, 'home'])->name('home');
-
-    Route::get('/blog/artigo/{slug}', [SiteController::class, 'artigo'])->name('blog.artigo');
-    Route::get('/blog/categoria/{slug}', [SiteController::class, 'categoria'])->name('blog.categoria');
-    Route::get('/blog', [SiteController::class, 'artigos'])->name('blog.artigos');
-
-    // //*************************************** Páginas *******************************************/
-    Route::get('/noticia/{slug}', [SiteController::class, 'noticia'])->name('noticia');
-    Route::get('/noticias', [SiteController::class, 'noticias'])->name('noticias');
-    Route::get('/noticias/categoria/{slug}', [SiteController::class, 'categoria'])->name('noticia.categoria');
-
-    Route::get('/pagina/{slug}', [SiteController::class, 'page'])->name('pagina');
 
 });
 
@@ -89,6 +79,14 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
         Route::get('professores/cadastrar', ProfessorForm::class)->name('professors.create');
         Route::get('professores/{teacher}/editar', ProfessorForm::class)->name('professors.edit');
     });
+
+    // *********************** Minha assinatura ***********************************
+    // Visão somente leitura do professor sobre a própria assinatura COM a
+    // plataforma (billing manual gerido pelo admin). Exclusiva do professor:
+    // o admin não tem tenant — ele gerencia em /admin/professores/{id}/editar.
+    Route::get('assinatura', MySubscription::class)
+        ->name('subscription.show')
+        ->middleware('role:teacher');
 
     // *********************** Configurações do site *******************************/
     // Mantidas: o Config (nome do site etc.) é compartilhado em todas as views
