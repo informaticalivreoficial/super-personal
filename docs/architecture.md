@@ -238,8 +238,16 @@ sports ──1:N── training_sessions (restrict)
   - entrega pelo canal `database` (`BaseNotification::via()`); push Android
     entra no `via()` no futuro. Leitura do aluno: API existente
     `GET /api/v1/student/notifications`.
-- `NewTrainingAvailable` permanece para gatilho **por evento** (plano/sessão
-  publicado ao aluno) — fora deste comando.
+- **`NewTrainingAvailable` por evento** (gatilho de publicação de plano):
+  - `App\Events\TrainingPlanPublished` (payload: plano) + listener
+    `App\Listeners\SendNewTrainingAvailableNotification` registrado no
+    `EventServiceProvider::$listen`;
+  - disparado pelo **`TrainingPlanService`** (caminho único de escrita —
+    API e painel compartilham): `store` se o plano já nasce `ACTIVE`;
+    `update` **somente na virada não-ativo→ativo** (rascunho→ativo ou
+    reativação) — editar um plano já ativo não reavisa;
+  - payload `data`: title/message (pt-BR), plan_id, student_id, teacher_id,
+    status; aluno sem conta/bloqueado é pulado pelo listener.
 
 ### Visual — painel 100% Tailwind (sem AdminLTE)
 
@@ -320,7 +328,11 @@ sports ──1:N── training_sessions (restrict)
   - **Console**: `SendRemindersTest` (11) — lembretes automáticos (janelas de
     vencimento, hoje/amanhã, pagado/concluído não notifica, aluno sem conta
     pulado, idempotência com 2 execuções).
-  - **Total: 147 testes / 429 assertions** (23 API + 113 painel + 11 console).
+  - **Notificações**: `NewTrainingAvailableTest` (8) — plano publicado por
+    evento (criar ativo, publicar rascunho, editar sem reaviso, reativar
+    avisa de novo, aluno sem conta, fim a fim via API e painel).
+  - **Total: 155 testes / 446 assertions** (23 API + 113 painel + 11 console
+    + 8 notificações).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -346,10 +358,9 @@ sports ──1:N── training_sessions (restrict)
 
 ## Fora do escopo atual
 
-- Próximo incremento da Fase 2: `NewTrainingAvailable` como gatilho por
-  evento (plano/sessão publicados ao aluno), product pass para remover as
-  páginas legadas de blog/usuarios/settings, ou gestão de assinaturas
-  (`subscriptions`) do professor na plataforma.
+- Próximo incremento da Fase 2: gestão de assinaturas (`subscriptions`) do
+  professor na plataforma (admin), ou product pass para remover as páginas
+  legadas de blog/usuarios/settings.
 - Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
   (foram des-spatiadas, mas podem ser removidas num futuro product pass).
 - Swagger (docs manuais), refresh token, gateway de pagamento,

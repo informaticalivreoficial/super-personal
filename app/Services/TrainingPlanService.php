@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\TrainingPlanStatus;
+use App\Events\TrainingPlanPublished;
 use App\Models\Student;
 use App\Models\TrainingPlan;
 use App\Models\TrainingWeek;
@@ -16,13 +18,26 @@ class TrainingPlanService
         $plan->fill($data);
         $plan->save();
 
+        // Plano já publicado no cadastro → aluno avisado.
+        if ($plan->status === TrainingPlanStatus::ACTIVE) {
+            event(new TrainingPlanPublished($plan));
+        }
+
         return $plan;
     }
 
     public function update(TrainingPlan $plan, array $data): TrainingPlan
     {
+        $wasActive = $plan->status === TrainingPlanStatus::ACTIVE;
+
         $plan->fill($data);
         $plan->save();
+
+        // Transição rascunho/outro → ativo = publicação (só nessa virada
+        // para não reavisar a cada edição de um plano já ativo).
+        if (! $wasActive && $plan->status === TrainingPlanStatus::ACTIVE) {
+            event(new TrainingPlanPublished($plan));
+        }
 
         return $plan;
     }
