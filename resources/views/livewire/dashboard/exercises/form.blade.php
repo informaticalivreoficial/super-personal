@@ -8,7 +8,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="queue-list" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="queue-list" class="h-6 w-6 text-brand-600" />
                     {{ $isEdit ? 'Editar' : 'Cadastrar' }} exercício
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Exercícios / {{ $isEdit ? 'Editar' : 'Novo' }}</p>
@@ -99,7 +99,7 @@
                             <label>Status</label>
                             <div class="mt-2 flex items-center gap-2">
                                 <input type="checkbox" id="exercise_active" wire:model="active"
-                                    class="h-4 w-4 rounded border-gray-300 text-teal-600">
+                                    class="h-4 w-4 rounded border-gray-300 text-brand-600">
                                 <label for="exercise_active" class="text-sm text-gray-700">Ativo (disponível para composição de treinos)</label>
                             </div>
                             @error('active')

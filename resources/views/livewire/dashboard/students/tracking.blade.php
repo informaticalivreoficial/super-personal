@@ -36,7 +36,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="chart-bar" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="chart-bar" class="h-6 w-6 text-brand-600" />
                     {{ $student->name }}
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Alunos / Acompanhamento</p>
@@ -53,7 +53,7 @@
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div class="card p-5">
             <div class="flex items-center gap-4">
-                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <x-icon name="check" class="h-6 w-6" />
                 </span>
                 <div class="min-w-0">
@@ -125,7 +125,7 @@
     <div class="mb-6 card">
         <div class="card-header">
             <h3 class="card-title">
-                <x-icon name="clipboard" class="h-4 w-4 text-teal-600" />Histórico de avaliações
+                <x-icon name="clipboard" class="h-4 w-4 text-brand-600" />Histórico de avaliações
             </h3>
             <div class="card-tools">
                 <button type="button" wire:click="toggleForm" class="btn btn-primary btn-sm">
@@ -276,7 +276,7 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">
-                <x-icon name="fire" class="h-4 w-4 text-teal-600" />Execuções dos treinos
+                <x-icon name="fire" class="h-4 w-4 text-brand-600" />Execuções dos treinos
             </h3>
             <div class="card-tools">
                 <span class="text-sm text-gray-500">{{ $executions->total() }} registro(s)</span>

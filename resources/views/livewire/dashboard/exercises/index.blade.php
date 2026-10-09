@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                <x-icon name="queue-list" class="h-6 w-6 text-teal-600" />
+                <x-icon name="queue-list" class="h-6 w-6 text-brand-600" />
                 Exercícios
             </h1>
             <p class="mt-1 text-sm text-gray-500">Biblioteca de exercícios: seus + catálogo global da plataforma</p>
@@ -114,7 +114,7 @@
                     </p>
                     @if (! $search)
                         <a wire:navigate href="{{ route('exercises.create') }}"
-                            class="mt-2 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
+                            class="mt-2 inline-block text-sm font-semibold text-brand-600 hover:text-brand-700">
                             Cadastre o primeiro exercício
                         </a>
                     @endif

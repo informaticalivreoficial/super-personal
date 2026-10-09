@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                <x-icon name="currency-dollar" class="h-6 w-6 text-teal-600" />
+                <x-icon name="currency-dollar" class="h-6 w-6 text-brand-600" />
                 Pagamentos
             </h1>
             <p class="mt-1 text-sm text-gray-500">Cobranças e recebimentos dos alunos</p>
@@ -115,7 +115,7 @@
                     </p>
                     @unless ($search || $filterStatus)
                         <a wire:navigate href="{{ route('payments.create') }}"
-                            class="mt-2 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
+                            class="mt-2 inline-block text-sm font-semibold text-brand-600 hover:text-brand-700">
                             Registre o primeiro
                         </a>
                     @endunless

@@ -8,7 +8,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="academic-cap" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="academic-cap" class="h-6 w-6 text-brand-600" />
                     {{ $isEdit ? 'Editar aluno' : 'Cadastrar aluno' }}
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Alunos / {{ $isEdit ? 'Editar' : 'Novo' }}</p>
@@ -19,7 +19,7 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title flex items-center gap-2">
-                <x-icon name="identification" class="h-5 w-5 text-teal-600" />
+                <x-icon name="identification" class="h-5 w-5 text-brand-600" />
                 Dados do aluno
             </h3>
         </div>
@@ -129,7 +129,7 @@
                 <hr class="my-6 border-gray-100">
 
                 <h5 class="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
-                    <x-icon name="scale" class="h-4 w-4 text-teal-600" />
+                    <x-icon name="scale" class="h-4 w-4 text-brand-600" />
                     Composição física
                 </h5>
                 <div class="row">
@@ -208,7 +208,7 @@
                 <hr class="my-6 border-gray-100">
 
                 <h5 class="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
-                    <x-icon name="calendar" class="h-4 w-4 text-teal-600" />
+                    <x-icon name="calendar" class="h-4 w-4 text-brand-600" />
                     Disponibilidade semanal
                 </h5>
                 <div class="form-group">

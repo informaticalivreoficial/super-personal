@@ -3,7 +3,7 @@
         <span>&copy; {{ date('Y') }} {{ $config->app_name ?? config('app.name') }}. Todos os direitos reservados.</span>
         <span>
             Feito com ❤ por
-            <a href="{{ config('app.desenvolvedor_url') }}" target="_blank" class="font-medium text-teal-600 hover:text-teal-700">
+            <a href="{{ config('app.desenvolvedor_url') }}" target="_blank" class="font-medium text-brand-600 hover:text-brand-700">
                 Informática Livre
             </a>.
         </span>

@@ -1,7 +1,7 @@
 <div class="card h-full">
     <div class="card-header">
         <h3 class="card-title">
-            <x-icon name="envelope" class="h-4 w-4 text-teal-600" />Mensagens ao aluno
+            <x-icon name="envelope" class="h-4 w-4 text-brand-600" />Mensagens ao aluno
         </h3>
         <div class="card-tools">
             @if ($hasAppAccess)
@@ -70,7 +70,7 @@
                             <p class="whitespace-pre-wrap text-sm text-gray-700">
                                 {{ $notification->data['message'] ?? '—' }}
                             </p>
-                            <p class="mt-1 text-xs {{ $notification->read_at ? 'text-teal-600' : 'text-gray-400' }}">
+                            <p class="mt-1 text-xs {{ $notification->read_at ? 'text-brand-600' : 'text-gray-400' }}">
                                 {{ $notification->read_at ? 'Lida em '.$notification->read_at->format('d/m/Y H:i') : 'Não lida' }}
                             </p>
                         </li>

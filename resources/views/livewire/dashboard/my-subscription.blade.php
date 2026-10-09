@@ -2,7 +2,7 @@
     {{-- Cabeçalho --}}
     <div class="mb-6">
         <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-            <x-icon name="banknotes" class="h-6 w-6 text-teal-600" />
+            <x-icon name="banknotes" class="h-6 w-6 text-brand-600" />
             Minha assinatura
         </h1>
         <p class="mt-1 text-sm text-gray-500">Assinatura do seu plano na plataforma {{ $config->app_name ?? config('app.name') }}</p>
@@ -72,8 +72,8 @@
     @else
         <div class="card">
             <div class="card-body text-center">
-                <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal-600/10">
-                    <x-icon name="banknotes" class="h-6 w-6 text-teal-600" />
+                <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-600/10">
+                    <x-icon name="banknotes" class="h-6 w-6 text-brand-600" />
                 </span>
                 <h2 class="mt-4 text-base font-semibold text-gray-900">Sem assinatura ativa</h2>
                 <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">

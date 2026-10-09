@@ -8,7 +8,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="identification" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="identification" class="h-6 w-6 text-brand-600" />
                     {{ $student->name }}
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Alunos / Detalhes</p>
@@ -29,9 +29,9 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card card-teal card-outline">
+            <div class="card card-brand card-outline">
                 <div class="card-header">
-                    <h3 class="card-title"><x-icon name="user" class="h-4 w-4 text-teal-600" />Dados cadastrais</h3>
+                    <h3 class="card-title"><x-icon name="user" class="h-4 w-4 text-brand-600" />Dados cadastrais</h3>
                     <div class="card-tools">
                         <span class="badge {{ $student->active ? 'badge-success' : 'badge-secondary' }}">
                             {{ $student->active ? 'Ativo' : 'Inativo' }}
@@ -96,7 +96,7 @@
         <div class="col-12 col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title"><x-icon name="solid-qr-code" class="h-4 w-4 text-teal-600" />Acesso no app</h3>
+                    <h3 class="card-title"><x-icon name="solid-qr-code" class="h-4 w-4 text-brand-600" />Acesso no app</h3>
                     @if ($student->user_id)
                         <span class="badge badge-success">Conta ativa</span>
                     @endif
@@ -139,7 +139,7 @@
         <div class="col-12 col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title"><x-icon name="clipboard-document-list" class="h-4 w-4 text-teal-600" />Plano ativo</h3>
+                    <h3 class="card-title"><x-icon name="clipboard-document-list" class="h-4 w-4 text-brand-600" />Plano ativo</h3>
                 </div>
                 <div class="card-body">
                     @if ($activePlan)
@@ -161,7 +161,7 @@
         <div class="col-12 col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title"><x-icon name="currency-dollar" class="h-4 w-4 text-teal-600" />Últimos pagamentos</h3>
+                    <h3 class="card-title"><x-icon name="currency-dollar" class="h-4 w-4 text-brand-600" />Últimos pagamentos</h3>
                 </div>
                 <div class="card-body p-0">
                     @if ($recentPayments->count())

@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                <x-icon name="clipboard-document-list" class="h-6 w-6 text-teal-600" />
+                <x-icon name="clipboard-document-list" class="h-6 w-6 text-brand-600" />
                 Planos de Treino
             </h1>
             <p class="mt-1 text-sm text-gray-500">Planos, semanas e sessões dos seus alunos</p>
@@ -50,7 +50,7 @@
                             <tr wire:key="plan-{{ $plan->id }}">
                                 <td>
                                     <a wire:navigate href="{{ route('plans.show', $plan) }}"
-                                        class="font-semibold text-gray-900 hover:text-teal-600">
+                                        class="font-semibold text-gray-900 hover:text-brand-600">
                                         {{ $plan->name }}
                                     </a>
                                     @if ($plan->goal)
@@ -114,7 +114,7 @@
                     </p>
                     @unless ($search)
                         <a wire:navigate href="{{ route('plans.create') }}"
-                            class="mt-2 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
+                            class="mt-2 inline-block text-sm font-semibold text-brand-600 hover:text-brand-700">
                             Crie o primeiro plano
                         </a>
                     @endunless

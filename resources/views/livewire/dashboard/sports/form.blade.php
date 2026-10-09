@@ -8,7 +8,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="fire" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="fire" class="h-6 w-6 text-brand-600" />
                     {{ $isEdit ? 'Editar' : 'Cadastrar' }} modalidade
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Modalidades / {{ $isEdit ? 'Editar' : 'Nova' }}</p>
@@ -44,7 +44,7 @@
                         <div class="form-group">
                             <label for="sport_active">Status</label>
                             <div class="mt-2 flex items-center gap-2">
-                                <input type="checkbox" id="sport_active" wire:model="active" class="h-4 w-4 rounded border-gray-300 text-teal-600">
+                                <input type="checkbox" id="sport_active" wire:model="active" class="h-4 w-4 rounded border-gray-300 text-brand-600">
                                 <label for="sport_active" class="text-sm text-gray-700">Ativa (disponível para sessões)</label>
                             </div>
                             @error('active')

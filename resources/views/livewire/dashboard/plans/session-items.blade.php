@@ -5,7 +5,7 @@
             {{-- Barra da composição --}}
             <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h6 class="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                    <x-icon name="list-bullet" class="h-4 w-4 text-teal-600" />
+                    <x-icon name="list-bullet" class="h-4 w-4 text-brand-600" />
                     Composição do treino
                     <span class="badge badge-secondary">{{ $items->count() }} {{ $items->count() === 1 ? 'item' : 'itens' }}</span>
                 </h6>

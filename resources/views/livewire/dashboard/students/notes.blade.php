@@ -1,7 +1,7 @@
 <div class="card h-full">
     <div class="card-header">
         <h3 class="card-title">
-            <x-icon name="clipboard-document-list" class="h-4 w-4 text-teal-600" />Observações
+            <x-icon name="clipboard-document-list" class="h-4 w-4 text-brand-600" />Observações
             <span class="ml-1 badge badge-secondary">{{ $notes->total() }}</span>
         </h3>
         <div class="card-tools">

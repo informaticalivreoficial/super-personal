@@ -8,7 +8,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="clipboard-document-list" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="clipboard-document-list" class="h-6 w-6 text-brand-600" />
                     {{ $plan->name }}
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Planos / Detalhes</p>
@@ -28,7 +28,7 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title flex items-center gap-2">
-                <x-icon name="information-circle" class="h-5 w-5 text-teal-600" />
+                <x-icon name="information-circle" class="h-5 w-5 text-brand-600" />
                 Informações
             </h3>
         </div>
@@ -40,7 +40,7 @@
                         <dd class="col-sm-8">
                             @if ($plan->student)
                                 <a wire:navigate href="{{ route('students.show', $plan->student) }}"
-                                    class="font-medium text-teal-600 hover:text-teal-700">
+                                    class="font-medium text-brand-600 hover:text-brand-700">
                                     {{ $plan->student->name }}
                                 </a>
                             @else
@@ -84,7 +84,7 @@
     <div class="card mt-6">
         <div class="card-header">
             <h3 class="card-title flex items-center gap-2">
-                <x-icon name="calendar" class="h-5 w-5 text-teal-600" />
+                <x-icon name="calendar" class="h-5 w-5 text-brand-600" />
                 Semanas e sessões
             </h3>
             <button type="button" class="btn btn-primary btn-sm" wire:click="openWeekForm">

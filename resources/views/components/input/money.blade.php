@@ -8,7 +8,7 @@
     <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
         <input
-            {{ $attributes->merge(['class' => 'w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400']) }}
+            {{ $attributes->merge(['class' => 'w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400']) }}
             type="text"
             inputmode="decimal"
         >

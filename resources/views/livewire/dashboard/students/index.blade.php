@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                <x-icon name="academic-cap" class="h-6 w-6 text-teal-600" />
+                <x-icon name="academic-cap" class="h-6 w-6 text-brand-600" />
                 Alunos
             </h1>
             <p class="mt-1 text-sm text-gray-500">Gerencie os alunos da sua equipe</p>
@@ -52,7 +52,7 @@
                                 class="{{ $student->active ? '' : 'bg-amber-50/60' }}">
                                 <td>
                                     <a wire:navigate href="{{ route('students.show', $student) }}"
-                                        class="font-semibold text-gray-900 hover:text-teal-600">
+                                        class="font-semibold text-gray-900 hover:text-brand-600">
                                         {{ $student->name }}
                                     </a>
                                 </td>
@@ -65,7 +65,7 @@
                                     {{ $student->current_weight ? number_format((float) $student->current_weight, 1, ',', '.') . ' kg' : '—' }}
                                 </td>
                                 <td class="text-center">
-                                    <button type="button" class="rounded-full focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                    <button type="button" class="rounded-full focus:outline-none focus:ring-2 focus:ring-brand-400"
                                         wire:click="toggleActive({{ $student->id }})"
                                         title="Clique para {{ $student->active ? 'desativar' : 'ativar' }}">
                                         @if ($student->active)
@@ -114,7 +114,7 @@
                     </p>
                     @unless ($search)
                         <a wire:navigate href="{{ route('students.create') }}"
-                            class="mt-2 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
+                            class="mt-2 inline-block text-sm font-semibold text-brand-600 hover:text-brand-700">
                             Cadastre o primeiro aluno
                         </a>
                     @endunless

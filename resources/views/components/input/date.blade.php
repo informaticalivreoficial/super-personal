@@ -6,7 +6,7 @@
     @endif
     <input
         type="date"
-        {{ $attributes->merge(['class' => 'w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400']) }}
+        {{ $attributes->merge(['class' => 'w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400']) }}
     >
     @if($error)
         <span class="text-red-500 text-xs mt-1 block">{{ $error }}</span>

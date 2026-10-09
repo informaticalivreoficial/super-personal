@@ -10,7 +10,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="cog" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="cog" class="h-6 w-6 text-brand-600" />
                     Configurações
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Configurações / Geral</p>
@@ -43,25 +43,25 @@
         <div class="flex flex-wrap gap-1 border-b border-gray-200 px-2 pt-2">
             <button type="button"
                     class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
-                    :class="tab === 'dados' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+                    :class="tab === 'dados' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'dados'">
                 <x-icon name="document-text" class="h-4 w-4" /> Dados
             </button>
             <button type="button"
                     class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
-                    :class="tab === 'seo' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+                    :class="tab === 'seo' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'seo'">
                 <x-icon name="magnifying-glass" class="h-4 w-4" /> Seo
             </button>
             <button type="button"
                     class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
-                    :class="tab === 'contato' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+                    :class="tab === 'contato' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'contato'">
                 <x-icon name="envelope" class="h-4 w-4" /> Informações de Contato
             </button>
             <button type="button"
                     class="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors focus:outline-none"
-                    :class="tab === 'imagens' ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+                    :class="tab === 'imagens' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
                     @click="tab = 'imagens'">
                 <x-icon name="photo" class="h-4 w-4" /> Imagens
             </button>
@@ -412,7 +412,7 @@
                                     wire:loading wire:target="logo" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-brand-600" />
                                 </div>
 
                                 <input 
@@ -468,7 +468,7 @@
                                     wire:loading wire:target="logo_admin" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-brand-600" />
                                 </div>
 
                                 <input 
@@ -525,7 +525,7 @@
                                     wire:loading wire:target="logo_footer" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-brand-600" />
                                 </div>
 
                                 <input 
@@ -578,7 +578,7 @@
                                     wire:loading wire:target="favicon" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-brand-600" />
                                 </div>
 
                                 <input 
@@ -631,7 +631,7 @@
                                     wire:loading wire:target="watermark" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-brand-600" />
                                 </div>
 
                                 <input 
@@ -686,7 +686,7 @@
                                     wire:loading wire:target="metaimg" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-brand-600" />
                                 </div>
 
                                 <input 
@@ -738,7 +738,7 @@
                                     wire:loading wire:target="imgheader" 
                                     class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded"
                                 >
-                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-teal-600" />
+                                    <x-icon name="arrow-path" class="h-8 w-8 animate-spin text-brand-600" />
                                 </div>
 
                                 <input 

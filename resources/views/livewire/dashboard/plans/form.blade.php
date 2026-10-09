@@ -8,7 +8,7 @@
             </a>
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
-                    <x-icon name="clipboard-document-list" class="h-6 w-6 text-teal-600" />
+                    <x-icon name="clipboard-document-list" class="h-6 w-6 text-brand-600" />
                     {{ $isEdit ? 'Editar plano' : 'Novo plano de treino' }}
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">Planos / {{ $isEdit ? 'Editar' : 'Novo' }}</p>
@@ -19,7 +19,7 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title flex items-center gap-2">
-                <x-icon name="calendar" class="h-5 w-5 text-teal-600" />
+                <x-icon name="calendar" class="h-5 w-5 text-brand-600" />
                 Dados do plano
             </h3>
         </div>
