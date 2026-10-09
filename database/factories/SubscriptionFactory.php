@@ -24,4 +24,9 @@ class SubscriptionFactory extends Factory
             'cancelled_at' => null,
         ];
     }
+
+    public function forTeacher(Teacher $teacher): static
+    {
+        return $this->state(fn () => ['teacher_id' => $teacher->id]);
+    }
 }

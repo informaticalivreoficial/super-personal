@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard\Professores;
 
+use App\Enums\SubscriptionStatus;
 use App\Models\Teacher;
 use App\Services\TeacherService;
 use App\Traits\WithToastr;
@@ -50,6 +51,7 @@ class ProfessorIndex extends Component
     {
         $teachers = Teacher::query()
             ->withCount('students')
+            ->with('subscription')
             ->when($this->search !== '', function ($query) {
                 $search = $this->search;
                 $query->where(function ($q) use ($search) {
@@ -62,6 +64,14 @@ class ProfessorIndex extends Component
 
         return view('livewire.dashboard.professores.index', [
             'teachers' => $teachers,
+            'statusLabels' => SubscriptionStatus::labels(),
+            'subscriptionBadgeClasses' => [
+                'trial' => 'badge-info',
+                'active' => 'badge-success',
+                'past_due' => 'badge-warning',
+                'cancelled' => 'badge-secondary',
+                'expired' => 'badge-danger',
+            ],
         ]);
     }
 }

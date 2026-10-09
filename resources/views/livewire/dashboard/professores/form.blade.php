@@ -102,4 +102,11 @@
             </div>
         </div>
     </form>
+
+    {{-- Assinatura do professor na plataforma (billing manual) --}}
+    @if ($isEdit)
+        <div class="mt-6">
+            @livewire('dashboard.professores.professor-subscription', ['teacher' => $teacherId], key('professor-subscription'))
+        </div>
+    @endif
 </div>

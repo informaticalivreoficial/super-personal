@@ -40,6 +40,7 @@
                             <th>Professor</th>
                             <th>E-mail</th>
                             <th class="text-center">Alunos</th>
+                            <th class="text-center">Assinatura</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">Ações</th>
                         </tr>
@@ -55,6 +56,15 @@
                                 </td>
                                 <td>{{ $teacher->user?->email }}</td>
                                 <td class="text-center">{{ $teacher->students_count }}</td>
+                                <td class="text-center">
+                                    @if ($teacher->subscription)
+                                        <span class="badge {{ $subscriptionBadgeClasses[$teacher->subscription->status->value] ?? 'badge-secondary' }}">
+                                            {{ $statusLabels[$teacher->subscription->status->value] ?? $teacher->subscription->status->value }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-gray-400">Sem assinatura</span>
+                                    @endif
+                                </td>
                                 <td class="text-center">
                                     <span class="badge {{ $teacher->active ? 'badge-success' : 'badge-secondary' }}">
                                         {{ $teacher->active ? 'Ativo' : 'Inativo' }}

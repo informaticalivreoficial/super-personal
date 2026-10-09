@@ -219,6 +219,16 @@ sports ──1:N── training_sessions (restrict)
   - **Fix**: a tela legada de usuários (`Users\Form::create/update`) chama
     `ensureProfile` quando o papel é `teacher` — antes o professor criado
     ali ficava sem tenant e o painel dele ficava vazio.
+- **Assinaturas do professor (billing manual)** — tabela `subscriptions`
+  (Fase 1) ganhou uso no admin:
+  - card aninhado `Professores\ProfessorSubscription` no `ProfessorForm`
+    (edição): cria/atualiza a assinatura (plano, status
+    `SubscriptionStatus`, valor mensal, início/fim do teste/fim);
+    validação por `StoreSubscriptionRequest` (reusada nos dois caminhos);
+  - `SubscriptionService` registra `cancelled_at` automaticamente ao salvar
+    status `cancelled` (rastro manual de billing — sem gateway);
+  - coluna "Assinatura" no `ProfessorIndex` com badge por status;
+  - autorização herda `TeacherPolicy::update` (exclusivo do admin).
 
 ### Notificações e lembretes automáticos
 
@@ -331,7 +341,10 @@ sports ──1:N── training_sessions (restrict)
   - **Notificações**: `NewTrainingAvailableTest` (8) — plano publicado por
     evento (criar ativo, publicar rascunho, editar sem reaviso, reativar
     avisa de novo, aluno sem conta, fim a fim via API e painel).
-  - **Total: 155 testes / 446 assertions** (23 API + 113 painel + 11 console
+  - `SubscriptionManagementTest` (7) — assinaturas do professor no admin
+    (badge no index, card na edição, criação/atualização, validação,
+    `cancelled_at` automático, 403 para professor).
+  - **Total: 162 testes / 475 assertions** (23 API + 120 painel + 11 console
     + 8 notificações).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
@@ -358,9 +371,9 @@ sports ──1:N── training_sessions (restrict)
 
 ## Fora do escopo atual
 
-- Próximo incremento da Fase 2: gestão de assinaturas (`subscriptions`) do
-  professor na plataforma (admin), ou product pass para remover as páginas
-  legadas de blog/usuarios/settings.
+- Próximo incremento da Fase 2: product pass para remover as páginas
+  legadas de blog/usuarios/settings, dashboard/métricas da plataforma para
+  o admin, ou início da Fase 3 (app Android sobre a API REST).
 - Páginas legadas de blog/usuarios/settings permanecem fora do menu do SaaS
   (foram des-spatiadas, mas podem ser removidas num futuro product pass).
 - Swagger (docs manuais), refresh token, gateway de pagamento,
