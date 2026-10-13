@@ -31,7 +31,13 @@ class UserFactory extends Factory
             'rg' => fake()->rg,
             'zipcode' => fake()->randomNumber(8),
             'city' => fake()->city(),
-            'state' => fake()->regionAbbr(),
+            // regionAbbr do faker pt_BR gera também N/S/L/O (regiões) — UFs
+            // reais de 2 letras, senão a validação de state do perfil rejeita.
+            'state' => fake()->randomElement([
+                'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+                'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN',
+                'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
+            ]),
             'cell_phone' => fake()->cellphoneNumber,
             'whatsapp' => fake()->cellphoneNumber,
             'additional_email' => fake()->safeEmail(),

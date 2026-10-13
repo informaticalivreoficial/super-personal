@@ -6,7 +6,9 @@ use App\Livewire\Dashboard\MyProfile;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -183,5 +185,126 @@ class MyProfileTest extends TestCase
             ->assertOk()
             ->assertSee(route('profile.show'), false)
             ->assertSee('Meu perfil');
+    }
+
+    public function test_teacher_saves_documents_contact_and_address(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MyProfile::class)
+            ->set('name', 'Ana Silva')
+            ->set('email', $teacher->user->email)
+            ->set('additionalEmail', 'ana.extra@exemplo.com')
+            ->set('birthday', '25/12/1990')
+            ->set('cpf', '123.456.789-00')
+            ->set('rg', '12.345.678-9')
+            ->set('rgExpedition', 'SSP/SP')
+            ->set('phone', '11 3333-4444')
+            ->set('cellPhone', '(11) 99999-8888')
+            ->set('whatsapp', '11 99999-8888')
+            ->set('zipcode', '01310-100')
+            ->set('street', 'Av. Paulista')
+            ->set('number', '1000')
+            ->set('complement', 'Sala 12')
+            ->set('neighborhood', 'Bela Vista')
+            ->set('city', 'São Paulo')
+            ->set('state', 'sp')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('toast');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $teacher->user_id,
+            'additional_email' => 'ana.extra@exemplo.com',
+            // Mutator do User converte d/m/Y → Y-m-d.
+            'birthday' => '1990-12-25',
+            'cpf' => '123.456.789-00',
+            'rg' => '12.345.678-9',
+            'rg_expedition' => 'SSP/SP',
+            'cell_phone' => '11999998888',
+            // Mutator do User limpa o CEP para dígitos.
+            'zipcode' => '01310100',
+            'street' => 'Av. Paulista',
+            'number' => '1000',
+            'complement' => 'Sala 12',
+            'neighborhood' => 'Bela Vista',
+            'city' => 'São Paulo',
+            // Service normaliza a UF em maiúsculo.
+            'state' => 'SP',
+        ]);
+    }
+
+    public function test_birthday_format_is_validated(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MyProfile::class)
+            ->set('birthday', '1990-12-25')
+            ->call('save')
+            ->assertHasErrors(['birthday']);
+
+        Livewire::test(MyProfile::class)
+            ->set('birthday', '25/12/1990')
+            ->call('save')
+            ->assertHasNoErrors();
+    }
+
+    public function test_state_must_be_two_letters(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MyProfile::class)
+            ->set('state', 'São')
+            ->call('save')
+            ->assertHasErrors(['state']);
+    }
+
+    public function test_avatar_upload_and_removal(): void
+    {
+        Storage::fake('public');
+
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MyProfile::class)
+            ->set('avatar', UploadedFile::fake()->image('avatar.png'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        Storage::disk('public')->assertExists("users/{$teacher->user_id}/avatar.png");
+        $this->assertSame(
+            "users/{$teacher->user_id}/avatar.png",
+            $teacher->user->refresh()->avatar
+        );
+
+        // Remoção: caminho some do banco e o arquivo é apagado.
+        Livewire::test(MyProfile::class)
+            ->set('removeAvatar', true)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertNull($teacher->user->refresh()->avatar);
+        Storage::disk('public')->assertMissing("users/{$teacher->user_id}/avatar.png");
+    }
+
+    public function test_non_image_avatar_is_rejected(): void
+    {
+        Storage::fake('public');
+
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MyProfile::class)
+            ->set('avatar', UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf'))
+            ->call('save')
+            ->assertHasErrors(['avatar']);
     }
 }

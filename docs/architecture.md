@@ -250,18 +250,26 @@ sports ──1:N── training_sessions (restrict)
 
 - **Página** `/admin/meu-perfil` (`App\Livewire\Dashboard\MyProfile`, rota
   `profile.show` dentro do grupo `role:teacher,admin` — teacher e admin
-  acessam): edição dos **próprios** dados da conta — nome, e-mail, telefone
-  e senha opcional (duas etapas: "Dados pessoais" + "Alterar senha" com
-  placeholder "Deixe os dois campos em branco para manter a senha atual").
+  acessam): edição dos **próprios** dados da conta em 5 cards — "Foto e
+  dados pessoais" (avatar com upload/remoção, nome, e-mail, e-mail
+  adicional, nascimento d/m/Y), "Documentos" (CPF, RG, órgão expedidor),
+  "Contato" (telefone fixo, celular, WhatsApp), "Endereço" (ViaCEP) e
+  "Alterar senha" (placeholder "Deixe os dois campos em branco para
+  manter a senha atual").
 - **Escrita** via `ProfileService::update()` (caminho único, transaction):
-  atualiza `users.name/email/phone` (+ `password` hash só se preenchido) e,
-  quando o usuário tem perfil `teachers`, **sincroniza** `teachers.name` e
-  `teachers.phone` (fonte do cadastro do tenant/landing). Slug e
-  `landing_title` NÃO são tocados aqui (conteúdo do `LandingForm`).
+  atualiza os campos pessoais/documentos/contato/endereço em `users`
+  (mutators do model tratam formatação: birthday d/m/Y→Y-m-d, telefones e
+  CEP limpos, UF em maiúscula), `password` hash só se preenchido, `avatar`
+  (caminho resolvido pelo componente em `users/{id}/avatar.ext`, arquivo
+  antigo apagado só após save; rollback do novo upload se validação de
+  textos falhar) e, quando o usuário tem perfil `teachers`, **sincroniza**
+  `teachers.name` e `teachers.phone` (fonte do cadastro do tenant/landing).
+  Slug e `landing_title` NÃO são tocados aqui (conteúdo do `LandingForm`).
 - **Validação** por `UpdateProfileRequest` (reusada via
   `ValidatesWithFormRequest`): nome/e-mail obrigatórios, e-mail único com
-  `ignore(user_id)` do próprio id, telefone com regex pt-BR, senha
-  `nullable|min:8|confirmed` — mensagens em pt-BR.
+  `ignore(user_id)` do próprio id, data `date_format:d/m/Y`, telefones com
+  regex pt-BR, UF 2 letras, senha `nullable|min:8|confirmed` — mensagens em
+  pt-BR; upload do avatar (`image|max:2048`) validado no componente.
 - **UX**: prefill preferindo `users.phone` com fallback para
   `teachers.phone` (admin edita o phone do tenant no `ProfessorForm`);
   senha nunca re-aparece preenchida após salvar; toast de sucesso; link
@@ -384,25 +392,29 @@ sports ──1:N── training_sessions (restrict)
     `cancelled_at` automático, 403 para treinador).
   - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
     receita, agregação cross-tenant via service, treinador vê o próprio).
-  - `LandingFormTest` (27) — página "Minha página pública" (prefill, salvar,
+  - `LandingFormTest` (32) — página "Minha página pública" (prefill, salvar,
     slug gerado/reservado/duplicado/inválido, próprio slug não é tratado como
     duplicado, desligar opt-in esconde a landing, admin edita qualquer tenant,
     403/redirect de rota, policy de isolamento, teacher sem perfil 403,
     uploads de identidade no tenant, substituição/apagamento de imagem,
-    upload não-imagem rejeitado, rollback sem uploads órfãos, previews).
-  - **Web** (`tests/Feature/Web`): `TeacherLandingTest` (17) — landing pública
+    upload não-imagem rejeitado, rollback sem uploads órfãos, previews,
+    upload/substituição/remoção de foto de perfil, contador de acessos).
+  - **Web** (`tests/Feature/Web`): `TeacherLandingTest` (20) — landing pública
     (render para guest com CTA/SEO, só modalidades do dono, visitante logado
     como outro tenant vê o conteúdo completo, 404 para não-publicado/inativo/
     slug inexistente, slug gerado do nome, reservado/duplicado com sufixo,
     `wa.me` sem DDI duplicado, página sem bio/whatsapp, foto,
     redes sociais + endereço por opt-in, identidade visual, `landing_title`
-    no hero/SEO com fallback para o nome).
-  - `MyProfileTest` (9) — página "Meu perfil" (guest redirect, prefill,
+    no hero/SEO com fallback para o nome, incremento de `views` por visita
+    pública sem contar o dono, landing oculta não incrementa).
+  - `MyProfileTest` (14) — página "Meu perfil" (guest redirect, prefill,
     salvar sincronizando users+teachers, unique de e-mail com ignore próprio,
-    senha opcional/hashed/min-8/confirmed, validações, admin sem perfil
-    de treinador, link no sidebar).
-  - **Total: 241 testes / 781 assertions** (33 API + 172 painel + 11 console
-    + 8 notificações + 17 web).
+    senha opcional/hashed/min-8/confirmed, documentos/contato/endereço
+    completos (birthday d/m/Y→Y-m-d, CEP limpo, UF maiúscula), formato de
+    data/UF, upload/remoção de avatar, avatar não-imagem rejeitado, validações,
+    admin sem perfil de treinador, link no sidebar).
+  - **Total: 254 testes / 826 assertions** (33 API + 182 painel + 11 console
+    + 8 notificações + 20 web).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -573,6 +585,17 @@ sports ──1:N── training_sessions (restrict)
   pertence ao dono mesmo para visitante logado como outro treinador) e CTA
   WhatsApp (`wa.me` com +55 implícito se sem DDI). **Nunca** alunos, treinos
   ou pagamentos.
+- **Foto de perfil no form**: coluna `teachers.profile_photo` (já existente)
+  ganhou upload no card "Identidade visual" do `LandingForm` (mesmo fluxo
+  do logo/favicon/metaimg: nome canônico `teachers/{id}/profile_photo.ext`,
+  validação `image|max:2048` no componente, arquivo antigo apagado só após
+  save OK, flags `removeProfilePhoto` + preview circular).
+- **Métrica de acessos**: coluna `teachers.views` (default 0, **não**
+  fillable — migration `2026_10_13_100001`) incrementada no
+  `TeacherLandingController` a cada página pública renderizada; a visita do
+  próprio dono logado **não conta** (preview não infla). Exibida no banner
+  do `LandingForm` ("👁 N acessos") e exposta na API via `TeacherResource`
+  (`views` + `landing_url`) — base para mensuração futura.
 - **Painel**: `GET /admin/minha-pagina` (`landing.mine`, `role:teacher`) e
   `GET /admin/professores/{teacher}/pagina` (`professors.landing`, `role:admin`)
   → um único componente `Dashboard\LandingForm`; escrita via
