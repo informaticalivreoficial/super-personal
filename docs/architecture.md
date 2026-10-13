@@ -474,8 +474,8 @@ sports ──1:N── training_sessions (restrict)
   - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
     auto-preço ao trocar plano, validações (plan_id/status/amount),
     cancelamento com rastro.
-  - **Total: 283 testes / 914 assertions** (33 API + 200 painel + 11 console
-    + 8 notificações + 29 web).
+  - **Total: 288 testes / 938 assertions** (33 API + 200 painel + 11 console
+    + 8 notificações + 34 web).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -577,6 +577,32 @@ sports ──1:N── training_sessions (restrict)
   ```
   > USB direto exige regra udev (Samsung `04e8`) ou `adb` como root; sem
   > isso `adb devices` mostra `no permissions`.
+
+## Landing do SaaS — home pública `/` (2026-10-13)
+
+- **`SiteController::home()`** reescrito: a home deixou de ser o stub "Home
+  Page" do starter e virou a **landing de marketing do SaaS** (view
+  standalone `web/default/home.blade.php`, server-rendered, mesmo DNA
+  visual da landing dos treinadores — dark `brand-950`, títulos Barlow
+  Condensed, laranja `brand-*`; SEO via `Seo` com título/descrição de
+  conversão). Passa `plans` = catálogo `saas_plans` ativos (ordenados).
+- **Seções** (uma página, sem enrolação): header sticky (logo, âncoras
+  Por que/Como funciona/Planos/Dúvidas, Entrar + "Criar conta grátis") →
+  hero "Menos planilha. Mais treino." com **mockup do app em CSS puro**
+  (sem fotos de banco: card de sessão, aderência, notificação) → chips de
+  modalidades → grade de 6 diferenciais → "Como funciona" (3 passos
+  numerados) → **planos com toggle Mensal/Trimestral/Anual** (Alpine via
+  CDN — página standalone; `x-cloak` + preços do banco com
+  `priceFor(period)`; card do meio destacado "Mais popular") → seção do
+  app do aluno → FAQ (`<details>` nativo, 6 perguntas) → CTA final →
+  rodapé. CTAs apontam para `route('register')` (auto-cadastro de
+  treinador) e `route('login')`.
+- **Robustez**: seção de planos só renderiza se houver catálogo ativo
+  (banco sem `saas_plans` → página sem a seção, nunca 500);
+  `$config->app_name` em todos os títulos.
+- **Testes**: `tests/Feature/Web/HomeLandingTest` (5) — guest 200 com
+  CTAs/seções, links de registro/login, planos do catálogo (nomes,
+  preço, "Mais popular"), seção oculta sem catálogo, head SEO + ano.
 
 ## Blog do site público removido (2026-10-09)
 
