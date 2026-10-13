@@ -62,6 +62,7 @@ class Teacher extends Model
         'active' => 'boolean',
         'public_profile' => 'boolean',
         'display_address' => 'boolean',
+        'views' => 'integer',
     ];
 
     protected static function booted(): void

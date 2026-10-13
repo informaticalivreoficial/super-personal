@@ -35,6 +35,7 @@ class UpdateLandingRequest extends FormRequest
             'public_profile' => ['boolean'],
 
             // Identidade visual (caminhos finais vêm do componente após o upload)
+            'profile_photo' => ['nullable', 'string', 'max:255'],
             'logo' => ['nullable', 'string', 'max:255'],
             'favicon' => ['nullable', 'string', 'max:255'],
             'metaimg' => ['nullable', 'string', 'max:255'],

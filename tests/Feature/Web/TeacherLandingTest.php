@@ -57,7 +57,8 @@ class TeacherLandingTest extends TestCase
             ->assertSee('Falar no WhatsApp')
             ->assertSee('wa.me/5511999998888')
             ->assertSee('Sou aluno')
-            ->assertSee('Quero minha página assim');
+            // Rodapé: ano de criação do treinador + marca (editado pelo dono do projeto).
+            ->assertSee('Todos os direitos reservados');
     }
 
     public function test_landing_shows_only_own_modality(): void
@@ -281,5 +282,39 @@ class TeacherLandingTest extends TestCase
         $this->get(route('web.treinador', $teacher->slug))
             ->assertOk()
             ->assertSee($teacher->name);
+    }
+
+    public function test_public_visit_increments_views_counter(): void
+    {
+        $teacher = $this->publishedTeacher(['views' => 10]);
+
+        // Guest (visita real de terceiro) incrementa.
+        $this->get(route('web.treinador', $teacher->slug))->assertOk();
+        $this->assertSame(11, $teacher->refresh()->views);
+
+        // Cada novo acesso soma.
+        $this->get(route('web.treinador', $teacher->slug))->assertOk();
+        $this->assertSame(12, $teacher->refresh()->views);
+    }
+
+    public function test_owner_preview_does_not_increment_views(): void
+    {
+        $teacher = $this->publishedTeacher(['views' => 5]);
+
+        // Dono logado conferindo a própria página: não conta como acesso.
+        $this->actingAs($teacher->user)
+            ->get(route('web.treinador', $teacher->slug))
+            ->assertOk();
+
+        $this->assertSame(5, $teacher->refresh()->views);
+    }
+
+    public function test_hidden_landing_does_not_increment_views(): void
+    {
+        $teacher = $this->publishedTeacher(['public_profile' => false, 'views' => 3]);
+
+        $this->get(route('web.treinador', $teacher->slug))->assertNotFound();
+
+        $this->assertSame(3, $teacher->refresh()->views);
     }
 }

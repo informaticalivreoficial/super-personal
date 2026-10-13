@@ -27,16 +27,30 @@
                 <x-icon name="check-badge" class="h-5 w-5" />
                 Sua página está <strong>publicada</strong>.
             </p>
-            <a href="{{ $landingUrl }}" target="_blank" rel="noopener"
-                class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-800">
-                {{ $landingUrl }}
-                <x-icon name="arrow-top-right-on-square" class="h-4 w-4" />
-            </a>
+            <div class="flex flex-wrap items-center gap-4">
+                <span class="flex items-center gap-1.5 text-sm text-green-800" title="Total de acessos de visitantes à sua página pública">
+                    <x-icon name="eye" class="h-4 w-4" />
+                    <strong>{{ number_format($landingViews, 0, ',', '.') }}</strong>
+                    {{ $landingViews === 1 ? 'acesso' : 'acessos' }}
+                </span>
+                <a href="{{ $landingUrl }}" target="_blank" rel="noopener"
+                    class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-800">
+                    {{ $landingUrl }}
+                    <x-icon name="arrow-top-right-on-square" class="h-4 w-4" />
+                </a>
+            </div>
         </div>
     @else
-        <div class="mb-6 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-            <x-icon name="eye" class="h-5 w-5 text-gray-400" />
-            Sua página está <strong>oculta</strong> — marque "Publicar" abaixo para deixá-la no ar.
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+            <p class="flex items-center gap-2 text-sm text-gray-600">
+                <x-icon name="eye" class="h-5 w-5 text-gray-400" />
+                Sua página está <strong>oculta</strong> — marque "Publicar" abaixo para deixá-la no ar.
+            </p>
+            <span class="flex items-center gap-1.5 text-sm text-gray-500" title="Total de acessos de visitantes à sua página pública">
+                <x-icon name="eye" class="h-4 w-4" />
+                <strong>{{ number_format($landingViews, 0, ',', '.') }}</strong>
+                {{ $landingViews === 1 ? 'acesso' : 'acessos' }}
+            </span>
         </div>
     @endif
 
@@ -168,8 +182,35 @@
 
             <div class="card-body">
                 <div class="row">
+                    {{-- Foto de perfil --}}
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="landing_profile_photo">Foto de perfil</label>
+                            <div class="space-y-2">
+                                @if ($imagePreviews['profile_photo'])
+                                    <img src="{{ $imagePreviews['profile_photo'] }}" alt="Foto de perfil"
+                                        class="h-20 w-20 rounded-full border border-gray-200 bg-white object-cover">
+                                @endif
+                                <input type="file" id="landing_profile_photo" wire:model="profilePhoto" accept="image/*"
+                                    class="block w-full text-sm text-gray-700 file:mr-3 file:rounded file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100">
+                                <span wire:loading wire:target="profilePhoto" class="text-xs text-gray-500">Enviando…</span>
+                                @error('profilePhoto')
+                                    <span class="text-xs text-red-600">{{ $message }}</span>
+                                @enderror
+                                @if ($hasSavedImage['profile_photo'])
+                                    <label class="flex items-center gap-2 text-xs text-gray-500">
+                                        <input type="checkbox" wire:model="removeProfilePhoto"
+                                            class="h-3.5 w-3.5 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                        Remover foto
+                                    </label>
+                                @endif
+                                <p class="text-xs text-gray-500">Exibida no topo da página. Até 2 MB (PNG/JPG).</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Logo --}}
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="landing_logo">Logo</label>
                             <div class="space-y-2">
@@ -196,7 +237,7 @@
                     </div>
 
                     {{-- Favicon --}}
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="landing_favicon">Favicon</label>
                             <div class="space-y-2">
@@ -223,7 +264,7 @@
                     </div>
 
                     {{-- Metaimg --}}
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="landing_metaimg">Imagem ao compartilhar</label>
                             <div class="space-y-2">

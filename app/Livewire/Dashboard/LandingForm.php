@@ -51,11 +51,15 @@ class LandingForm extends Component
     public string $cref = '';
 
     // Identidade visual (string = caminho salvo; TemporaryUploadedFile = novo envio)
+    public $profilePhoto = null;
+
     public $logo = null;
 
     public $favicon = null;
 
     public $metaimg = null;
+
+    public bool $removeProfilePhoto = false;
 
     public bool $removeLogo = false;
 
@@ -127,6 +131,7 @@ class LandingForm extends Component
             'bio' => $this->bio ?: null,
             'whatsapp' => $this->whatsapp ?: null,
             'public_profile' => $this->publicProfile,
+            'profile_photo' => $paths['profile_photo'],
             'logo' => $paths['logo'],
             'favicon' => $paths['favicon'],
             'metaimg' => $paths['metaimg'],
@@ -175,7 +180,7 @@ class LandingForm extends Component
      * Monta os caminhos finais das imagens + lista de arquivos novos
      * (stored, para rollback) e antigos (stale, para apagar após o save).
      *
-     * @return array{0: array{logo: ?string, favicon: ?string, metaimg: ?string}, 1: array<int, string>, 2: array<int, string>}
+     * @return array{0: array{profile_photo: ?string, logo: ?string, favicon: ?string, metaimg: ?string}, 1: array<int, string>, 2: array<int, string>}
      */
     private function resolveImagePaths(Teacher $teacher): array
     {
@@ -183,35 +188,36 @@ class LandingForm extends Component
         $stored = [];
         $stale = [];
 
-        foreach (['logo', 'favicon', 'metaimg'] as $key) {
-            $current = $teacher->{$key};
-            $removeKey = 'remove'.ucfirst($key);
+        // coluna do banco => propriedade do componente (Livewire usa camelCase).
+        foreach ($this->imageKeys() as $column => $prop) {
+            $current = $teacher->{$column};
+            $removeKey = 'remove'.ucfirst($prop);
 
-            if ($this->{$key} instanceof TemporaryUploadedFile) {
-                // Nome canônico por campo (logo.png, favicon.png, metaimg.png):
+            if ($this->{$prop} instanceof TemporaryUploadedFile) {
+                // Nome canônico por campo (profile_photo.png, logo.png...):
                 // nomes originais poderiam colidir na pasta do tenant (dois
                 // uploads "foto.png" para campos diferentes apagariam um ao
                 // outro) e a substituição vira sobrescrita no mesmo caminho.
-                $paths[$key] = $this->{$key}->storeAs(
+                $paths[$column] = $this->{$prop}->storeAs(
                     'teachers/'.$teacher->id,
-                    $key.'.'.$this->{$key}->getClientOriginalExtension(),
+                    $column.'.'.$this->{$prop}->getClientOriginalExtension(),
                     'public'
                 );
-                $stored[] = $paths[$key];
+                $stored[] = $paths[$column];
 
                 // Substituição mantém o mesmo caminho: não marcar como stale
                 // (senão apagaria o arquivo recém-guardado após o save).
-                if (! empty($current) && $current !== $paths[$key]) {
+                if (! empty($current) && $current !== $paths[$column]) {
                     $stale[] = $current;
                 }
             } elseif ($this->{$removeKey}) {
-                $paths[$key] = null;
+                $paths[$column] = null;
 
                 if (! empty($current)) {
                     $stale[] = $current;
                 }
             } else {
-                $paths[$key] = $current;
+                $paths[$column] = $current;
             }
         }
 
@@ -219,15 +225,31 @@ class LandingForm extends Component
     }
 
     /**
+     * Pares coluna do banco => propriedade do componente.
+     *
+     * @return array<string, string>
+     */
+    private function imageKeys(): array
+    {
+        return [
+            'profile_photo' => 'profilePhoto',
+            'logo' => 'logo',
+            'favicon' => 'favicon',
+            'metaimg' => 'metaimg',
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     private function imageRules(): array
     {
-        $max = ['logo' => 2048, 'favicon' => 512, 'metaimg' => 4096];
+        $max = ['profile_photo' => 2048, 'logo' => 2048, 'favicon' => 512, 'metaimg' => 4096];
         $rules = [];
 
-        foreach ($max as $key => $kilobytes) {
-            $rules[$key] = $this->{$key} instanceof TemporaryUploadedFile
+        foreach ($max as $column => $kilobytes) {
+            $prop = $this->imageKeys()[$column];
+            $rules[$prop] = $this->{$prop} instanceof TemporaryUploadedFile
                 ? 'nullable|image|max:'.$kilobytes
                 : 'nullable|string';
         }
@@ -241,6 +263,8 @@ class LandingForm extends Component
     private function imageMessages(): array
     {
         return [
+            'profilePhoto.image' => 'A foto de perfil deve ser uma imagem (PNG, JPG).',
+            'profilePhoto.max' => 'A foto de perfil pode ter no máximo 2 MB.',
             'logo.image' => 'A logo deve ser uma imagem (PNG, JPG ou SVG).',
             'logo.max' => 'A logo pode ter no máximo 2 MB.',
             'favicon.image' => 'O favicon deve ser uma imagem (PNG, JPG ou ICO convertido).',
@@ -266,9 +290,11 @@ class LandingForm extends Component
         $this->specialty = $teacher->specialty ?? '';
         $this->cref = $teacher->cref ?? '';
 
+        $this->profilePhoto = $teacher->profile_photo;
         $this->logo = $teacher->logo;
         $this->favicon = $teacher->favicon;
         $this->metaimg = $teacher->metaimg;
+        $this->removeProfilePhoto = false;
         $this->removeLogo = false;
         $this->removeFavicon = false;
         $this->removeMetaimg = false;
@@ -315,6 +341,7 @@ class LandingForm extends Component
     public function render()
     {
         $hasSavedImage = [
+            'profile_photo' => is_string($this->profilePhoto) && $this->profilePhoto !== '',
             'logo' => is_string($this->logo) && $this->logo !== '',
             'favicon' => is_string($this->favicon) && $this->favicon !== '',
             'metaimg' => is_string($this->metaimg) && $this->metaimg !== '',
@@ -324,7 +351,9 @@ class LandingForm extends Component
             'exampleSlug' => Str::slug($this->name) ?: 'perfil',
             'landingUrl' => $this->slug ? route('web.treinador', $this->slug) : null,
             'isPublished' => $this->publicProfile && $this->slug !== '',
+            'landingViews' => Teacher::withoutGlobalScope('tenant')->find($this->teacherId)?->views ?? 0,
             'imagePreviews' => [
+                'profile_photo' => $this->previewUrl($this->profilePhoto),
                 'logo' => $this->previewUrl($this->logo),
                 'favicon' => $this->previewUrl($this->favicon),
                 'metaimg' => $this->previewUrl($this->metaimg),

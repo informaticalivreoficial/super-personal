@@ -513,4 +513,94 @@ class LandingFormTest extends TestCase
             ->assertSee('data-via-cep="city"', false)
             ->assertSee('data-via-cep="state"', false);
     }
+
+    public function test_profile_photo_upload_is_saved_on_tenant_folder(): void
+    {
+        Storage::fake('public');
+
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('profilePhoto', UploadedFile::fake()->image('foto.png'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        Storage::disk('public')->assertExists("teachers/{$teacher->id}/profile_photo.png");
+        $this->assertSame("teachers/{$teacher->id}/profile_photo.png", $teacher->refresh()->profile_photo);
+    }
+
+    public function test_replacing_profile_photo_deletes_old_file(): void
+    {
+        Storage::fake('public');
+
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('profilePhoto', UploadedFile::fake()->image('foto.png'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        Storage::disk('public')->assertExists("teachers/{$teacher->id}/profile_photo.png");
+
+        // Substituição com extensão diferente: caminho novo + apaga o antigo.
+        Livewire::test(LandingForm::class)
+            ->set('profilePhoto', UploadedFile::fake()->image('nova.jpg'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        Storage::disk('public')->assertExists("teachers/{$teacher->id}/profile_photo.jpg");
+        Storage::disk('public')->assertMissing("teachers/{$teacher->id}/profile_photo.png");
+    }
+
+    public function test_remove_profile_photo_flag_clears_image(): void
+    {
+        Storage::fake('public');
+
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('profilePhoto', UploadedFile::fake()->image('foto.png'))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        Livewire::test(LandingForm::class)
+            ->set('removeProfilePhoto', true)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertNull($teacher->refresh()->profile_photo);
+        Storage::disk('public')->assertMissing("teachers/{$teacher->id}/profile_photo.png");
+    }
+
+    public function test_non_image_profile_photo_is_rejected(): void
+    {
+        Storage::fake('public');
+
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('profilePhoto', UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf'))
+            ->call('save')
+            ->assertHasErrors(['profilePhoto']);
+    }
+
+    public function test_page_shows_views_counter(): void
+    {
+        $teacher = Teacher::factory()->create(['views' => 42]);
+
+        $this->actingAs($teacher->user);
+
+        $this->get(route('landing.mine'))
+            ->assertOk()
+            ->assertSee('42')
+            ->assertSee('acessos');
+    }
 }

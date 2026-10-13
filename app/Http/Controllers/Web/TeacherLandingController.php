@@ -26,6 +26,13 @@ class TeacherLandingController extends Controller
             ->where('active', true)
             ->firstOrFail();
 
+        // Contagem de acessos da landing (coluna teachers.views — métrica
+        // exibida no painel e base para análise futura). A visita do próprio
+        // dono (logado) não conta, para não inflar o número ao dar preview.
+        if (auth()->id() !== $teacher->user_id) {
+            $teacher->increment('views');
+        }
+
         // Modalidades distintas usadas nas sessões do próprio tenant.
         // withoutGlobalScope: o visitante pode estar logado como outro
         // treinador — o conteúdo é público e pertence ao dono da página.

@@ -23,6 +23,8 @@ class TeacherResource extends JsonResource
             'cref' => $this->cref,
             'specialty' => $this->specialty,
             'active' => $this->active,
+            'views' => $this->views,
+            'landing_url' => $this->landing_url,
         ];
     }
 }

@@ -83,6 +83,7 @@ class TeacherService
         $teacher->public_profile = (bool) ($data['public_profile'] ?? false);
 
         // Identidade visual (caminhos finais vindos do upload do componente).
+        $teacher->profile_photo = $data['profile_photo'] ?? null;
         $teacher->logo = $data['logo'] ?? null;
         $teacher->favicon = $data['favicon'] ?? null;
         $teacher->metaimg = $data['metaimg'] ?? null;
