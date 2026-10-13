@@ -11,3 +11,6 @@ window.Swal = Swal
 
 import IMask from 'imask';
 window.IMask = IMask;
+
+// Consulta de CEP (ViaCEP) — componente Alpine global x-data="viaCep".
+import './via-cep';

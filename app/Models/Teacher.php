@@ -28,6 +28,7 @@ class Teacher extends Model
         'name',
         'slug',
         'tagline',
+        'landing_title',
         'bio',
         'phone',
         'whatsapp',

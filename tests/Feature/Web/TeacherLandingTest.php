@@ -259,4 +259,27 @@ class TeacherLandingTest extends TestCase
             ->assertSee(config('app.name'))
             ->assertSee('images/image.jpg'); // favicon fallback do config
     }
+
+    public function test_landing_title_overrides_name_in_hero_and_seo(): void
+    {
+        $teacher = $this->publishedTeacher([
+            'landing_title' => 'Fit Club Triathlon',
+        ]);
+
+        $this->get(route('web.treinador', $teacher->slug))
+            ->assertOk()
+            // Grande título do hero + <title> de SEO
+            ->assertSee('Fit Club Triathlon')
+            // Nome do treinador continua no CTA final
+            ->assertSee('Comece a treinar com '.$teacher->name);
+    }
+
+    public function test_landing_falls_back_to_name_without_landing_title(): void
+    {
+        $teacher = $this->publishedTeacher(['landing_title' => null]);
+
+        $this->get(route('web.treinador', $teacher->slug))
+            ->assertOk()
+            ->assertSee($teacher->name);
+    }
 }

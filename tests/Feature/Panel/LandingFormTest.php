@@ -452,4 +452,65 @@ class LandingFormTest extends TestCase
             ->assertSet('displayAddress', true)
             ->assertSet('removeLogo', false);
     }
+
+    public function test_landing_title_is_saved_and_prefilled(): void
+    {
+        $teacher = Teacher::factory()->create(['name' => 'Ana Silva']);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('landingTitle', 'Fit Club Triathlon')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertSet('landingTitle', 'Fit Club Triathlon');
+
+        $this->assertDatabaseHas('teachers', [
+            'id' => $teacher->id,
+            'landing_title' => 'Fit Club Triathlon',
+        ]);
+    }
+
+    public function test_landing_title_blank_is_stored_as_null(): void
+    {
+        $teacher = Teacher::factory()->create(['landing_title' => 'Antigo Nome']);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('landingTitle', '')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertNull($teacher->fresh()->landing_title);
+    }
+
+    public function test_landing_title_validation_max(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('landingTitle', str_repeat('a', 121))
+            ->call('save')
+            ->assertHasErrors(['landing_title']);
+    }
+
+    public function test_address_section_uses_via_cep_component(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        // Componente Alpine global (resources/js/via-cep.js) + campos marcados.
+        $this->get(route('landing.mine'))
+            ->assertOk()
+            ->assertSee('x-data="viaCep"', false)
+            ->assertSee('data-via-cep="zipcode"', false)
+            ->assertSee('data-via-cep="street"', false)
+            ->assertSee('data-via-cep="neighborhood"', false)
+            ->assertSee('data-via-cep="city"', false)
+            ->assertSee('data-via-cep="state"', false);
+    }
 }

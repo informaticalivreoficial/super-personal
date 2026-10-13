@@ -43,8 +43,14 @@ class TeacherLandingController extends Controller
             $description = 'Treinos personalizados com '.$teacher->name.' no '.config('app.name').'.';
         }
 
+        // Título da página: o treinador pode exibir o nome da empresa/marca
+        // (landing_title) em vez do próprio nome.
+        $publicTitle = ($teacher->landing_title ?? '') !== ''
+            ? $teacher->landing_title
+            : $teacher->name;
+
         $head = (new Seo)->render(
-            $teacher->name.(($teacher->tagline ?? '') !== '' ? ' — '.$teacher->tagline : ''),
+            $publicTitle.(($teacher->tagline ?? '') !== '' ? ' — '.$teacher->tagline : ''),
             $description,
             route('web.treinador', $teacher->slug),
             $teacher->metaimg_url ?? url('images/image.jpg'),

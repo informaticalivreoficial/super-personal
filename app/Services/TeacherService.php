@@ -77,6 +77,7 @@ class TeacherService
             ? Str::slug($data['slug'])
             : Teacher::makeUniqueSlug($teacher->name, $teacher->id);
         $teacher->tagline = $data['tagline'] ?? null;
+        $teacher->landing_title = ($data['landing_title'] ?? '') ?: null;
         $teacher->bio = $data['bio'] ?? null;
         $teacher->whatsapp = $data['whatsapp'] ?? null;
         $teacher->public_profile = (bool) ($data['public_profile'] ?? false);

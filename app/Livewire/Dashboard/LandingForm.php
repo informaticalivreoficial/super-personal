@@ -38,6 +38,8 @@ class LandingForm extends Component
 
     public string $tagline = '';
 
+    public string $landingTitle = '';
+
     public string $bio = '';
 
     public string $whatsapp = '';
@@ -121,6 +123,7 @@ class LandingForm extends Component
             'id' => $teacher->id,
             'slug' => $this->slug ?: null,
             'tagline' => $this->tagline ?: null,
+            'landing_title' => $this->landingTitle ?: null,
             'bio' => $this->bio ?: null,
             'whatsapp' => $this->whatsapp ?: null,
             'public_profile' => $this->publicProfile,
@@ -256,6 +259,7 @@ class LandingForm extends Component
         $this->name = $teacher->name;
         $this->slug = $teacher->slug ?? '';
         $this->tagline = $teacher->tagline ?? '';
+        $this->landingTitle = $teacher->landing_title ?? '';
         $this->bio = $teacher->bio ?? '';
         $this->whatsapp = $teacher->whatsapp ?? '';
         $this->publicProfile = (bool) $teacher->public_profile;
