@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum SubscriptionStatus: string
 {
+    case PENDING = 'pending';
     case TRIAL = 'trial';
     case ACTIVE = 'active';
     case PAST_DUE = 'past_due';
@@ -13,6 +14,7 @@ enum SubscriptionStatus: string
     public static function labels(): array
     {
         return [
+            self::PENDING->value => 'Aguardando pagamento',
             self::TRIAL->value => 'Teste',
             self::ACTIVE->value => 'Ativa',
             self::PAST_DUE->value => 'Em atraso',

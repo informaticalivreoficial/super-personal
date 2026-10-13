@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Dashboard\Professores;
 
+use App\Enums\BillingPeriod;
 use App\Enums\SubscriptionStatus;
 use App\Http\Requests\StoreSubscriptionRequest;
+use App\Models\SaasPlan;
 use App\Models\Subscription;
 use App\Models\Teacher;
 use App\Services\SubscriptionService;
@@ -14,8 +16,9 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Card de assinatura do treinador (billing manual da plataforma) —
+ * Card de assinatura do treinador (billing da plataforma) —
  * aninhado no ProfessorForm (edição); gestão exclusiva do admin.
+ * Plano vem do catálogo saas_plans; pagamento pode ser manual ou via MP.
  */
 class ProfessorSubscription extends Component
 {
@@ -25,9 +28,11 @@ class ProfessorSubscription extends Component
 
     public int $subscriptionId = 0;
 
-    public string $plan = 'basic';
+    public string $plan_id = '';
 
-    public string $status = 'trial';
+    public string $period = 'monthly';
+
+    public string $status = 'active';
 
     public $amount = '';
 
@@ -39,6 +44,12 @@ class ProfessorSubscription extends Component
 
     /** @var array<string, string> */
     public array $statusLabels = [];
+
+    /** @var array<string, string> */
+    public array $periodLabels = [];
+
+    /** @var array<int, array{id: int, name: string, label: string}> */
+    public array $plans = [];
 
     public function mount($teacher = null): void
     {
@@ -52,15 +63,32 @@ class ProfessorSubscription extends Component
 
         $this->teacherId = $teacher->id;
         $this->statusLabels = SubscriptionStatus::labels();
+        $this->periodLabels = BillingPeriod::labels();
+        $this->plans = $this->planOptions();
 
         if ($subscription = $teacher->subscription) {
             $this->subscriptionId = $subscription->id;
-            $this->plan = $subscription->plan;
+            $this->plan_id = (string) $subscription->plan_id;
+            $this->period = $subscription->period?->value ?? 'monthly';
             $this->status = $subscription->status->value;
             $this->amount = (string) $subscription->amount;
             $this->starts_at = $subscription->starts_at?->toDateString() ?? '';
             $this->trial_ends_at = $subscription->trial_ends_at?->toDateString() ?? '';
             $this->ends_at = $subscription->ends_at?->toDateString() ?? '';
+        }
+    }
+
+    /** Ao escolher plano/período, sugere o valor da tabela do plano. */
+    public function updated($property): void
+    {
+        if (! in_array($property, ['plan_id', 'period'], true)) {
+            return;
+        }
+
+        $plan = SaasPlan::find($this->plan_id);
+
+        if ($plan) {
+            $this->amount = (string) $plan->priceFor(BillingPeriod::from($this->period));
         }
     }
 
@@ -70,7 +98,8 @@ class ProfessorSubscription extends Component
         Gate::authorize('update', $teacher);
 
         $data = [
-            'plan' => $this->plan,
+            'plan_id' => (int) $this->plan_id,
+            'period' => $this->period,
             'status' => $this->status,
             'amount' => $this->amount === '' ? null : $this->amount,
             'starts_at' => $this->starts_at ?: null,
@@ -90,6 +119,22 @@ class ProfessorSubscription extends Component
 
             $this->toastSuccess('Assinatura criada com sucesso.');
         }
+    }
+
+    /** @return array<int, array{id: int, name: string, label: string}> */
+    private function planOptions(): array
+    {
+        return SaasPlan::query()
+            ->where('active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (SaasPlan $plan) => [
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'label' => sprintf('%s — %s alunos — R$ %s/mês', $plan->name, $plan->maxStudentsLabel(), number_format((float) $plan->price_monthly, 2, ',', '.')),
+            ])
+            ->all();
     }
 
     #[Title('Assinatura')]

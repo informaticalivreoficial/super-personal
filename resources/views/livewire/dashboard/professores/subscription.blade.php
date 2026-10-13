@@ -3,7 +3,8 @@
         <div class="card-header">
             <h2 class="text-base font-semibold text-gray-900">Assinatura da plataforma</h2>
             <p class="mt-0.5 text-xs text-gray-500">
-                Billing manual: o admin controla plano, status e vigência do treinador.
+                O admin controla plano, status e vigência. Pagamentos são confirmados pelo
+                Mercado Pago (webhook) ou manualmente aqui.
             </p>
         </div>
 
@@ -19,9 +20,28 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="sub_plan">Plano *</label>
-                            <input type="text" class="form-control @error('plan') is-invalid @enderror"
-                                id="sub_plan" wire:model="plan" placeholder="Ex.: basic, pro...">
-                            @error('plan')
+                            <select id="sub_plan" wire:model="plan_id"
+                                class="form-control @error('plan_id') is-invalid @enderror">
+                                <option value="">Selecione...</option>
+                                @foreach ($plans as $plan)
+                                    <option value="{{ $plan['id'] }}">{{ $plan['label'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('plan_id')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="sub_period">Período *</label>
+                            <select id="sub_period" wire:model.live="period"
+                                class="form-control @error('period') is-invalid @enderror">
+                                @foreach ($periodLabels as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('period')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
                         </div>

@@ -4,6 +4,7 @@ namespace Tests\Feature\Panel;
 
 use App\Enums\SubscriptionStatus;
 use App\Livewire\Dashboard\Professores\ProfessorSubscription;
+use App\Models\SaasPlan;
 use App\Models\Subscription;
 use App\Models\Teacher;
 use App\Models\User;
@@ -50,13 +51,15 @@ class SubscriptionManagementTest extends TestCase
 
     public function test_admin_creates_subscription(): void
     {
+        $plan = SaasPlan::factory()->create(['name' => 'Pro', 'price_monthly' => 149.90]);
         $teacher = Teacher::factory()->create();
         $admin = User::factory(['role' => 'admin'])->create();
 
         $this->actingAs($admin);
 
         Livewire::test(ProfessorSubscription::class, ['teacher' => $teacher])
-            ->set('plan', 'pro')
+            ->set('plan_id', (string) $plan->id)
+            ->set('period', 'monthly')
             ->set('status', 'active')
             ->set('amount', '149.90')
             ->set('starts_at', now()->toDateString())
@@ -67,17 +70,20 @@ class SubscriptionManagementTest extends TestCase
         $subscription = Subscription::firstOrFail();
 
         $this->assertSame($teacher->id, $subscription->teacher_id);
-        $this->assertSame('pro', $subscription->plan);
+        $this->assertSame($plan->id, $subscription->plan_id);
+        $this->assertSame('monthly', $subscription->period->value);
         $this->assertSame(SubscriptionStatus::ACTIVE, $subscription->status);
         $this->assertNull($subscription->cancelled_at);
     }
 
     public function test_admin_updates_existing_subscription(): void
     {
+        $basic = SaasPlan::factory()->create(['name' => 'Basic']);
+        $pro = SaasPlan::factory()->create(['name' => 'Pro']);
         $teacher = Teacher::factory()->create();
         Subscription::factory()->forTeacher($teacher)->create([
             'status' => SubscriptionStatus::TRIAL,
-            'plan' => 'basic',
+            'plan_id' => $basic->id,
         ]);
         $admin = User::factory(['role' => 'admin'])->create();
 
@@ -87,7 +93,7 @@ class SubscriptionManagementTest extends TestCase
             ->assertSet('subscriptionId', Subscription::firstOrFail()->id)
             ->assertSet('status', 'trial')
             ->set('status', 'active')
-            ->set('plan', 'pro')
+            ->set('plan_id', (string) $pro->id)
             ->call('save')
             ->assertHasNoErrors();
 
@@ -95,10 +101,10 @@ class SubscriptionManagementTest extends TestCase
 
         $subscription = Subscription::firstOrFail();
         $this->assertSame(SubscriptionStatus::ACTIVE, $subscription->status);
-        $this->assertSame('pro', $subscription->plan);
+        $this->assertSame($pro->id, $subscription->plan_id);
     }
 
-    public function test_subscription_validates_status_and_amount(): void
+    public function test_subscription_validates_status_amount_and_plan(): void
     {
         $teacher = Teacher::factory()->create();
         $admin = User::factory(['role' => 'admin'])->create();
@@ -109,7 +115,7 @@ class SubscriptionManagementTest extends TestCase
             ->set('status', 'inventado')
             ->set('amount', '-5')
             ->call('save')
-            ->assertHasErrors(['status', 'amount']);
+            ->assertHasErrors(['plan_id', 'status', 'amount']);
 
         $this->assertSame(0, Subscription::count());
     }
@@ -134,6 +140,21 @@ class SubscriptionManagementTest extends TestCase
 
         $this->assertSame(SubscriptionStatus::CANCELLED, $subscription->status);
         $this->assertNotNull($subscription->cancelled_at);
+    }
+
+    public function test_selecting_plan_suggests_price_from_catalog(): void
+    {
+        $plan = SaasPlan::factory()->create(['price_monthly' => 99.90, 'price_quarterly' => 269.70]);
+        $teacher = Teacher::factory()->create();
+        $admin = User::factory(['role' => 'admin'])->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(ProfessorSubscription::class, ['teacher' => $teacher])
+            ->set('plan_id', (string) $plan->id)
+            ->assertSet('amount', '99.9')
+            ->set('period', 'quarterly')
+            ->assertSet('amount', '269.7');
     }
 
     public function test_teacher_cannot_manage_subscription_component(): void

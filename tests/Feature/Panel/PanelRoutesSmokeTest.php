@@ -4,6 +4,7 @@ namespace Tests\Feature\Panel;
 
 use App\Models\Exercise;
 use App\Models\Payment;
+use App\Models\SaasPlan;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TrainingPlan;
@@ -67,6 +68,7 @@ class PanelRoutesSmokeTest extends TestCase
 
         $teacher = Teacher::factory()->create();
         $admin = User::factory(['role' => 'admin'])->create();
+        $saasPlan = SaasPlan::factory()->create();
 
         $this->actingAs($admin);
 
@@ -77,6 +79,10 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/professores/cadastrar',
             '/admin/professores/'.$teacher->id.'/editar',
             '/admin/professores/'.$teacher->id.'/pagina',
+            '/admin/assinaturas',
+            '/admin/assinaturas/planos',
+            '/admin/assinaturas/planos/cadastrar',
+            '/admin/assinaturas/planos/'.$saasPlan->id.'/editar',
         ];
 
         foreach ($routes as $route) {
@@ -100,5 +106,7 @@ class PanelRoutesSmokeTest extends TestCase
         $this->get('/admin/modalidades')->assertForbidden();
         $this->get('/admin/treinadores')->assertForbidden();
         $this->get('/admin/professores/'.$teacher->id.'/pagina')->assertForbidden();
+        $this->get('/admin/assinaturas')->assertForbidden();
+        $this->get('/admin/assinaturas/planos')->assertForbidden();
     }
 }

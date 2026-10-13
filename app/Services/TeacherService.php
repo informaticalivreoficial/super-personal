@@ -33,7 +33,12 @@ class TeacherService
             $user->role = UserRole::TEACHER;
             $user->save();
 
-            return $this->makeProfile($user, $data);
+            $teacher = $this->makeProfile($user, $data);
+
+            // Todo novo treinador nasce no plano gratuito (idempotente).
+            app(SubscriptionService::class)->assignFreePlan($teacher);
+
+            return $teacher;
         });
     }
 

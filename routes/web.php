@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\SiteController;
 use App\Http\Controllers\Web\TeacherLandingController;
+use App\Http\Controllers\Webhooks\MercadoPagoWebhookController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Dashboard\Dashboard;
@@ -17,6 +18,8 @@ use App\Livewire\Dashboard\Plans\PlanIndex;
 use App\Livewire\Dashboard\Plans\PlanShow;
 use App\Livewire\Dashboard\Professores\ProfessorForm;
 use App\Livewire\Dashboard\Professores\ProfessorIndex;
+use App\Livewire\Dashboard\SaasPlans\SaasPlanForm;
+use App\Livewire\Dashboard\SaasPlans\SaasPlanIndex;
 use App\Livewire\Dashboard\Settings;
 use App\Livewire\Dashboard\Sports\SportForm;
 use App\Livewire\Dashboard\Sports\SportIndex;
@@ -24,6 +27,7 @@ use App\Livewire\Dashboard\Students\StudentForm;
 use App\Livewire\Dashboard\Students\StudentIndex;
 use App\Livewire\Dashboard\Students\StudentShow;
 use App\Livewire\Dashboard\Students\StudentTracking;
+use App\Livewire\Dashboard\Subscriptions\SubscriptionIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
@@ -39,6 +43,13 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
     Route::get('treinador/{slug}', [TeacherLandingController::class, '__invoke'])->name('treinador');
 
 });
+
+/**
+ * Webhook do Mercado Pago (assinaturas do SaaS) — público, fora do
+ * namespace Web do site. GET cobre notificações IPN legadas.
+ */
+Route::match(['get', 'post'], 'webhooks/mercadopago', MercadoPagoWebhookController::class)
+    ->name('webhooks.mercadopago');
 
 /*
  * Painel do SaaS (treinadores + admin da plataforma).
@@ -91,6 +102,17 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
 
         // Landing pública de qualquer tenant — admin também edita a de terceiros.
         Route::get('professores/{teacher}/pagina', LandingForm::class)->name('professors.landing');
+    });
+
+    // *********************** Assinaturas do SaaS (plataforma) *******************
+    // Cobrança do treinador à plataforma: catálogo de planos + lista de
+    // assinaturas. Exclusivo do admin (o treinador vê a própria em
+    // /admin/assinatura).
+    Route::group(['middleware' => 'role:admin'], function () {
+        Route::get('assinaturas', SubscriptionIndex::class)->name('subscriptions.index');
+        Route::get('assinaturas/planos', SaasPlanIndex::class)->name('saas-plans.index');
+        Route::get('assinaturas/planos/cadastrar', SaasPlanForm::class)->name('saas-plans.create');
+        Route::get('assinaturas/planos/{plan}/editar', SaasPlanForm::class)->name('saas-plans.edit');
     });
 
     // *********************** Minha página pública *******************************

@@ -228,23 +228,67 @@ sports ──1:N── training_sessions (restrict)
   - **Fix**: a tela legada de usuários (`Users\Form::create/update`) chama
     `ensureProfile` quando o papel é `teacher` — antes o treinador criado
     ali ficava sem tenant e o painel dele ficava vazio.
-- **Assinaturas do treinador (billing manual)** — tabela `subscriptions`
-  (Fase 1) ganhou uso no admin:
-  - card aninhado `Professores\ProfessorSubscription` no `ProfessorForm`
-    (edição): cria/atualiza a assinatura (plano, status
-    `SubscriptionStatus`, valor mensal, início/fim do teste/fim);
-    validação por `StoreSubscriptionRequest` (reusada nos dois caminhos);
-  - `SubscriptionService` registra `cancelled_at` automaticamente ao salvar
-    status `cancelled` (rastro manual de billing — sem gateway);
-  - coluna "Assinatura" no `ProfessorIndex` com badge por status;
-  - autorização herda `TeacherPolicy::update` (exclusivo do admin).
-  - **Refino (2026-10-09) — página do próprio treinador**:
-    `/admin/assinatura` (`App\Livewire\Dashboard\MySubscription`, rota
-    `subscription.show` com middleware `role:teacher` — o admin recebe 403,
-    já que ele não tem tenant): **somente leitura** (badge de status, plano,
-    valor mensal, vigências, `cancelled_at` e estado vazio "Sem assinatura
-    ativa"); link "Minha assinatura" no sidebar visível só para
-    `isTeacher()`. Escrita continua exclusiva do admin.
+- **Assinaturas do treinador (billing da plataforma) — com Mercado Pago**
+  (evolução de 2026-10-13; antes era só billing manual):
+  - **Catálogo `saas_plans`** (global, admin-only): `name/slug/description`,
+    `max_students` (**null = ilimitado**), preços por período
+    (`price_monthly/quarterly/annual`), `active`, `sort_order`.
+    Seeder `SaasPlanSeeder` com o catálogo inicial — **Gratuito** (10
+    alunos, R$ 0), **Intermediário** (30 alunos, R$ 49,90/134,70/478,80) e
+    **Ilimitado** (R$ 99,90/269,70/958,80); valores editáveis no painel;
+    enum `BillingPeriod` (monthly/quarterly/annual, `labels()` + `months()`);
+    CRUD admin em `/admin/assinaturas/planos`
+    (`SaasPlans\{SaasPlanIndex,SaasPlanForm}`, `SaasPlanService` com
+    auto-slug em colisão — `gratuito-2` — e exclusão bloqueada com
+    assinaturas vinculadas, `SaasPlanPolicy`, `SaasPlanRequest`).
+  - **`subscriptions` expandida**: `plan_id` (FK `saas_plans`,
+    nullOnDelete — coluna legada `plan` string removida), `period`
+    (`BillingPeriod`), `gateway` (`manual|mercadopago`), `preference_id`,
+    `payment_id`; novo status **`PENDING`** ("Aguardando pagamento") no
+    enum `SubscriptionStatus`; helper `externalReference()` = `sub-{id}`,
+    `isCurrentlyActive()` e `maxStudents()`.
+  - **Fluxo Mercado Pago (Checkout Pro)**: pacote oficial
+    `mercadopago/dx-php` + `MercadoPagoService` (config em
+    `services.mercadopago` a partir de `MP_ACCESS_TOKEN/MP_PUBLIC_KEY/
+    MP_WEBHOOK_SECRET/MP_WEBHOOK_URL` no `.env`): cria preferência
+    (items, back_urls em `/admin/assinatura`, notification_url, metadata)
+    e retorna `sandbox_init_point`; `fetchPayment()` normaliza o pagamento;
+    validação HMAC-SHA256 da assinatura `x-signature`
+    (`ts=...,v1=...` com manifest `id:...;request-id:...;ts:...;` — sem
+    secret configurado aceita, p/ dev).
+  - **Webhook** público `GET|POST /webhooks/mercadopago`
+    (`Webhooks\MercadoPagoWebhookController`, isento de CSRF): pagamento
+    `approved` → `SubscriptionService::activateFromPayment` (status
+    ACTIVE, `payment_id`, `ends_at` = hoje + meses do período via
+    `addMonthsNoOverflow`); `rejected/cancelled/refunded/chargeback` →
+    PAST_DUE; `pending/in_process` espera o próximo evento; referência
+    externa desconhecida é ignorada (200).
+  - **`SubscriptionService`** ganhou: `assignFreePlan(Teacher)`
+    (idempotente, sem downgrades — chamado no `TeacherService::store` e no
+    `Register`: **todo novo treinador nasce no plano gratuito**);
+    `subscribe(Teacher, SaasPlan, BillingPeriod)` (gratuito ativa na hora
+    sem gateway; pago grava PENDING + preferência e retorna a URL de
+    checkout).
+  - **Enforcement de alunos**: `StudentService::store` bloqueia com
+    `ValidationException` quando a assinatura **vigente**
+    (`isCurrentlyActive()`) tem limite definido e o tenant já atingiu
+    (conta alunos não-softdeleted; sem assinatura não há bloqueio);
+    upgrade é sugerido na própria mensagem ("Minha assinatura").
+  - **Admin**: índice `/admin/assinaturas`
+    (`Subscriptions\SubscriptionIndex`: busca por treinador/e-mail, filtro
+    de status, badges, gateway, vigência, link "Gerenciar" →
+    `professors.edit`); card `ProfessorSubscription` com **dropdown do
+    catálogo** + período + auto-preço do plano ao trocar plano/período;
+    sidebar "Plataforma" com "Assinaturas" e "Planos do SaaS".
+  - **Treinador — self-service** (`/admin/assinatura`, `role:teacher`):
+    card da assinatura atual (plano, período, valor, vigência, nota
+    "Aguardando pagamento" quando PENDING) + **catálogo de planos ativos**
+    em cards com botões Mensal/Trimestral/Anual (gratuito = "Usar plano
+    gratuito", ativa na hora) — `MySubscription::subscribe` redireciona
+    para o checkout do Mercado Pago quando configurado.
+  - **Refino anterior mantido**: link "Minha assinatura" no sidebar só
+    para `isTeacher()`; admin continua ajustando manualmente no
+    `ProfessorForm` (inclusive voltando para trial/cancelada).
 
 ### Meu perfil (conta do usuário logado)
 
@@ -413,8 +457,25 @@ sports ──1:N── training_sessions (restrict)
     completos (birthday d/m/Y→Y-m-d, CEP limpo, UF maiúscula), formato de
     data/UF, upload/remoção de avatar, avatar não-imagem rejeitado, validações,
     admin sem perfil de treinador, link no sidebar).
-  - **Total: 254 testes / 826 assertions** (33 API + 182 painel + 11 console
-    + 8 notificações + 20 web).
+  - `SaasPlanCrudTest` (9) — CRUD do catálogo (admin-only/403 teacher),
+    auto-slug e sufixo em colisão (`gratuito-2`), exclusão bloqueada com
+    assinaturas, seeder idempotente, plano gratuito automático e sem
+    downgrade.
+  - `StudentLimitTest` (7) — enforcement por plano (gratuito bloqueia o 11º
+    aluno, ilimitado/liberado sem assinatura/cancelada não bloqueia, soft
+    delete libera vaga, erro no `StudentForm`).
+  - `MercadoPagoWebhookTest` (9) — `approved` ativa (mensal/anual +12
+    meses), `rejected` → past_due, `pending` mantém, referência externa
+    ignorada, sem id aceito, assinatura inválida 403, manifest HMAC
+    correto/errado, IPN via GET.
+  - `MySubscriptionTest` (10) — catálogo do treinador, assinar gratuito
+    ativa na hora, pago redireciona para o checkout (mock do
+    `MercadoPagoService`), pendente/cancelada, isolamento, sidebar.
+  - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
+    auto-preço ao trocar plano, validações (plan_id/status/amount),
+    cancelamento com rastro.
+  - **Total: 283 testes / 914 assertions** (33 API + 200 painel + 11 console
+    + 8 notificações + 29 web).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter

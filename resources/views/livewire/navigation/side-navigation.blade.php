@@ -213,6 +213,26 @@
                         <x-icon name="users" class="h-5 w-5 shrink-0" />
                         <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Treinadores</span>
                     </a>
+                    <a href="{{ route('subscriptions.index') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('subscriptions.*')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="banknotes" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Assinaturas</span>
+                    </a>
+                    <a href="{{ route('saas-plans.index') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('saas-plans.*')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="currency-dollar" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Planos do SaaS</span>
+                    </a>
                     <a href="{{ route('settings') }}" wire:navigate
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',

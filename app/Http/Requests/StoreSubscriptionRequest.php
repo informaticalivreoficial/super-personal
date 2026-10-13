@@ -2,12 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\BillingPeriod;
 use App\Enums\SubscriptionStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Assinatura do treinador COM a plataforma (billing manual — sem gateway).
+ * Assinatura do treinador COM a plataforma (billing manual/admin).
  * Reaproveitada no create e no update (não há restrição única).
  */
 class StoreSubscriptionRequest extends FormRequest
@@ -18,7 +19,8 @@ class StoreSubscriptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'plan' => ['required', 'string', 'max:100'],
+            'plan_id' => ['required', 'integer', Rule::exists('saas_plans', 'id')],
+            'period' => ['required', Rule::enum(BillingPeriod::class)],
             'status' => ['required', Rule::enum(SubscriptionStatus::class)],
             'amount' => ['nullable', 'numeric', 'min:0'],
             'starts_at' => ['nullable', 'date'],
@@ -33,7 +35,9 @@ class StoreSubscriptionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'plan.required' => 'O plano é obrigatório.',
+            'plan_id.required' => 'O plano é obrigatório.',
+            'plan_id.exists' => 'O plano selecionado não existe.',
+            'period.required' => 'O período de cobrança é obrigatório.',
             'status.required' => 'O status da assinatura é obrigatório.',
             'amount.numeric' => 'O valor deve ser numérico.',
             'amount.min' => 'O valor deve ser maior ou igual a zero.',
