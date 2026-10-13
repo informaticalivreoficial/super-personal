@@ -46,6 +46,7 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/exercicios/cadastrar',
             '/admin/exercicios/'.$exercise->id.'/editar',
             '/admin/assinatura',
+            '/admin/minha-pagina',
             '/admin/configuracoes',
         ];
 
@@ -74,6 +75,7 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/treinadores',
             '/admin/professores/cadastrar',
             '/admin/professores/'.$teacher->id.'/editar',
+            '/admin/professores/'.$teacher->id.'/pagina',
         ];
 
         foreach ($routes as $route) {
@@ -96,5 +98,6 @@ class PanelRoutesSmokeTest extends TestCase
 
         $this->get('/admin/modalidades')->assertForbidden();
         $this->get('/admin/treinadores')->assertForbidden();
+        $this->get('/admin/professores/'.$teacher->id.'/pagina')->assertForbidden();
     }
 }

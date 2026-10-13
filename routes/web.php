@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Web\SiteController;
+use App\Http\Controllers\Web\TeacherLandingController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Dashboard\Dashboard;
 use App\Livewire\Dashboard\Exercises\ExerciseForm;
 use App\Livewire\Dashboard\Exercises\ExerciseIndex;
+use App\Livewire\Dashboard\LandingForm;
 use App\Livewire\Dashboard\MySubscription;
 use App\Livewire\Dashboard\Payments\PaymentForm;
 use App\Livewire\Dashboard\Payments\PaymentIndex;
@@ -27,6 +29,13 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
 
     /** Página Inicial do site público (o blog/notícias legados foram removidos). */
     Route::get('/', [SiteController::class, 'home'])->name('home');
+
+    /**
+     * Landing page pública do treinador (tenant) — opt-in via public_profile.
+     * HTML server-renderizado p/ SEO; slug reservado nunca casa com a rota
+     * (prefixo /treinador/ + validação no form).
+     */
+    Route::get('treinador/{slug}', [TeacherLandingController::class, '__invoke'])->name('treinador');
 
 });
 
@@ -78,7 +87,17 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
         Route::get('treinadores', ProfessorIndex::class)->name('professors.index');
         Route::get('professores/cadastrar', ProfessorForm::class)->name('professors.create');
         Route::get('professores/{teacher}/editar', ProfessorForm::class)->name('professors.edit');
+
+        // Landing pública de qualquer tenant — admin também edita a de terceiros.
+        Route::get('professores/{teacher}/pagina', LandingForm::class)->name('professors.landing');
     });
+
+    // *********************** Minha página pública *******************************
+    // Landing do próprio treinador em /treinador/{slug} (opt-in public_profile).
+    // Admin não tem tenant: edita a de cada treinador na rota acima.
+    Route::get('minha-pagina', LandingForm::class)
+        ->name('landing.mine')
+        ->middleware('role:teacher');
 
     // *********************** Minha assinatura ***********************************
     // Visão somente leitura do treinador sobre a própria assinatura COM a

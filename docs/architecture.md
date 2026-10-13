@@ -362,8 +362,20 @@ sports ──1:N── training_sessions (restrict)
     `cancelled_at` automático, 403 para treinador).
   - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
     receita, agregação cross-tenant via service, treinador vê o próprio).
-  - **Total: 181 testes / 550 assertions** (33 API + 129 painel + 11 console
-    + 8 notificações).
+  - `LandingFormTest` (23) — página "Minha página pública" (prefill, salvar,
+    slug gerado/reservado/duplicado/inválido, próprio slug não é tratado como
+    duplicado, desligar opt-in esconde a landing, admin edita qualquer tenant,
+    403/redirect de rota, policy de isolamento, teacher sem perfil 403,
+    uploads de identidade no tenant, substituição/apagamento de imagem,
+    upload não-imagem rejeitado, rollback sem uploads órfãos, previews).
+  - **Web** (`tests/Feature/Web`): `TeacherLandingTest` (15) — landing pública
+    (render para guest com CTA/SEO, só modalidades do dono, visitante logado
+    como outro tenant vê o conteúdo completo, 404 para não-publicado/inativo/
+    slug inexistente, slug gerado do nome, reservado/duplicado com sufixo,
+    `wa.me` sem DDI duplicado, página sem bio/whatsapp, foto,
+    redes sociais + endereço por opt-in, identidade visual).
+  - **Total: 226 testes / 722 assertions** (33 API + 159 painel + 11 console
+    + 8 notificações + 15 web).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -482,6 +494,56 @@ sports ──1:N── training_sessions (restrict)
   `Settings`/`Config` e o link "Ver site" do topbar.
 - Verificação: varredura sem referências órfãs, `/blog` → 404, `/` → 200,
   suíte completa verde.
+
+## Landing page pública por treinador (2026-10-12)
+
+- **URL**: `GET /treinador/{slug}` (rota `web.treinador`, pública sem auth) →
+  `TeacherLandingController` (`__invoke`) + view standalone
+  `resources/views/web/treinador.blade.php` — HTML server-renderizado (sem
+  Livewire) p/ SEO, com `Seo`, paleta `brand` e Vite. Obs.: o grupo de rotas
+  públicas tem `namespace => Web` legado → action em array
+  (`[Controller::class, '__invoke']`), senão o namespace é prefixado e dá 500.
+- **Colunas novas em `teachers`** (migration `2026_10_12_000001`): `slug`
+  (unique + backfill do nome), `public_profile` (bool, **default false = opt-in**),
+  `tagline`, `whatsapp`. O backfill espelha `Teacher::RESERVED_SLUGS`
+  (migrations não dependem de código vivo).
+- **Conteúdo extra** (migration `2026_10_12_100001`): identidade visual
+  (`logo` cabeçalho, `favicon` aba, `metaimg` og:image — accessors `*_url`
+  via disco public), redes sociais (`facebook`, `twitter`, `instagram`,
+  `youtube`, `linkedin`) e endereço (`zipcode` com accessor `#####-###`,
+  `street`, `number`, `complement`, `neighborhood`, `state`, `city`) com
+  **opt-in de privacidade** `display_address` (default false — só aparece na
+  landing se o treinador marcar). Escrita via `TeacherService::updateLanding`;
+  upload das imagens no componente Livewire (`WithFileUploads`, validação
+  `image` + tamanho por campo, nome canônico `teachers/{id}/{campo}.ext`,
+  arquivo antigo apagado só após save bem-sucedido, rollback dos novos se a
+  validação de textos falhar).
+- **Slug**: gerado no hook `saving` do model via `Teacher::makeUniqueSlug()`
+  (unicidade + palavras reservadas → sufixo `-2`, ex.: `admin-2`); a
+  `UpdateLandingRequest` valida formato/reservado/unique (ignore do próprio id).
+  URL centralizada no accessor `$teacher->landing_url` (se um dia virar
+  subdomínio, muda num lugar só).
+- **O que é público**: existe só com `public_profile` + `active` (404 caso
+  contrário). Conteúdo = nome, tagline, bio, CREF/especialidade, foto
+  (accessor `profile_photo_url`), **modalidades distintas das sessões do
+  próprio tenant** (subquery com `withoutGlobalScope('tenant')` — a página
+  pertence ao dono mesmo para visitante logado como outro treinador) e CTA
+  WhatsApp (`wa.me` com +55 implícito se sem DDI). **Nunca** alunos, treinos
+  ou pagamentos.
+- **Painel**: `GET /admin/minha-pagina` (`landing.mine`, `role:teacher`) e
+  `GET /admin/professores/{teacher}/pagina` (`professors.landing`, `role:admin`)
+  → um único componente `Dashboard\LandingForm`; escrita via
+  `TeacherService::updateLanding()` (slug vazio é gerado do nome).
+  Sidebar ganhou "Minha página pública" (só teacher) com badge de status e
+  preview da URL pública.
+- **Permissão**: `TeacherPolicy::updateLanding()` — admin (qualquer tenant) ou
+  o próprio treinador; professor A nunca edita a página do B (middleware de
+  rota + Gate + testes). Slug vazio → gerado do nome.
+- **Fix da sidebar**: "Minha assinatura" estava aninhada dentro do submenu
+  "Biblioteca" (só aparecia naquela página) — saiu para item de topo junto
+  com "Minha página pública".
+- **Loop de crescimento**: rodapé da landing traz
+  "Quero minha página assim → criar conta de treinador" (`/auth/register`).
 
 ## Fora do escopo atual
 

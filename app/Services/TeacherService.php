@@ -7,6 +7,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * Cadastro de treinadores (tenants) pela plataforma.
@@ -59,6 +60,53 @@ class TeacherService
 
             return $teacher;
         });
+    }
+
+    /**
+     * Atualiza a landing page pública do treinador (dados públicos do tenant).
+     *
+     * Slug vazio é gerado do nome (unicidade + palavras reservadas no model);
+     * slug informado passou pela Form Request (unique/reservado/formato).
+     * Nada de alunos/treinos/pagamentos aqui: a landing é só conteúdo do perfil.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function updateLanding(Teacher $teacher, array $data): Teacher
+    {
+        $teacher->slug = ! empty($data['slug'])
+            ? Str::slug($data['slug'])
+            : Teacher::makeUniqueSlug($teacher->name, $teacher->id);
+        $teacher->tagline = $data['tagline'] ?? null;
+        $teacher->bio = $data['bio'] ?? null;
+        $teacher->whatsapp = $data['whatsapp'] ?? null;
+        $teacher->public_profile = (bool) ($data['public_profile'] ?? false);
+
+        // Identidade visual (caminhos finais vindos do upload do componente).
+        $teacher->logo = $data['logo'] ?? null;
+        $teacher->favicon = $data['favicon'] ?? null;
+        $teacher->metaimg = $data['metaimg'] ?? null;
+
+        // Redes sociais ('' vira null — a Form Request não passa por middleware
+        // de conversão de strings vazias).
+        $teacher->facebook = ($data['facebook'] ?? '') ?: null;
+        $teacher->twitter = ($data['twitter'] ?? '') ?: null;
+        $teacher->instagram = ($data['instagram'] ?? '') ?: null;
+        $teacher->youtube = ($data['youtube'] ?? '') ?: null;
+        $teacher->linkedin = ($data['linkedin'] ?? '') ?: null;
+
+        // Endereço (exibição pública condicionada a display_address).
+        $teacher->display_address = (bool) ($data['display_address'] ?? false);
+        $teacher->zipcode = ($data['zipcode'] ?? '') ?: null;
+        $teacher->street = ($data['street'] ?? '') ?: null;
+        $teacher->number = ($data['number'] ?? '') ?: null;
+        $teacher->complement = ($data['complement'] ?? '') ?: null;
+        $teacher->neighborhood = ($data['neighborhood'] ?? '') ?: null;
+        $teacher->state = ! empty($data['state']) ? strtoupper(trim($data['state'])) : null;
+        $teacher->city = ($data['city'] ?? '') ?: null;
+
+        $teacher->save();
+
+        return $teacher;
     }
 
     /**

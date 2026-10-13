@@ -19,7 +19,7 @@ class Seo
     {
         $this->optimizer = new Optimizer;
         $this->optimizer->openGraph(
-            'Ubatuba Times',
+            config('app.name'),
             'pt_BR',
             'article'
         )->publisher(
