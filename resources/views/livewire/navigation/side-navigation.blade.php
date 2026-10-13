@@ -155,9 +155,23 @@
                 </ul>
             </li>
 
-            {{-- Conta do treinador (itens de topo, fora do submenu Biblioteca) --}}
+            {{-- Conta (teacher e admin) --}}
+            <li class="pt-4">
+                <a href="{{ route('profile.show') }}" wire:navigate
+                    @class([
+                        'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                        Route::is('profile.show')
+                            ? 'bg-brand-400/15 text-brand-400'
+                            : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                    ])>
+                    <x-icon name="user" class="h-5 w-5 shrink-0" />
+                    <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Meu perfil</span>
+                </a>
+            </li>
+
+            {{-- Itens do treinador (página pública, assinatura) --}}
             @if (auth()->user()->isTeacher())
-                <li class="pt-4">
+                <li>
                     <a href="{{ route('landing.mine') }}" wire:navigate
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',

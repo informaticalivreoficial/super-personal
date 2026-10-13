@@ -8,6 +8,7 @@ use App\Livewire\Dashboard\Dashboard;
 use App\Livewire\Dashboard\Exercises\ExerciseForm;
 use App\Livewire\Dashboard\Exercises\ExerciseIndex;
 use App\Livewire\Dashboard\LandingForm;
+use App\Livewire\Dashboard\MyProfile;
 use App\Livewire\Dashboard\MySubscription;
 use App\Livewire\Dashboard\Payments\PaymentForm;
 use App\Livewire\Dashboard\Payments\PaymentIndex;
@@ -98,6 +99,11 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
     Route::get('minha-pagina', LandingForm::class)
         ->name('landing.mine')
         ->middleware('role:teacher');
+
+    // *********************** Meu perfil ***************************************
+    // Edição dos próprios dados da conta (nome, e-mail, telefone, senha) —
+    // teacher e admin (grupo raiz já garante role:teacher,admin).
+    Route::get('meu-perfil', MyProfile::class)->name('profile.show');
 
     // *********************** Minha assinatura ***********************************
     // Visão somente leitura do treinador sobre a própria assinatura COM a

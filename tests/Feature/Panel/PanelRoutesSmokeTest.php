@@ -47,6 +47,7 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/exercicios/'.$exercise->id.'/editar',
             '/admin/assinatura',
             '/admin/minha-pagina',
+            '/admin/meu-perfil',
             '/admin/configuracoes',
         ];
 

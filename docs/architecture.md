@@ -246,6 +246,28 @@ sports ──1:N── training_sessions (restrict)
     ativa"); link "Minha assinatura" no sidebar visível só para
     `isTeacher()`. Escrita continua exclusiva do admin.
 
+### Meu perfil (conta do usuário logado)
+
+- **Página** `/admin/meu-perfil` (`App\Livewire\Dashboard\MyProfile`, rota
+  `profile.show` dentro do grupo `role:teacher,admin` — teacher e admin
+  acessam): edição dos **próprios** dados da conta — nome, e-mail, telefone
+  e senha opcional (duas etapas: "Dados pessoais" + "Alterar senha" com
+  placeholder "Deixe os dois campos em branco para manter a senha atual").
+- **Escrita** via `ProfileService::update()` (caminho único, transaction):
+  atualiza `users.name/email/phone` (+ `password` hash só se preenchido) e,
+  quando o usuário tem perfil `teachers`, **sincroniza** `teachers.name` e
+  `teachers.phone` (fonte do cadastro do tenant/landing). Slug e
+  `landing_title` NÃO são tocados aqui (conteúdo do `LandingForm`).
+- **Validação** por `UpdateProfileRequest` (reusada via
+  `ValidatesWithFormRequest`): nome/e-mail obrigatórios, e-mail único com
+  `ignore(user_id)` do próprio id, telefone com regex pt-BR, senha
+  `nullable|min:8|confirmed` — mensagens em pt-BR.
+- **UX**: prefill preferindo `users.phone` com fallback para
+  `teachers.phone` (admin edita o phone do tenant no `ProfessorForm`);
+  senha nunca re-aparece preenchida após salvar; toast de sucesso; link
+  "Meu perfil" no sidebar para teacher e admin (bloco "Conta", acima de
+  "Minha página pública").
+
 ### Notificações e lembretes automáticos
 
 - **Comando** `notifications:send-reminders` (`App\Console\Commands\SendReminders`),
@@ -362,20 +384,25 @@ sports ──1:N── training_sessions (restrict)
     `cancelled_at` automático, 403 para treinador).
   - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
     receita, agregação cross-tenant via service, treinador vê o próprio).
-  - `LandingFormTest` (23) — página "Minha página pública" (prefill, salvar,
+  - `LandingFormTest` (27) — página "Minha página pública" (prefill, salvar,
     slug gerado/reservado/duplicado/inválido, próprio slug não é tratado como
     duplicado, desligar opt-in esconde a landing, admin edita qualquer tenant,
     403/redirect de rota, policy de isolamento, teacher sem perfil 403,
     uploads de identidade no tenant, substituição/apagamento de imagem,
     upload não-imagem rejeitado, rollback sem uploads órfãos, previews).
-  - **Web** (`tests/Feature/Web`): `TeacherLandingTest` (15) — landing pública
+  - **Web** (`tests/Feature/Web`): `TeacherLandingTest` (17) — landing pública
     (render para guest com CTA/SEO, só modalidades do dono, visitante logado
     como outro tenant vê o conteúdo completo, 404 para não-publicado/inativo/
     slug inexistente, slug gerado do nome, reservado/duplicado com sufixo,
     `wa.me` sem DDI duplicado, página sem bio/whatsapp, foto,
-    redes sociais + endereço por opt-in, identidade visual).
-  - **Total: 226 testes / 722 assertions** (33 API + 159 painel + 11 console
-    + 8 notificações + 15 web).
+    redes sociais + endereço por opt-in, identidade visual, `landing_title`
+    no hero/SEO com fallback para o nome).
+  - `MyProfileTest` (9) — página "Meu perfil" (guest redirect, prefill,
+    salvar sincronizando users+teachers, unique de e-mail com ignore próprio,
+    senha opcional/hashed/min-8/confirmed, validações, admin sem perfil
+    de treinador, link no sidebar).
+  - **Total: 241 testes / 781 assertions** (33 API + 172 painel + 11 console
+    + 8 notificações + 17 web).
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -518,6 +545,22 @@ sports ──1:N── training_sessions (restrict)
   `image` + tamanho por campo, nome canônico `teachers/{id}/{campo}.ext`,
   arquivo antigo apagado só após save bem-sucedido, rollback dos novos se a
   validação de textos falhar).
+- **Título personalizado** (migration `2026_10_13_000001`): coluna
+  `teachers.landing_title` (nullable, 120) — o treinador pode exibir o nome
+  da empresa/marca no grande título do hero (e no `<title>`/og:title) em vez
+  do próprio nome; vazio = `name` (comportamento padrão). CTA final e
+  demais usos continuam com o nome real. Campo no `LandingForm`.
+- **Consulta de CEP (ViaCEP)**: componente Alpine global `x-data="viaCep"`
+  registrado em `resources/js/via-cep.js` (listener `alpine:init` em
+  `window.Alpine` — o Livewire 3 dá boot em `DOMContentLoaded`, então o
+  módulo Vite registra a tempo). Uso genérico: embrulhe qualquer grupo de
+  endereço com o componente Blade `<x-via-cep>`
+  (`resources/views/components/via-cep.blade.php`) e marque os inputs com
+  `data-via-cep="zipcode|street|neighborhood|city|state"` — ao completar
+  8 dígitos (change/Enter) busca `viacep.com.br/ws/{cep}/json/`, preenche
+  rua/bairro/cidade/UF, dispara `input` (bubbles) para `wire:model` e mostra
+  toast no erro (mesmo canal do `ToastrNotification`). Primeiro uso: card
+  "Endereço" do `LandingForm`.
 - **Slug**: gerado no hook `saving` do model via `Teacher::makeUniqueSlug()`
   (unicidade + palavras reservadas → sufixo `-2`, ex.: `admin-2`); a
   `UpdateLandingRequest` valida formato/reservado/unique (ignore do próprio id).
