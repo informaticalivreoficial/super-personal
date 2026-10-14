@@ -9,6 +9,7 @@ import 'models/progress.dart';
 import 'models/training_plan.dart';
 import 'models/training_session.dart';
 import 'models/execution.dart';
+import 'models/student_profile.dart';
 
 /// Página de recursos paginados da API (`data` + `meta` do Laravel).
 class PagedResult<T> {
@@ -67,6 +68,29 @@ class StudentRepository {
   Future<StudentDashboard> dashboard() async {
     final json = await _get('student/dashboard');
     return StudentDashboard.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  /// Perfil do aluno em `GET /student/profile`.
+  Future<StudentProfile> profile() async {
+    final json = await _get('student/profile');
+    return StudentProfile.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  /// Atualiza o próprio perfil em `PUT /student/profile`.
+  Future<StudentProfile> updateProfile(ProfileUpdateData data) async {
+    try {
+      final response = await _client.dio.put(
+        'student/profile',
+        data: data.toMap(),
+      );
+      final body = response.data;
+      final map = body is Map<String, dynamic> && body['data'] is Map<String, dynamic>
+          ? body['data'] as Map<String, dynamic>
+          : body as Map<String, dynamic>;
+      return StudentProfile.fromJson(map);
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
   }
 
   /// Planos ativos em `GET /student/training-plans`.

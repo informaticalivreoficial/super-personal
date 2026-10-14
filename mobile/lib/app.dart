@@ -3,19 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
 
-/// Raiz do app: tema (marca SportPlan, laranja #E96B18) + roteador.
+/// Raiz do app: tema (marca Super Personal, laranja #E96B18) + roteador.
 ///
 /// A sessão decide o destino inicial (splash → login → home) no guard do
 /// `routerProvider`.
-class SportPlanApp extends ConsumerWidget {
-  const SportPlanApp({super.key});
+class SuperPersonalApp extends ConsumerWidget {
+  const SuperPersonalApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'SportPlan',
+      title: 'Super Personal',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

@@ -13,6 +13,7 @@ import '../../features/student/notifications_screen.dart';
 import '../../features/student/payments_screen.dart';
 import '../../features/student/plans_screen.dart';
 import '../../features/student/progress_screen.dart';
+import '../../features/student/profile_screen.dart';
 import '../../features/student/trainings_screen.dart';
 import '../../features/student/training_detail_screen.dart';
 
@@ -103,6 +104,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notificacoes',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/perfil',
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
   );

@@ -24,7 +24,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SportPlan'),
+        title: const Text('Super Personal'),
         actions: [
           IconButton(
             tooltip: 'Notificações',
@@ -51,28 +51,33 @@ class HomeScreen extends ConsumerWidget {
           children: [
             Card(
               color: scheme.primaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(child: Text(_initials(user?.name))),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.name ?? '',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          Text(
-                            user?.email ?? '',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+              child: InkWell(
+                onTap: () => context.push('/perfil'),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      CircleAvatar(child: Text(_initials(user?.name))),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user?.name ?? '',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              user?.email ?? '',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -131,6 +136,16 @@ class HomeScreen extends ConsumerWidget {
                 subtitle: const Text('Histórico de cobranças'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/pagamentos'),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Meu perfil'),
+                subtitle:
+                    const Text('Nome, telefone, gênero e dias disponíveis'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/perfil'),
               ),
             ),
             Card(

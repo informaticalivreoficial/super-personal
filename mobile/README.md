@@ -1,4 +1,4 @@
-# SportPlan
+# Super Personal
 
 App do aluno do SaaS de gestão de treinamentos esportivos (Flutter + Riverpod + GoRouter).
 

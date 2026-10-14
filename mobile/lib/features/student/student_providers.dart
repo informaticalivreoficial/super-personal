@@ -5,6 +5,7 @@ import 'models/dashboard.dart';
 import 'models/notification.dart';
 import 'models/payment.dart';
 import 'models/progress.dart';
+import 'models/student_profile.dart';
 import 'models/training_plan.dart';
 import 'models/training_session.dart';
 import 'student_repository.dart';
@@ -178,5 +179,24 @@ class CalendarController extends AsyncNotifier<List<TrainingSession>> {
     state = await AsyncValue.guard(
       () => ref.read(studentRepositoryProvider).calendar(),
     );
+  }
+}
+
+/// Perfil do aluno (carrega em `build`; [save] atualiza e retorna o novo estado).
+final profileProvider =
+    AsyncNotifierProvider<ProfileController, StudentProfile>(
+  ProfileController.new,
+);
+
+class ProfileController extends AsyncNotifier<StudentProfile> {
+  @override
+  Future<StudentProfile> build() =>
+      ref.read(studentRepositoryProvider).profile();
+
+  Future<StudentProfile> save(ProfileUpdateData data) async {
+    final updated =
+        await ref.read(studentRepositoryProvider).updateProfile(data);
+    state = AsyncValue.data(updated);
+    return updated;
   }
 }

@@ -79,7 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Icon(Icons.fitness_center, size: 64, color: scheme.primary),
                 const SizedBox(height: 12),
                 Text(
-                  'SportPlan',
+                  'Super Personal',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
