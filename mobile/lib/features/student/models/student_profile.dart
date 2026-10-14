@@ -9,6 +9,7 @@ class StudentProfile {
     this.phone,
     this.gender,
     this.height,
+    this.photoUrl,
     this.availableDays = const [],
   });
 
@@ -18,6 +19,7 @@ class StudentProfile {
   final String? phone;
   final String? gender;
   final int? height;
+  final String? photoUrl;
   final List<int> availableDays;
 
   factory StudentProfile.fromJson(Map<String, dynamic> json) =>
@@ -28,6 +30,7 @@ class StudentProfile {
         phone: json['phone'] as String?,
         gender: json['gender'] as String?,
         height: (json['height'] as num?)?.toInt(),
+        photoUrl: json['profile_photo_url'] as String?,
         availableDays: (json['available_days'] as List<dynamic>? ?? const [])
             .whereType<num>()
             .map((day) => day.toInt())

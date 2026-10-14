@@ -23,6 +23,7 @@ class StudentResource extends JsonResource
             'gender' => $this->gender?->value,
             'document' => $this->document,
             'profile_photo' => $this->profile_photo,
+            'profile_photo_url' => $this->photoUrl($request),
             'height' => $this->height,
             'initial_weight' => $this->initial_weight !== null ? (float) $this->initial_weight : null,
             'current_weight' => $this->current_weight !== null ? (float) $this->current_weight : null,
@@ -35,5 +36,22 @@ class StudentResource extends JsonResource
             'active' => $this->active,
             'started_at' => $this->started_at?->format('Y-m-d'),
         ];
+    }
+
+    /**
+     * URL da foto no disco public, montada com o host da requisição
+     * (o app fala por IP na rede local; APP_URL pode não resolver no aparelho).
+     */
+    private function photoUrl($request): ?string
+    {
+        if (empty($this->profile_photo)) {
+            return null;
+        }
+
+        if (str_starts_with($this->profile_photo, 'http')) {
+            return $this->profile_photo;
+        }
+
+        return $request->getSchemeAndHttpHost().'/storage/'.ltrim($this->profile_photo, '/');
     }
 }

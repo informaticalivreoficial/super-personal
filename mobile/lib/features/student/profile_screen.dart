@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/api/api_exception.dart';
 import 'models/student_profile.dart';
@@ -39,6 +40,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final Set<int> _days = {};
   bool _initialized = false;
   bool _saving = false;
+  bool _uploadingPhoto = false;
 
   @override
   void dispose() {
@@ -87,6 +89,105 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _pickAndUploadPhoto(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      await ref.read(profileProvider.notifier).uploadPhoto(picked.path);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto de perfil atualizada.')),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  Future<void> _removePhoto() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remover foto?'),
+        content: const Text('Sua foto de perfil será apagada.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      await ref.read(profileProvider.notifier).removePhoto();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto removida.')),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  void _showPhotoSheet(String? photoUrl) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tirar foto'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickAndUploadPhoto(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Escolher da galeria'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickAndUploadPhoto(ImageSource.gallery);
+              },
+            ),
+            if (photoUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remover foto'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _removePhoto();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider);
@@ -124,6 +225,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             days: _days,
             saving: _saving,
             email: data.email,
+            photoUrl: data.photoUrl,
+            uploadingPhoto: _uploadingPhoto,
+            onChangePhoto: () => _showPhotoSheet(data.photoUrl),
             onGenderChanged: (value) => setState(() => _gender = value),
             onToggleDay: (day) => setState(() {
               _days.contains(day) ? _days.remove(day) : _days.add(day);
@@ -146,6 +250,9 @@ class _ProfileForm extends StatelessWidget {
     required this.days,
     required this.saving,
     required this.email,
+    required this.photoUrl,
+    required this.uploadingPhoto,
+    required this.onChangePhoto,
     required this.onGenderChanged,
     required this.onToggleDay,
     required this.onSave,
@@ -159,6 +266,9 @@ class _ProfileForm extends StatelessWidget {
   final Set<int> days;
   final bool saving;
   final String email;
+  final String? photoUrl;
+  final bool uploadingPhoto;
+  final VoidCallback onChangePhoto;
   final ValueChanged<String?> onGenderChanged;
   final ValueChanged<int> onToggleDay;
   final VoidCallback onSave;
@@ -166,21 +276,84 @@ class _ProfileForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final initials = name.text.trim().isEmpty
+        ? '?'
+        : name.text.trim()[0].toUpperCase();
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Card(
-          child: ListTile(
-            leading: CircleAvatar(
-              child: Text(
-                name.text.trim().isEmpty
-                    ? '?'
-                    : name.text.trim()[0].toUpperCase(),
-              ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundImage: photoUrl != null
+                          ? NetworkImage(photoUrl!)
+                          : null,
+                      child: photoUrl == null ? Text(initials) : null,
+                    ),
+                    Positioned(
+                      right: -4,
+                      bottom: -4,
+                      child: Material(
+                        color: scheme.primary,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: uploadingPhoto ? null : onChangePhoto,
+                          child: uploadingPhoto
+                              ? const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Padding(
+                                  padding: EdgeInsets.all(6),
+                                  child: Icon(Icons.camera_alt,
+                                      size: 16, color: Colors.white),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(email,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      const SizedBox(height: 2),
+                      Text(
+                        'E-mail de acesso (não editável aqui)',
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: scheme.outline),
+                      ),
+                      TextButton.icon(
+                        onPressed: uploadingPhoto ? null : onChangePhoto,
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: Text(
+                          photoUrl == null ? 'Adicionar foto' : 'Alterar foto',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            title: Text(email),
-            subtitle: const Text('E-mail de acesso (não editável aqui)'),
           ),
         ),
         const SizedBox(height: 16),

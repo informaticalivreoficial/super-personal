@@ -20,6 +20,7 @@ class HomeScreen extends ConsumerWidget {
     final User? user = ref.watch(authControllerProvider).value;
     final dashboard = ref.watch(dashboardProvider);
     final unread = dashboard.value?.unreadNotifications ?? 0;
+    final photoUrl = ref.watch(profileProvider).value?.photoUrl;
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -58,7 +59,14 @@ class HomeScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      CircleAvatar(child: Text(_initials(user?.name))),
+                      CircleAvatar(
+                        backgroundImage: photoUrl != null
+                            ? NetworkImage(photoUrl)
+                            : null,
+                        child: photoUrl == null
+                            ? Text(_initials(user?.name))
+                            : null,
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
@@ -136,29 +144,6 @@ class HomeScreen extends ConsumerWidget {
                 subtitle: const Text('Histórico de cobranças'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/pagamentos'),
-              ),
-            ),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: const Text('Meu perfil'),
-                subtitle:
-                    const Text('Nome, telefone, gênero e dias disponíveis'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/perfil'),
-              ),
-            ),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.notifications_outlined),
-                title: const Text('Notificações'),
-                subtitle: const Text('Avisos do treinador'),
-                trailing: Badge(
-                  isLabelVisible: unread > 0,
-                  label: Text('$unread'),
-                  child: const Icon(Icons.chevron_right),
-                ),
-                onTap: () => context.push('/notificacoes'),
               ),
             ),
           ],

@@ -6,8 +6,10 @@ use App\Enums\UserRole;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class StudentService
@@ -77,6 +79,47 @@ class StudentService
     public function update(Student $student, array $data): Student
     {
         $student->fill($data);
+        $student->save();
+
+        return $student;
+    }
+
+    /**
+     * Upload da foto de perfil do aluno (disco public, nome canônico
+     * `students/{id}/profile_photo.ext`). Substitui a anterior.
+     */
+    public function updateProfilePhoto(Student $student, UploadedFile $file): Student
+    {
+        $old = $student->profile_photo;
+        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $path = $file->storePubliclyAs(
+            'students/'.$student->id,
+            'profile_photo.'.$extension,
+            'public'
+        );
+
+        // Nome canônico: extensões diferentes (foto antiga .png vs nova .jpg)
+        // geram arquivos distintos — apaga o anterior já substituído.
+        if ($old && $old !== $path && ! str_starts_with($old, 'http')) {
+            Storage::disk('public')->delete($old);
+        }
+
+        $student->profile_photo = $path;
+        $student->save();
+
+        return $student;
+    }
+
+    /**
+     * Remove a foto de perfil (coluna + arquivo do disco public).
+     */
+    public function removeProfilePhoto(Student $student): Student
+    {
+        if ($student->profile_photo && ! str_starts_with($student->profile_photo, 'http')) {
+            Storage::disk('public')->delete($student->profile_photo);
+        }
+
+        $student->profile_photo = null;
         $student->save();
 
         return $student;

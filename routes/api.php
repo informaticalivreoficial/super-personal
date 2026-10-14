@@ -42,6 +42,8 @@ Route::prefix('v1')->group(function () {
             Route::get('dashboard', StudentDashboard::class);
             Route::get('profile', [StudentProfile::class, 'show']);
             Route::put('profile', [StudentProfile::class, 'update']);
+            Route::post('profile/photo', [StudentProfile::class, 'uploadPhoto']);
+            Route::delete('profile/photo', [StudentProfile::class, 'removePhoto']);
 
             Route::get('training-plans', [StudentTrainingPlans::class, 'index']);
             Route::get('training-plans/{plan}', [StudentTrainingPlans::class, 'show'])->whereNumber('plan');

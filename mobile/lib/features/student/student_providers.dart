@@ -199,4 +199,20 @@ class ProfileController extends AsyncNotifier<StudentProfile> {
     state = AsyncValue.data(updated);
     return updated;
   }
+
+  /// Envia a foto (caminho local de arquivo) e atualiza o estado.
+  Future<StudentProfile> uploadPhoto(String filePath) async {
+    final updated =
+        await ref.read(studentRepositoryProvider).uploadProfilePhoto(filePath);
+    state = AsyncValue.data(updated);
+    return updated;
+  }
+
+  /// Remove a foto e atualiza o estado.
+  Future<StudentProfile> removePhoto() async {
+    final updated =
+        await ref.read(studentRepositoryProvider).removeProfilePhoto();
+    state = AsyncValue.data(updated);
+    return updated;
+  }
 }

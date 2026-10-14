@@ -93,6 +93,40 @@ class StudentRepository {
     }
   }
 
+  /// Envia a foto de perfil (multipart: campo `photo`) em
+  /// `POST /student/profile/photo`.
+  Future<StudentProfile> uploadProfilePhoto(String filePath) async {
+    try {
+      final form = FormData.fromMap({
+        'photo': await MultipartFile.fromFile(filePath),
+      });
+      final response = await _client.dio.post(
+        'student/profile/photo',
+        data: form,
+      );
+      return _unwrapProfile(response.data);
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  /// Remove a foto de perfil em `DELETE /student/profile/photo`.
+  Future<StudentProfile> removeProfilePhoto() async {
+    try {
+      final response = await _client.dio.delete('student/profile/photo');
+      return _unwrapProfile(response.data);
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  StudentProfile _unwrapProfile(dynamic body) {
+    if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
+      return StudentProfile.fromJson(body['data'] as Map<String, dynamic>);
+    }
+    return StudentProfile.fromJson(body as Map<String, dynamic>);
+  }
+
   /// Planos ativos em `GET /student/training-plans`.
   Future<List<TrainingPlan>> trainingPlans() async {
     final json = await _get('student/training-plans');
