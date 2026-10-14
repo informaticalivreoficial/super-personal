@@ -124,9 +124,12 @@ class _DetailBody extends ConsumerWidget {
     final planned = session.isPlanned;
     final inProgress = execution?.status == 'in_progress';
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
+    return RefreshIndicator(
+      onRefresh: () async => onChanged(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
         Row(
           children: [
             Expanded(
@@ -314,6 +317,7 @@ class _DetailBody extends ConsumerWidget {
         ],
         const SizedBox(height: 32),
       ],
+      ),
     );
   }
 
@@ -321,6 +325,7 @@ class _DetailBody extends ConsumerWidget {
       execution.duration != null ||
       execution.distance != null ||
       execution.averageHeartRate != null ||
+      execution.maxHeartRate != null ||
       execution.perceivedEffort != null ||
       (execution.notes?.isNotEmpty ?? false);
 }
@@ -361,6 +366,7 @@ class _ExecutionFormState extends State<_ExecutionForm> {
   late final TextEditingController _duration;
   late final TextEditingController _distance;
   late final TextEditingController _heartRate;
+  late final TextEditingController _maxHeartRate;
   late final TextEditingController _pace;
   late final TextEditingController _effort;
   late final TextEditingController _notes;
@@ -385,6 +391,8 @@ class _ExecutionFormState extends State<_ExecutionForm> {
         text: execution?.distance?.toString() ?? '');
     _heartRate = TextEditingController(
         text: execution?.averageHeartRate?.toString() ?? '');
+    _maxHeartRate = TextEditingController(
+        text: execution?.maxHeartRate?.toString() ?? '');
     _pace = TextEditingController(text: execution?.averagePace ?? '');
     _effort = TextEditingController(
         text: execution?.perceivedEffort?.toString() ?? '');
@@ -397,18 +405,30 @@ class _ExecutionFormState extends State<_ExecutionForm> {
     _duration.dispose();
     _distance.dispose();
     _heartRate.dispose();
+    _maxHeartRate.dispose();
     _pace.dispose();
     _effort.dispose();
     _notes.dispose();
     super.dispose();
   }
 
-  int? _parseInt(TextEditingController controller, String field) {
+  int? _parseInt(
+    TextEditingController controller,
+    String field, {
+    int? min,
+    int? max,
+  }) {
     final text = controller.text.trim();
     if (text.isEmpty) return null;
     final value = int.tryParse(text);
     if (value == null || value < 0) {
       throw ValidationException('$field deve ser um número inteiro.');
+    }
+    if (min != null && value < min) {
+      throw ValidationException('$field deve ser no mínimo $min.');
+    }
+    if (max != null && value > max) {
+      throw ValidationException('$field deve ser no máximo $max.');
     }
     return value;
   }
@@ -423,9 +443,11 @@ class _ExecutionFormState extends State<_ExecutionForm> {
         duration: minutes != null ? minutes * 60 : null,
         distance: _parseInt(_distance, 'Distância'),
         averageHeartRate: _parseInt(_heartRate, 'FC média'),
+        maxHeartRate: _parseInt(_maxHeartRate, 'FC máxima'),
         averagePace:
             _pace.text.trim().isEmpty ? null : _pace.text.trim(),
-        perceivedEffort: _parseInt(_effort, 'Esforço'),
+        perceivedEffort:
+            _parseInt(_effort, 'Esforço', min: 0, max: 10),
         feeling: _feeling,
         notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       );
@@ -495,9 +517,10 @@ class _ExecutionFormState extends State<_ExecutionForm> {
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
-                  controller: _pace,
+                  controller: _maxHeartRate,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Ritmo (ex.: 5:00)',
+                    labelText: 'FC máxima (bpm)',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -509,6 +532,16 @@ class _ExecutionFormState extends State<_ExecutionForm> {
             children: [
               Expanded(
                 child: TextFormField(
+                  controller: _pace,
+                  decoration: const InputDecoration(
+                    labelText: 'Ritmo (ex.: 5:00)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
                   controller: _effort,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -517,23 +550,20 @@ class _ExecutionFormState extends State<_ExecutionForm> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _feeling,
-                  decoration: const InputDecoration(
-                    labelText: 'Sensação',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final feeling in _feelings)
-                      DropdownMenuItem(
-                          value: feeling, child: Text(feeling)),
-                  ],
-                  onChanged: (value) => setState(() => _feeling = value),
-                ),
-              ),
             ],
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _feeling,
+            decoration: const InputDecoration(
+              labelText: 'Sensação',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              for (final feeling in _feelings)
+                DropdownMenuItem(value: feeling, child: Text(feeling)),
+            ],
+            onChanged: (value) => setState(() => _feeling = value),
           ),
           const SizedBox(height: 12),
           TextFormField(
