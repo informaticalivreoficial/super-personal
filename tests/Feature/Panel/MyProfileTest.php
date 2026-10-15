@@ -157,6 +157,19 @@ class MyProfileTest extends TestCase
             ->assertHasErrors(['name', 'email', 'phone']);
     }
 
+    public function test_cpf_is_formatted_on_prefill(): void
+    {
+        $teacher = Teacher::factory()->create();
+        // Mutator limpa no save; o accessor formata o prefill (###.###.###-##).
+        $teacher->user->update(['cpf' => '12345678900']);
+
+        $this->actingAs($teacher->user);
+
+        $this->get(route('profile.show'))
+            ->assertOk()
+            ->assertSee('123.456.789-00');
+    }
+
     public function test_admin_without_teacher_profile_can_edit(): void
     {
         $admin = User::factory(['role' => 'admin'])->create(['name' => 'Admin']);
@@ -220,7 +233,8 @@ class MyProfileTest extends TestCase
             'additional_email' => 'ana.extra@exemplo.com',
             // Mutator do User converte d/m/Y → Y-m-d.
             'birthday' => '1990-12-25',
-            'cpf' => '123.456.789-00',
+            // Mutator do User limpa o CPF para dígitos.
+            'cpf' => '12345678900',
             'rg' => '12.345.678-9',
             'rg_expedition' => 'SSP/SP',
             'cell_phone' => '11999998888',

@@ -163,6 +163,26 @@ class User extends Authenticatable
         return asset('images/image.jpg');
     }
 
+    public function setCpfAttribute($value)
+    {
+        $this->attributes['cpf'] = (! empty($value) ? $this->clearField($value) : null);
+    }
+
+    public function getCpfAttribute($value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        $v = $this->clearField($value);
+
+        if (strlen($v) === 11) {
+            return substr($v, 0, 3).'.'.substr($v, 3, 3).'.'.substr($v, 6, 3).'-'.substr($v, 9, 2);
+        }
+
+        return $value;
+    }
+
     public function setCellPhoneAttribute($value)
     {
         $this->attributes['cell_phone'] = (! empty($value) ? $this->clearField($value) : null);

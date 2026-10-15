@@ -14,3 +14,7 @@ window.IMask = IMask;
 
 // Consulta de CEP (ViaCEP) — componente Alpine global x-data="viaCep".
 import './via-cep';
+
+// Máscaras (IMask), datepicker (flatpickr) e força de senha — x-mask,
+// x-datepicker e x-data="passwordField".
+import './masks';

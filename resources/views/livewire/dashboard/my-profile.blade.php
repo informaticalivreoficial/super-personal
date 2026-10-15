@@ -100,8 +100,8 @@
                                 <div class="form-group">
                                     <label for="profile_birthday">Data de nascimento</label>
                                     <input type="text" class="form-control @error('birthday') is-invalid @enderror"
-                                        id="profile_birthday" wire:model="birthday" placeholder="dd/mm/aaaa"
-                                        inputmode="numeric" autocomplete="bday">
+                                        id="profile_birthday" wire:model="birthday" x-datepicker
+                                        placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="bday">
                                     @error('birthday')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror
@@ -125,7 +125,8 @@
                         <div class="form-group">
                             <label for="profile_cpf">CPF</label>
                             <input type="text" class="form-control @error('cpf') is-invalid @enderror"
-                                id="profile_cpf" wire:model="cpf" placeholder="000.000.000-00" inputmode="numeric">
+                                id="profile_cpf" wire:model="cpf" x-mask="cpf" placeholder="000.000.000-00"
+                                inputmode="numeric">
                             @error('cpf')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -167,9 +168,10 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="profile_phone">Telefone fixo</label>
-                            <input type="text" class="form-control @error('phone') is-invalid @enderror"
-                                id="profile_phone" wire:model="phone" placeholder="Ex.: 11 3333-4444">
+                                <label for="profile_phone">Telefone fixo</label>
+                                <input type="text" class="form-control @error('phone') is-invalid @enderror"
+                                    id="profile_phone" wire:model="phone" x-mask="phone"
+                                    placeholder="Ex.: (11) 3333-4444">
                             @error('phone')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -183,9 +185,10 @@
 
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="profile_cell_phone">Celular</label>
-                            <input type="text" class="form-control @error('cell_phone') is-invalid @enderror"
-                                id="profile_cell_phone" wire:model="cellPhone" placeholder="Ex.: 11 99999-8888">
+                                <label for="profile_cell_phone">Celular</label>
+                                <input type="text" class="form-control @error('cell_phone') is-invalid @enderror"
+                                    id="profile_cell_phone" wire:model="cellPhone" x-mask="cell"
+                                    placeholder="Ex.: (11) 99999-8888">
                             @error('cell_phone')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -194,9 +197,10 @@
 
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="profile_whatsapp">WhatsApp</label>
-                            <input type="text" class="form-control @error('whatsapp') is-invalid @enderror"
-                                id="profile_whatsapp" wire:model="whatsapp" placeholder="Ex.: 11 99999-8888">
+                                <label for="profile_whatsapp">WhatsApp</label>
+                                <input type="text" class="form-control @error('whatsapp') is-invalid @enderror"
+                                    id="profile_whatsapp" wire:model="whatsapp" x-mask="cell"
+                                    placeholder="Ex.: (11) 99999-8888">
                             @error('whatsapp')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -221,7 +225,7 @@
                                 <div class="relative">
                                     <input type="text" class="form-control pr-9 @error('zipcode') is-invalid @enderror"
                                         id="profile_zipcode" wire:model="zipcode" data-via-cep="zipcode"
-                                        placeholder="00000-000" inputmode="numeric">
+                                        x-mask="cep" placeholder="00000-000" inputmode="numeric">
                                     <span x-show="loading" x-cloak
                                         class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                                         <x-icon name="spinner" class="h-4 w-4 animate-spin" />
@@ -317,23 +321,59 @@
                     Deixe os dois campos em branco para manter a senha atual.
                 </p>
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-6" x-data="passwordField">
                         <div class="form-group">
                             <label for="profile_password">Nova senha</label>
-                            <input type="password" class="form-control @error('password') is-invalid @enderror"
-                                id="profile_password" wire:model="password" autocomplete="new-password"
-                                placeholder="Mínimo de 8 caracteres">
+                            <div class="relative">
+                                <input :type="show ? 'text' : 'password'"
+                                    class="form-control pr-10 @error('password') is-invalid @enderror"
+                                    id="profile_password" wire:model="password" autocomplete="new-password"
+                                    placeholder="Mínimo de 8 caracteres" @input="value = $event.target.value">
+                                <button type="button" @click="show = !show"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+                                    x-bind:title="show ? 'Ocultar senha' : 'Mostrar senha'"
+                                    x-bind:aria-label="show ? 'Ocultar senha' : 'Mostrar senha'">
+                                    <span x-show="!show" x-cloak>
+                                        <x-icon name="eye" class="h-4 w-4" />
+                                    </span>
+                                    <span x-show="show">
+                                        <x-icon name="eye-slash" class="h-4 w-4" />
+                                    </span>
+                                </button>
+                            </div>
                             @error('password')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
+                            {{-- Medidor de força animado --}}
+                            <div x-show="value.length > 0" x-cloak class="mt-2">
+                                <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                                    <div class="h-full rounded-full transition-all duration-500 ease-out"
+                                        x-bind:class="barClass" x-bind:style="{ width }"></div>
+                                </div>
+                                <p class="mt-1 text-xs font-medium" x-bind:class="textClass" x-text="label"></p>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6" x-data="passwordField">
                         <div class="form-group">
                             <label for="profile_password_confirmation">Confirmar nova senha</label>
-                            <input type="password" class="form-control"
-                                id="profile_password_confirmation" wire:model="password_confirmation"
-                                autocomplete="new-password" placeholder="Repita a nova senha">
+                            <div class="relative">
+                                <input :type="show ? 'text' : 'password'" class="form-control pr-10"
+                                    id="profile_password_confirmation" wire:model="password_confirmation"
+                                    autocomplete="new-password" placeholder="Repita a nova senha"
+                                    @input="value = $event.target.value">
+                                <button type="button" @click="show = !show"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+                                    x-bind:title="show ? 'Ocultar senha' : 'Mostrar senha'"
+                                    x-bind:aria-label="show ? 'Ocultar senha' : 'Mostrar senha'">
+                                    <span x-show="!show" x-cloak>
+                                        <x-icon name="eye" class="h-4 w-4" />
+                                    </span>
+                                    <span x-show="show">
+                                        <x-icon name="eye-slash" class="h-4 w-4" />
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

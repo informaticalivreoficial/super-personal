@@ -37,6 +37,7 @@ MAP = {
     "envelope": "envelope",
     "exclamation-triangle": "exclamation-triangle",
     "eye": "eye",
+    "eye-slash": "eye-slash",
     "home": "home",
     "identification": "identification",
     "information-circle": "information-circle",

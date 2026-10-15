@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Hash;
  *
  * Caminho único de escrita dos dados da conta: dados pessoais, documentos,
  * contato e endereço ficam em `users` (mutators do model tratam formatação:
- * birthday d/m/Y → Y-m-d, telefones e CEP limpos); quando o usuário é
+ * birthday d/m/Y → Y-m-d, telefones, CPF e CEP limpos); quando o usuário é
  * treinador, o nome e o telefone principal são sincronizados com o perfil
  * `teachers` (fonte do que aparece na landing e no cadastro do tenant).
  * Admin não tem perfil de treinador — só o user.
