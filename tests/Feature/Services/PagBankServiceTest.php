@@ -175,21 +175,22 @@ class PagBankServiceTest extends TestCase
         ], ['email' => 'treinador@teste.com']);
     }
 
-    public function test_create_pix_order_returns_qr_code_and_copy_paste(): void
+    public function test_create_pix_order_posts_qr_codes_and_returns_copy_paste(): void
     {
+        // Resposta real do sandbox para POST /orders com qr_codes.
         Http::fake([
             '*/orders' => Http::response([
                 'id' => 'ORDE_PIX',
                 'reference_id' => 'sub-1',
-                'charges' => [[
-                    'id' => 'CHAR_PIX',
-                    'status' => 'WAITING',
-                    'qr_code' => ['id' => 'QRCO_1', 'text' => '0002010102122658...'],
+                'qr_codes' => [[
+                    'id' => 'QRCO_1',
+                    'text' => '0002010102122658...',
                     'links' => [
-                        ['rel' => 'SELF', 'href' => 'https://sandbox.api.pagseguro.com/charges/CHAR_PIX'],
-                        ['rel' => 'QRCODE.PNG', 'href' => 'https://api.pagseguro.com/qrcode/QRCO_1/png'],
+                        ['rel' => 'QRCODE.PNG', 'href' => 'https://sandbox.api.pagseguro.com/qrcode/QRCO_1/png'],
+                        ['rel' => 'QRCODE.BASE64', 'href' => 'https://sandbox.api.pagseguro.com/qrcode/QRCO_1/base64'],
                     ],
                 ]],
+                'links' => [['rel' => 'SELF', 'href' => 'https://sandbox.api.pagseguro.com/orders/ORDE_PIX']],
             ], 201),
         ]);
 
@@ -199,30 +200,35 @@ class PagBankServiceTest extends TestCase
         ]);
 
         Http::assertSent(function (Request $request) {
-            $charge = $request['charges'][0];
+            $qrCode = $request['qr_codes'][0];
 
-            return $charge['payment_method']['type'] === 'PIX'
-                && $charge['amount']['value'] === 9990
-                && $charge['amount']['currency'] === 'BRL'
-                && isset($charge['payment_method']['pix']['expiration_date']);
+            return $request->url() === 'https://sandbox.api.pagseguro.com/orders'
+                && $request['reference_id'] === 'sub-1'
+                && $qrCode['amount']['value'] === 9990 // centavos
+                && isset($qrCode['expiration_date'])
+                // Regressão: `charges[].payment_method.pix` exige chave Pix na
+                // conta e responde 40010 PIX_KEY_NOT_FOUND.
+                && ! isset($request['charges']);
         });
 
         $this->assertSame('pending', $order['status']);
         $this->assertSame('0002010102122658...', $order['qr_code_text']);
-        $this->assertSame('https://api.pagseguro.com/qrcode/QRCO_1/png', $order['qr_code_image']);
+        $this->assertSame('https://sandbox.api.pagseguro.com/qrcode/QRCO_1/png', $order['qr_code_image']);
     }
 
-    public function test_pix_order_reads_legacy_qr_codes_shape(): void
+    public function test_pix_order_also_reads_the_qr_code_from_a_charge(): void
     {
-        // Formato antigo: qr_codes[] no pedido + links por media.
+        // Cobrança com o QR dentro de `charges[].qr_code` (defensivo: o pedido
+        // pago pode voltar com a cobrança, não só com o `qr_codes[]`).
         Http::fake([
             '*/orders' => Http::response([
-                'id' => 'ORDE_LEGADO',
+                'id' => 'ORDE_COBRANCA',
                 'reference_id' => 'sub-1',
-                'qr_codes' => [[
-                    'id' => 'QRCO_2',
-                    'text' => '00020126580014BR.COM...',
-                    'links' => [['media' => 'image/png', 'href' => 'https://api.pagseguro.com/qrcode/QRCO_2/png']],
+                'charges' => [[
+                    'id' => 'CHAR_PIX',
+                    'status' => 'WAITING',
+                    'qr_code' => ['id' => 'QRCO_2', 'text' => '00020126580014BR.COM...'],
+                    'links' => [['rel' => 'QRCODE.PNG', 'href' => 'https://sandbox.api.pagseguro.com/qrcode/QRCO_2/png']],
                 ]],
             ], 201),
         ]);
@@ -230,7 +236,18 @@ class PagBankServiceTest extends TestCase
         $order = app(PagBankService::class)->createPixOrder($this->subscription(), ['email' => 'treinador@teste.com']);
 
         $this->assertSame('00020126580014BR.COM...', $order['qr_code_text']);
-        $this->assertSame('https://api.pagseguro.com/qrcode/QRCO_2/png', $order['qr_code_image']);
+        $this->assertSame('https://sandbox.api.pagseguro.com/qrcode/QRCO_2/png', $order['qr_code_image']);
+    }
+
+    public function test_pix_order_without_copy_paste_text_is_detected(): void
+    {
+        // Sem `text` não há QR para mostrar: o service devolve vazio e o
+        // SubscriptionService trata como falha (restaura e avisa).
+        Http::fake(['*/orders' => Http::response(['id' => 'ORDE_VAZIO', 'reference_id' => 'sub-1'], 201)]);
+
+        $order = app(PagBankService::class)->createPixOrder($this->subscription(), ['email' => 'treinador@teste.com']);
+
+        $this->assertSame('', $order['qr_code_text']);
     }
 
     public function test_fetch_order_normalizes_the_gateway_status(): void

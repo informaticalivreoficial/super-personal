@@ -124,6 +124,11 @@ class PagBankService
     /**
      * Cria um pedido com Pix (QR Code + copia e cola).
      *
+     * O Pix é pedido pelo array `qr_codes` no topo do pedido. O caminho
+     * `charges[].payment_method.pix` exige chave Pix cadastrada na conta e
+     * responde `40010 PIX_KEY_NOT_FOUND` — confirmado no sandbox, onde o
+     * `qr_codes` funciona (201) sem nenhuma chave cadastrada.
+     *
      * @param  array{name?: string, email?: string, tax_id?: string}  $payer
      * @return array<string, mixed> pedido normalizado (com qr_code_text/qr_code_image)
      *
@@ -131,20 +136,13 @@ class PagBankService
      */
     public function createPixOrder(Subscription $subscription, array $payer): array
     {
-        $subject = "{$subscription->externalReference()}-p1";
-
         $request = [
             'reference_id' => $subscription->externalReference(),
             'customer' => $this->customer($payer),
             'items' => [$this->item($subscription)],
-            'charges' => [[
-                'reference_id' => $subject,
-                'description' => $this->description($subscription),
-                'amount' => ['value' => $this->amountInCents($subscription), 'currency' => 'BRL'],
-                'payment_method' => [
-                    'type' => 'PIX',
-                    'pix' => ['expiration_date' => now()->addDay()->toIso8601String()],
-                ],
+            'qr_codes' => [[
+                'amount' => ['value' => $this->amountInCents($subscription)],
+                'expiration_date' => now()->addDay()->toIso8601String(),
             ]],
         ];
 
@@ -220,7 +218,8 @@ class PagBankService
     {
         $charge = $order['charges'][0] ?? [];
 
-        // Pix novo (charges[].qr_code) ou formato antigo (qr_codes[] no pedido).
+        // Pix: `qr_codes[]` no topo do pedido (a resposta do pedido pago também
+        // pode trazer a cobrança em `charges[].qr_code`).
         $qrCode = $charge['qr_code'] ?? ($order['qr_codes'][0] ?? []);
         $rawStatus = (string) ($charge['status'] ?? $order['status'] ?? '');
 
@@ -237,18 +236,14 @@ class PagBankService
         ];
     }
 
-    /** URL da imagem do QR Code (cobrança nova ou formato antigo). */
+    /** URL da imagem do QR Code (nos links da cobrança ou do próprio `qr_codes[]`). */
     private function qrCodeImage(array $charge, array $qrCode): string
     {
-        foreach ($charge['links'] ?? [] as $link) {
-            if (($link['rel'] ?? '') === 'QRCODE.PNG') {
-                return (string) $link['href'];
-            }
-        }
+        $links = array_merge($charge['links'] ?? [], $qrCode['links'] ?? []);
 
-        foreach ($qrCode['links'] ?? [] as $link) {
-            if (($link['media'] ?? '') === 'image/png') {
-                return (string) $link['href'];
+        foreach ($links as $link) {
+            if (($link['rel'] ?? '') === 'QRCODE.PNG' || ($link['media'] ?? '') === 'image/png') {
+                return (string) ($link['href'] ?? '');
             }
         }
 

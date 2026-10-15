@@ -282,11 +282,16 @@ sports ──1:N── training_sessions (restrict)
     do emissor, cartão inválido, + fallback por texto). Validado por
     `PayWithCardRequest` (`encrypted`, `holder`, `installments` 1–12, `cpf`
     com 11 dígitos).
-  - **Fluxo checkout transparente — Pix**: `payWithPix()` cria o pedido com
-    `payment_method.type = PIX` e a resposta traz `charges[].qr_code.text`
-    (copia e cola) + a imagem do QR (`QRCODE.PNG`); o modal mostra a imagem,
-    o textarea com o código e o botão "Copiar código Pix". A assinatura fica
-    PENDING até a confirmação.
+  - **Fluxo checkout transparente — Pix**: `payWithPix()` cria o pedido com o
+    array **`qr_codes[]`** no topo (`amount.value` em centavos +
+    `expiration_date`); a resposta (201) traz `qr_codes[].text` (copia e cola) e
+    os links `QRCODE.PNG`/`QRCODE.BASE64`. O caminho
+    `charges[].payment_method.pix` **não** é usado: ele exige chave Pix
+    cadastrada na conta e responde `40010 PIX_KEY_NOT_FOUND` (confirmado no
+    sandbox). O modal desenha o QR **localmente em SVG** com `simple-qrcode` a
+    partir do copia e cola (nada do parceiro é carregado na página), mostra o
+    textarea e o botão "Copiar código Pix". A assinatura fica PENDING até a
+    confirmação.
   - **Webhook** público `GET|POST /webhooks/pagbank`
     (`Webhooks\PagBankWebhookController`, isento de CSRF): o corpo da
     notificação **não é fonte de verdade** — o controller extrai o id do
@@ -331,9 +336,9 @@ sports ──1:N── training_sessions (restrict)
   - **Ambiente**: em dev (`PAGBANK_SANDBOX=true`, `APP_URL` HTTP) o pedido é
     criado sem `notification_urls` (o gateway exige HTTPS) — por isso o
     botão de conferência manual; `PAGBANK_WEBHOOK_URL` define a URL de
-    produção. A conta sandbox precisa de **chave Pix cadastrada** para o
-    fluxo Pix funcionar (o gateway responde `40010 PIX_KEY_NOT_FOUND` sem
-    ela).
+    produção. O Pix **não** exige chave Pix cadastrada na conta (o pedido com
+    `qr_codes[]` é criado normalmente no sandbox; validado com o token de
+    teste).
   - **Refino anterior mantido**: link "Minha assinatura" no sidebar só
     para `isTeacher()`; admin continua ajustando manualmente no
     `ProfessorForm` (inclusive voltando para trial/cancelada).
@@ -520,18 +525,19 @@ sports ──1:N── training_sessions (restrict)
     QR Code, `checkPayment` confirmando/aguardando, gateway indisponível
     (nada é gravado, erro amigável), `cancelPayment`, assinatura cancelada,
     admin bloqueado (403), guest, sidebar.
-  - **Services** (`tests/Feature/Services`): `PagBankServiceTest` (12) —
+  - **Services** (`tests/Feature/Services`): `PagBankServiceTest` (13) —
     `isConfigured`, chave pública (env, `GET /public-keys/card` + cache,
     `null` em falha), payload de cartão (centavos, parcelas, `tax_id`,
     `notification_urls` só com HTTPS), erro 400 → `RuntimeException`
-    neutra, pedido Pix (`qr_code.text` + link `QRCODE.PNG`), formato
-    legado `qr_codes[]`, `fetchOrder` normalizado/nulo e mapa de
-    mensagens de recusa.
+    neutra, pedido Pix pelo **`qr_codes[]`** (payload conferido + regressão
+    contra `charges[].payment_method.pix`), QR lido também de
+    `charges[].qr_code`, pedido sem copia e cola, `fetchOrder`
+    normalizado/nulo e mapa de mensagens de recusa.
   - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
     auto-preço ao trocar plano, validações (plan_id/status/amount),
     cancelamento com rastro.
-  - **Total: 329 testes / 1106 assertions** (42 API + 220 painel + 11 console
-    + 8 notificações + 36 web + 12 services).
+  - **Total: 330 testes / 1108 assertions** (42 API + 220 painel + 11 console
+    + 8 notificações + 36 web + 13 services).
   - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
     ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,
     `DECLINED` com PENDING → past_due, `DECLINED` não derruba assinatura
