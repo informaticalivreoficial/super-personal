@@ -422,22 +422,32 @@ class MySubscriptionTest extends TestCase
 
     public function test_pay_with_pix_shows_qr_code_and_waits_payment(): void
     {
-        $this->fakeGateway([
-            'createPixOrder' => [
-                'id' => 'ORDE_PIX',
-                'reference_id' => 'sub-1',
-                'status' => 'pending',
-                'gateway_status' => 'WAITING',
-                'charge_id' => 'CHAR_PIX',
-                'code' => '',
-                'message' => '',
-                'qr_code_text' => '0002010102122658BR.COM.PAGBANK...',
-                'qr_code_image' => 'https://api.pagseguro.com/qrcode/QRCO_1/png',
-            ],
-        ]);
-
         $plan = SaasPlan::factory()->create(['price_quarterly' => 134.70]);
         $teacher = Teacher::factory()->create();
+        // CPF do cadastro (mascarado) → vai como `customer.tax_id` só com dígitos:
+        // o gateway recusa o Pix sem a identificação do pagador (40001).
+        $teacher->user->update(['cpf' => '123.456.789-00']);
+
+        $this->fakeGateway([
+            'createPixOrder' => function (Subscription $subscription, array $payer) use ($teacher) {
+                $this->assertSame('12345678900', $payer['tax_id']);
+                $this->assertSame($teacher->user->email, $payer['email']);
+                $this->assertSame(134.70, (float) $subscription->amount);
+                $this->assertSame('sub-'.$subscription->id, $subscription->externalReference());
+
+                return [
+                    'id' => 'ORDE_PIX',
+                    'reference_id' => $subscription->externalReference(),
+                    'status' => 'pending',
+                    'gateway_status' => 'WAITING',
+                    'charge_id' => 'CHAR_PIX',
+                    'code' => '',
+                    'message' => '',
+                    'qr_code_text' => '0002010102122658BR.COM.PAGBANK...',
+                    'qr_code_image' => 'https://api.pagseguro.com/qrcode/QRCO_1/png',
+                ];
+            },
+        ]);
 
         $this->actingAs($teacher->user);
 
@@ -462,6 +472,39 @@ class MySubscriptionTest extends TestCase
         $this->assertSame(134.70, (float) $subscription->amount);
         $this->assertSame(Subscription::GATEWAY_PAGBANK, $subscription->gateway);
         $this->assertSame('ORDE_PIX', $subscription->payment_id);
+    }
+
+    /**
+     * Regressão do 40001 "customer.tax_id must not be null": sem o CPF do
+     * pagador o gateway recusa o Pix. O service falha ANTES de chamar o
+     * gateway, com mensagem útil, e nada é gravado.
+     */
+    public function test_pay_with_pix_without_payer_cpf_fails_before_the_gateway(): void
+    {
+        $this->mock(PagBankService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('isConfigured')->andReturn(true);
+            $mock->shouldReceive('publicKey')->andReturn('PUB-KEY');
+            $mock->shouldNotReceive('createPixOrder');
+        });
+
+        $plan = SaasPlan::factory()->create(['price_monthly' => 49.90]);
+        $teacher = Teacher::factory()->create();
+        // Treinador de antes do cadastro obrigatório (sem CPF no perfil).
+        $teacher->user->update(['cpf' => null]);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MySubscription::class)
+            ->call('subscribe', (string) $plan->id, 'monthly')
+            ->call('setPayMethod', 'pix')
+            ->call('payWithPix')
+            ->assertSet('pixGenerated', false)
+            // O toast recebe um array de payloads ({type, message}) como parâmetro.
+            ->assertDispatched('toast', fn ($name, $params) => $params[0]['type'] === 'error'
+                && str_contains($params[0]['message'], 'Cadastre seu CPF'));
+
+        // Nada foi gravado: o guard roda antes do PENDING.
+        $this->assertDatabaseCount('subscriptions', 0);
     }
 
     /**

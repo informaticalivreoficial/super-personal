@@ -2,21 +2,46 @@
     {{-- Cabeçalho --}}
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-            <a wire:navigate href="{{ route('admin') }}" title="Voltar"
-                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
-                <x-icon name="arrow-left" class="h-5 w-5" />
-            </a>
+            @unless ($completing)
+                <a wire:navigate href="{{ route('admin') }}" title="Voltar"
+                    class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700">
+                    <x-icon name="arrow-left" class="h-5 w-5" />
+                </a>
+            @endunless
             <div>
                 <h1 class="flex items-center gap-2 text-xl font-semibold tracking-tight text-gray-900">
                     <x-icon name="user" class="h-6 w-6 text-brand-600" />
-                    Meu perfil
+                    {{ $completing ? 'Complete seu cadastro' : 'Meu perfil' }}
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">
-                    Conta / Dados pessoais
+                    {{ $completing ? 'Primeiro acesso / Dados obrigatórios' : 'Conta / Dados pessoais' }}
                 </p>
             </div>
         </div>
     </div>
+
+    {{-- Primeiro acesso: o painel fica bloqueado até o cadastro estar completo. --}}
+    @if ($completing)
+        <div class="mb-6 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
+            <div class="flex items-start gap-3">
+                <x-icon name="information-circle" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                <div class="text-sm text-brand-800">
+                    <p class="font-semibold">Só falta completar seus dados para usar o sistema.</p>
+                    <p class="mt-1">
+                        Precisamos do seu CPF (usado na identificação do pagamento da sua
+                        assinatura) e do seu celular (seu contato com a plataforma).
+                        Os demais campos são opcionais.
+                    </p>
+                    @if (! empty($missingFields))
+                        <p class="mt-2">
+                            Faltando agora:
+                            <strong>{{ implode(' e ', $missingFields) }}</strong>.
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
 
     <form wire:submit="save" autocomplete="off" class="space-y-6">
 
@@ -123,13 +148,18 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="profile_cpf">CPF</label>
+                            <label for="profile_cpf">CPF @if ($isTeacher)<span class="text-red-600">*</span>@endif</label>
                             <input type="text" class="form-control @error('cpf') is-invalid @enderror"
                                 id="profile_cpf" wire:model="cpf" x-mask="cpf" placeholder="000.000.000-00"
                                 inputmode="numeric">
                             @error('cpf')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
+                            @if ($isTeacher)
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Usado na identificação do pagamento da assinatura.
+                                </p>
+                            @endif
                         </div>
                     </div>
 
@@ -185,7 +215,7 @@
 
                     <div class="col-md-4">
                         <div class="form-group">
-                                <label for="profile_cell_phone">Celular</label>
+                                <label for="profile_cell_phone">Celular @if ($isTeacher)<span class="text-red-600">*</span>@endif</label>
                                 <input type="text" class="form-control @error('cell_phone') is-invalid @enderror"
                                     id="profile_cell_phone" wire:model="cellPhone" x-mask="cell"
                                     placeholder="Ex.: (11) 99999-8888">
@@ -383,7 +413,8 @@
         <div class="flex items-center justify-end">
             <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="save">
                 <span wire:loading.remove wire:target="save" class="flex items-center gap-2">
-                    <x-icon name="check" class="h-4 w-4" /> Salvar alterações
+                    <x-icon name="check" class="h-4 w-4" />
+                    {{ $completing ? 'Salvar e começar a usar' : 'Salvar alterações' }}
                 </span>
                 <span wire:loading wire:target="save">
                     <x-icon name="arrow-path" class="h-4 w-4 animate-spin" />

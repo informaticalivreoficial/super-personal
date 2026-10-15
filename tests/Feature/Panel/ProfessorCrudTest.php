@@ -190,7 +190,15 @@ class ProfessorCrudTest extends TestCase
 
         $this->actingAs($teacher->user);
 
-        // resolveTenantId() > 0 → painel renderiza no próprio tenant (vazio).
+        // Primeiro acesso: sem CPF/celular o middleware `profile.complete`
+        // leva o treinador para completar o cadastro (o CPF é exigido pelo
+        // parceiro de pagamentos e o celular é o contato do tenant).
+        $this->get(route('admin'))->assertRedirect(route('profile.complete'));
+
+        // Com os dados obrigatórios preenchidos, o painel abre no próprio
+        // tenant (resolveTenantId() > 0 → painel renderiza, ainda que vazio).
+        $teacher->user->update(['cpf' => '12345678900', 'cell_phone' => '11999998888']);
+
         $this->get(route('admin'))->assertOk();
     }
 

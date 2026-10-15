@@ -23,6 +23,11 @@ trait ValidatesWithFormRequest
         // Request::create monta a FormRequest com os dados como parâmetros POST.
         $request = $requestClass::create('/', 'POST', $data);
 
+        // Contexto da aplicação dentro do Form Request: sem isso `$request->user()`
+        // vem null (as rules que dependem do usuário logado não veriam o papel dele).
+        $request->setContainer(app());
+        $request->setUserResolver(fn ($guard = null) => auth()->guard($guard)->user());
+
         $validator = Validator::make($request->all(), $request->rules(), $request->messages());
 
         if ($validator->fails()) {

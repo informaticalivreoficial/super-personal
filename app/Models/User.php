@@ -112,6 +112,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Dados obrigatórios para o treinador operar o painel.
+     *
+     * O CPF identifica o pagador junto ao parceiro de pagamentos (o gateway
+     * recusa a cobrança sem `customer.tax_id`) e o celular é o contato do
+     * tenant. Lista vazia = cadastro completo.
+     *
+     * @return array<int, string> rótulos pt-BR dos campos faltantes
+     */
+    public function missingProfileFields(): array
+    {
+        $missing = [];
+
+        if (preg_replace('/\D/', '', (string) $this->cpf) === '') {
+            $missing[] = 'CPF';
+        }
+
+        if (preg_replace('/\D/', '', (string) $this->cell_phone) === '') {
+            $missing[] = 'celular';
+        }
+
+        return $missing;
+    }
+
+    /**
      * Resolve o tenant (treinador) do usuário autenticado, com cache por requisição.
      *
      * @return ?int null = administrador da plataforma (sem filtro de tenant);

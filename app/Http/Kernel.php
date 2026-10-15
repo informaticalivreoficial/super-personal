@@ -4,6 +4,7 @@ namespace App\Http;
 
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\EncryptCookies;
+use App\Http\Middleware\EnsureProfileIsCompleted;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\PreventRequestsDuringMaintenance;
 use App\Http\Middleware\RedirectIfAuthenticated;
@@ -85,6 +86,7 @@ class Kernel extends HttpKernel
         'guest' => RedirectIfAuthenticated::class,
         'password.confirm' => RequirePassword::class,
         'precognitive' => HandlePrecognitiveRequests::class,
+        'profile.complete' => EnsureProfileIsCompleted::class,
         'role' => EnsureUserRole::class,
         'signed' => ValidateSignature::class,
         'throttle' => ThrottleRequests::class,

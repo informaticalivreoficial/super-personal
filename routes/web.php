@@ -63,7 +63,7 @@ Route::match(['get', 'post'], 'webhooks/pagbank', PagBankWebhookController::clas
  * Papéis garantidos pelo middleware `role`; tenant isolado por Policies/global scope.
  * Obs.: middleware `verified` removido — e-mail não é verificado no MVP (sem MustVerifyEmail).
  */
-Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin'], function () {
+Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete'], 'prefix' => 'admin'], function () {
 
     Route::get('/', Dashboard::class)->name('admin');
 
@@ -133,6 +133,14 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin'], 'prefix' => 'admin
     // Edição dos próprios dados da conta (nome, e-mail, telefone, senha) —
     // teacher e admin (grupo raiz já garante role:teacher,admin).
     Route::get('meu-perfil', MyProfile::class)->name('profile.show');
+
+    // *********************** Completar cadastro *********************************
+    // Primeiro acesso do treinador: enquanto CPF/celular não estiverem
+    // preenchidos o middleware `profile.complete` manda para cá. O CPF é
+    // exigido pelo parceiro de pagamentos (identificação do pagador) — sem
+    // ele o treinador não consegue assinar a plataforma (Pix/cartão).
+    // Mesmo componente do "Meu perfil", em modo obrigatório.
+    Route::get('completar-cadastro', MyProfile::class)->name('profile.complete');
 
     // *********************** Minha assinatura ***********************************
     // Visão somente leitura do treinador sobre a própria assinatura COM a

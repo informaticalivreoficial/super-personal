@@ -292,6 +292,13 @@ sports ──1:N── training_sessions (restrict)
     partir do copia e cola (nada do parceiro é carregado na página), mostra o
     textarea e o botão "Copiar código Pix". A assinatura fica PENDING até a
     confirmação.
+    - **O Pix exige o CPF do pagador** (`customer.tax_id`; sem ele o gateway
+      responde `40001 "must not be null"`). O `payer()` monta a identificação
+      podando o CPF para dígitos (preferindo o CPF digitado no cartão e, no
+      Pix, o `users.cpf` do cadastro) e `payWithPix()` **aborta antes de gerar
+      o pedido** (com mensagem pedindo o CPF em "Meu perfil") quando ele não
+      existe — nada é gravado. É o que motivou o cadastro obrigatório do
+      treinador (ver "Cadastro obrigatório do treinador").
     - **As duas abas do modal ficam SEMPRE no DOM** (`id="pay-panel-card"` /
       `id="pay-panel-pix"`, alternando só a classe `hidden` via
       `@class(['hidden' => ...])`). Trocar os blocos por `@if` fazia o morph do
@@ -376,11 +383,41 @@ sports ──1:N── training_sessions (restrict)
   `ignore(user_id)` do próprio id, data `date_format:d/m/Y`, telefones com
   regex pt-BR, UF 2 letras, senha `nullable|min:8|confirmed` — mensagens em
   pt-BR; upload do avatar (`image|max:2048`) validado no componente.
+  **Treinador**: `cpf` (11 dígitos, aceita máscara — o valor vira `tax_id` do
+  gateway) e `cell_phone` são **obrigatórios**; para o admin seguem opcionais.
 - **UX**: prefill preferindo `users.phone` com fallback para
   `teachers.phone` (admin edita o phone do tenant no `ProfessorForm`);
   senha nunca re-aparece preenchida após salvar; toast de sucesso; link
   "Meu perfil" no sidebar para teacher e admin (bloco "Conta", acima de
   "Minha página pública").
+
+### Cadastro obrigatório do treinador (primeiro acesso)
+
+- **Problema**: o parceiro de pagamentos recusa a cobrança sem a
+  identificação do pagador (`customer.tax_id` = CPF) — era o `400` `40001
+  "must not be null"` ao gerar o **Pix** (o cartão já coletava o CPF no
+  formulário). Treinador sem CPF no cadastro = assinatura impossível.
+- **Gate**: middleware **`App\Http\Middleware\EnsureProfileIsCompleted`**
+  (alias `profile.complete`, aplicado ao grupo `/admin` depois de `role`):
+  se o usuário é **treinador** e `User::missingProfileFields()` não está
+  vazio (CPF **e** celular), qualquer rota `/admin/*` redireciona para
+  `/admin/completar-cadastro`. O **admin da plataforma** (sem tenant e sem
+  cobrança própria) não é afetado, e a própria rota de completar não
+  redireciona em loop.
+- **Página** `/admin/completar-cadastro` (`profile.complete`): é o **mesmo**
+  componente `MyProfile` em modo obrigatório (`#[Locked] bool $completing`,
+  ligado pela rota / parâmetro de mount) — banner "Só falta completar seus
+  dados…" com a lista do que falta, sem botão de voltar, CTA "Salvar e
+  começar a usar" e, ao salvar, toast + redirect para `/admin`. O modo não
+  altera a validação (as regras de CPF/celular do treinador valem nas duas
+  telas) — nenhum dado é gravado sem CPF/celular.
+- **Gatilho por papel, não por rota**: qualquer conta criada em
+  `/auth/register` (auto-cadastro) ou pelo admin em `/admin/professores`
+  nasce sem CPF e cai no gate no primeiro acesso.
+- **Nota de implementação**: `ValidatesWithFormRequest` agora injeta
+  container + **user resolver** na FormRequest criada via `Request::create`
+  — antes `$request->user()` era `null` no caminho Livewire e as rules que
+  dependem do papel do usuário logado nunca entravam.
 
 ### Notificações e lembretes automáticos
 
@@ -526,12 +563,22 @@ sports ──1:N── training_sessions (restrict)
   - `StudentLimitTest` (7) — enforcement por plano (gratuito bloqueia o 11º
     aluno, ilimitado/liberado sem assinatura/cancelada não bloqueia, soft
     delete libera vaga, erro no `StudentForm`).
-  - `MySubscriptionTest` (23) — catálogo do treinador, assinar gratuito
+  - `ProfileCompletionGateTest` (11) — treinador sem CPF/celular é
+    redirecionado de qualquer rota do painel para `/admin/completar-cadastro`,
+    banner com a lista do que falta, só celular faltando também bloqueia,
+    treinador completo usa o painel, admin não é afetado, salvar manda para o
+    painel (CPF gravado só com dígitos) e sem CPF/celular não grava nada,
+    CPF inválido é rejeitado com mensagem, marcação obrigatória do treinador e
+    guest → login.
+  - `MySubscriptionTest` (24) — catálogo do treinador, assinar gratuito
     ativa na hora, plano pago abre o modal sem gravar nada (sem PENDING
     órfão), campos de cartão + aba Pix no modal, `payWithCard`
     aprovado/recusado/em análise (payload criptografado conferido),
     validação de token/parcelas/CPF, isolamento entre treinadores, Pix com
-    QR Code, **os dois painéis sempre no DOM** (regressão do `wire:ignore` +
+    QR Code (payload do Pix com `customer.tax_id` = CPF do cadastro, só
+    dígitos), **sem CPF o Pix falha antes do gateway** com mensagem útil e sem
+    gravar PENDING (regressão do `40001 must not be null`), **os dois painéis
+    sempre no DOM** (regressão do `wire:ignore` +
     morph) e **escopo Alpine do copia e cola** (regressão do `$refs`),
     `checkPayment` confirmando/aguardando, gateway indisponível
     (nada é gravado, erro amigável), `cancelPayment`, assinatura cancelada,
@@ -547,7 +594,7 @@ sports ──1:N── training_sessions (restrict)
   - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
     auto-preço ao trocar plano, validações (plan_id/status/amount),
     cancelamento com rastro.
-  - **Total: 342 testes / 1171 assertions** (42 API + 222 painel + 11 console
+  - **Total: 354 testes / 1237 assertions** (42 API + 234 painel + 11 console
     + 8 notificações + 46 web + 13 services).
   - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
     ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,

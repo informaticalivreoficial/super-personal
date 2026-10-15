@@ -102,7 +102,7 @@ class SubscriptionService
         [$subscription, $snapshot] = $this->preparePending($teacher, $plan, $period);
 
         try {
-            $order = $this->gateway->createCardOrder($subscription, $card, $this->payer($teacher));
+            $order = $this->gateway->createCardOrder($subscription, $card, $this->payer($teacher, $card['cpf'] ?? null));
         } catch (\Throwable $e) {
             $this->restoreSnapshot($subscription, $snapshot);
 
@@ -139,18 +139,28 @@ class SubscriptionService
      * QR Code (imagem + copia e cola) para exibir no próprio modal.
      * A assinatura fica PENDING até a confirmação do pagamento.
      *
+     * @param  array{cpf?: string|null}  $data  identificação do pagador (opcional)
      * @return array{status: string, order_id: string, qr_code: string, qr_image: string}
      *
      * @throws \Throwable do gateway (assinatura restaurada antes de re-lançar).
      */
-    public function payWithPix(Teacher $teacher, SaasPlan $plan, BillingPeriod $period): array
+    public function payWithPix(Teacher $teacher, SaasPlan $plan, BillingPeriod $period, array $data = []): array
     {
         $this->ensureGateway();
+
+        $payer = $this->payer($teacher, $data['cpf'] ?? null);
+
+        // O gateway exige a identificação do pagador (`customer.tax_id`) no
+        // Pix: sem CPF a resposta é 400 (40001 "must not be null"). Falha
+        // cedo, com mensagem útil, sem gravar nada.
+        if (blank($payer['tax_id'] ?? null)) {
+            throw new \RuntimeException('Cadastre seu CPF em "Meu perfil" para gerar o QR Code do Pix.');
+        }
 
         [$subscription, $snapshot] = $this->preparePending($teacher, $plan, $period);
 
         try {
-            $order = $this->gateway->createPixOrder($subscription, $this->payer($teacher));
+            $order = $this->gateway->createPixOrder($subscription, $payer);
         } catch (\Throwable $e) {
             $this->restoreSnapshot($subscription, $snapshot);
 
@@ -324,20 +334,24 @@ class SubscriptionService
 
     /**
      * Dados do pagador enviados ao gateway (nome/e-mail do dono da conta e o
-     * CPF quando cadastrado — nunca pedidos de novo no checkout).
+     * CPF). O gateway RECUSA a cobrança sem o `tax_id` (`customer.tax_id`) —
+     * o CPF informado no checkout tem prioridade sobre o cadastro, e o
+     * cadastro (garantido pelo middleware `profile.complete`) é o padrão.
      *
+     * @param  string|null  $taxId  CPF em qualquer formato (higienizado aqui)
      * @return array{name?: string, email?: string, tax_id?: string}
      */
-    private function payer(Teacher $teacher): array
+    private function payer(Teacher $teacher, ?string $taxId = null): array
     {
         $user = $teacher->user;
 
-        $taxId = $user?->cpf ? preg_replace('/\D/', '', (string) $user->cpf) : '';
+        $digits = preg_replace('/\D/', '', (string) ($taxId ?: $user?->cpf));
 
         return array_filter([
             'name' => $user?->name ?? $teacher->name,
             'email' => $user?->email,
-            'tax_id' => strlen((string) $taxId) === 11 ? $taxId : null,
+            // Só vai CPF completo (o cadastro pode ter valor legado/incompleto).
+            'tax_id' => strlen($digits) === 11 ? $digits : null,
         ], fn ($value) => filled($value));
     }
 

@@ -9,6 +9,7 @@ use App\Traits\ValidatesWithFormRequest;
 use App\Traits\WithToastr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -26,6 +27,14 @@ use Livewire\WithFileUploads;
 class MyProfile extends Component
 {
     use ValidatesWithFormRequest, WithFileUploads, WithToastr;
+
+    /**
+     * Modo "completar cadastro" (primeiro acesso obrigatório do treinador):
+     * a rota `profile.complete` monta o componente com este modo ligado.
+     * Travado: o cliente não altera (só o mount).
+     */
+    #[Locked]
+    public bool $completing = false;
 
     // Foto de perfil (string = caminho salvo; TemporaryUploadedFile = novo envio)
     public $avatar = null;
@@ -75,8 +84,15 @@ class MyProfile extends Component
 
     public string $password_confirmation = '';
 
-    public function mount(): void
+    /**
+     * @param  bool  $completing  força o modo "completar cadastro" (rota
+     *                            `profile.complete` — é o próprio painel que
+     *                            decide, pelo middleware `profile.complete`)
+     */
+    public function mount(bool $completing = false): void
     {
+        $this->completing = $completing || request()->routeIs('profile.complete');
+
         $this->syncFromUser(auth()->user());
     }
 
@@ -147,7 +163,24 @@ class MyProfile extends Component
         $this->password_confirmation = '';
         $this->syncFromUser($user->refresh());
 
+        // Primeiro acesso obrigatório: cadastro completo → entra no painel.
+        if ($this->isCompleting()) {
+            $this->toastSuccess('Cadastro completo! Agora você já pode usar o sistema.');
+
+            return $this->redirectRoute('admin');
+        }
+
         $this->toastSuccess('Seus dados foram atualizados com sucesso.');
+    }
+
+    /**
+     * Modo "completar cadastro" (rota `profile.complete`): primeiro acesso do
+     * treinador, obrigatório enquanto CPF/celular não estiverem preenchidos
+     * (middleware `profile.complete`).
+     */
+    public function isCompleting(): bool
+    {
+        return $this->completing;
     }
 
     /**
@@ -249,6 +282,9 @@ class MyProfile extends Component
 
         return view('livewire.dashboard.my-profile', [
             'isTeacher' => auth()->user()->isTeacher(),
+            'completing' => $this->isCompleting(),
+            // Campos exigidos que ainda faltam (banner do primeiro acesso).
+            'missingFields' => auth()->user()->missingProfileFields(),
             'avatarPreview' => $this->avatarPreviewUrl(),
             'hasSavedAvatar' => $hasSavedAvatar,
         ]);
