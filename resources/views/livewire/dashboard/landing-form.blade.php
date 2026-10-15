@@ -144,16 +144,23 @@
                         <div class="form-group">
                             <label for="landing_specialty">Especialidade</label>
                             <input type="text" class="form-control" id="landing_specialty"
-                                value="{{ $specialty }}" disabled>
-                            <p class="mt-1 text-xs text-gray-500">Vem do cadastro do treinador (admin).</p>
+                                wire:model="specialty" maxlength="255"
+                                placeholder="Ex.: Triathlon, Corrida de Rua, Musculação...">
+                            @error('specialty')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="landing_cref">CREF</label>
-                            <input type="text" class="form-control" id="landing_cref" value="{{ $cref }}" disabled>
-                            <p class="mt-1 text-xs text-gray-500">Vem do cadastro do treinador (admin).</p>
+                            <input type="text" class="form-control" id="landing_cref"
+                                wire:model="cref" maxlength="30"
+                                placeholder="Ex.: 123456-G/SP">
+                            @error('cref')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
                         </div>
                     </div>
 

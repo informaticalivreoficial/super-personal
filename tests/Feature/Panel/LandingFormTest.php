@@ -603,4 +603,98 @@ class LandingFormTest extends TestCase
             ->assertSee('42')
             ->assertSee('acessos');
     }
+
+    public function test_teacher_saves_specialty_and_cref(): void
+    {
+        $teacher = Teacher::factory()->create(['specialty' => null, 'cref' => null]);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('specialty', 'Triathlon')
+            ->set('cref', '123456-G/SP')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('toast');
+
+        $this->assertDatabaseHas('teachers', [
+            'id' => $teacher->id,
+            'specialty' => 'Triathlon',
+            'cref' => '123456-G/SP',
+        ]);
+    }
+
+    public function test_blank_specialty_and_cref_are_stored_as_null(): void
+    {
+        $teacher = Teacher::factory()->create([
+            'specialty' => 'Corrida',
+            'cref' => '999999-G/SP',
+        ]);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('specialty', '')
+            ->set('cref', '')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $teacher->refresh();
+        $this->assertNull($teacher->specialty);
+        $this->assertNull($teacher->cref);
+    }
+
+    public function test_specialty_and_cref_are_prefilled(): void
+    {
+        $teacher = Teacher::factory()->create([
+            'specialty' => 'Natação',
+            'cref' => '222222-G/RJ',
+        ]);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->assertSet('specialty', 'Natação')
+            ->assertSet('cref', '222222-G/RJ');
+    }
+
+    public function test_specialty_max_length_is_validated(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('specialty', str_repeat('a', 256))
+            ->call('save')
+            ->assertHasErrors(['specialty']);
+    }
+
+    public function test_cref_max_length_is_validated(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(LandingForm::class)
+            ->set('cref', str_repeat('a', 31))
+            ->call('save')
+            ->assertHasErrors(['cref']);
+    }
+
+    public function test_specialty_and_cref_fields_are_editable_in_view(): void
+    {
+        $teacher = Teacher::factory()->create([
+            'specialty' => 'Ciclismo',
+            'cref' => '333333-G/MG',
+        ]);
+
+        $this->actingAs($teacher->user);
+
+        $this->get(route('landing.mine'))
+            ->assertOk()
+            ->assertSee('wire:model="specialty"', false)
+            ->assertSee('wire:model="cref"', false)
+            ->assertDontSee('Vem do cadastro do treinador (admin).', false);
+    }
 }

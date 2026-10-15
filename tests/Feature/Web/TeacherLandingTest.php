@@ -171,7 +171,6 @@ class TeacherLandingTest extends TestCase
         $this->get(route('web.treinador', $teacher->slug))
             ->assertOk()
             ->assertSee($teacher->name)
-            ->assertSee('Corrida')
             ->assertDontSee('Falar no WhatsApp');
     }
 

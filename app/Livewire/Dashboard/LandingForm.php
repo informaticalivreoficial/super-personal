@@ -131,6 +131,8 @@ class LandingForm extends Component
             'bio' => $this->bio ?: null,
             'whatsapp' => $this->whatsapp ?: null,
             'public_profile' => $this->publicProfile,
+            'specialty' => $this->specialty ?: null,
+            'cref' => $this->cref ?: null,
             'profile_photo' => $paths['profile_photo'],
             'logo' => $paths['logo'],
             'favicon' => $paths['favicon'],

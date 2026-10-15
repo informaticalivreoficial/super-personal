@@ -75,11 +75,6 @@
 
             <div class="relative mx-auto grid max-w-6xl gap-10 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:items-center lg:pb-24 lg:pt-20">
                 <div>
-                    @if ($teacher->specialty)
-                        <p class="font-display text-sm font-semibold uppercase tracking-widest text-brand-400">
-                            {{ $teacher->specialty }}
-                        </p>
-                    @endif
 
                     <h1 class="mt-3 font-display text-5xl font-bold uppercase leading-[0.95] tracking-wide sm:text-6xl lg:text-7xl">
                         {{ $teacher->landing_title ?: $teacher->name }}

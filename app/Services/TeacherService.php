@@ -86,6 +86,8 @@ class TeacherService
         $teacher->bio = $data['bio'] ?? null;
         $teacher->whatsapp = $data['whatsapp'] ?? null;
         $teacher->public_profile = (bool) ($data['public_profile'] ?? false);
+        $teacher->specialty = ($data['specialty'] ?? '') ?: null;
+        $teacher->cref = ($data['cref'] ?? '') ?: null;
 
         // Identidade visual (caminhos finais vindos do upload do componente).
         $teacher->profile_photo = $data['profile_photo'] ?? null;

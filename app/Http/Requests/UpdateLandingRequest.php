@@ -33,6 +33,8 @@ class UpdateLandingRequest extends FormRequest
             'bio' => ['nullable', 'string', 'max:2000'],
             'whatsapp' => ['nullable', 'string', 'max:30', 'regex:/^[+0-9()\s-]+$/'],
             'public_profile' => ['boolean'],
+            'specialty' => ['nullable', 'string', 'max:255'],
+            'cref' => ['nullable', 'string', 'max:30'],
 
             // Identidade visual (caminhos finais vêm do componente após o upload)
             'profile_photo' => ['nullable', 'string', 'max:255'],
@@ -76,6 +78,8 @@ class UpdateLandingRequest extends FormRequest
             'bio.max' => 'A descrição pode ter no máximo 2000 caracteres.',
             'whatsapp.regex' => 'Informe um número de WhatsApp válido (números, espaços, parênteses e +).',
             'whatsapp.max' => 'O número de WhatsApp pode ter no máximo 30 caracteres.',
+            'specialty.max' => 'A especialidade pode ter no máximo 255 caracteres.',
+            'cref.max' => 'O CREF pode ter no máximo 30 caracteres.',
 
             'facebook.url' => 'Facebook — '.$socialUrl,
             'twitter.url' => 'Twitter/X — '.$socialUrl,
