@@ -199,7 +199,15 @@
                         </button>
                     </div>
 
-                    @if ($payMethod === 'card')
+                    {{--
+                        Os dois painéis ficam SEMPRE no DOM: a aba alterna apenas a
+                        classe de visibilidade. Trocar os blocos por @if fazia o morph do
+                        Livewire reaproveitar o <div> do cartão (mesma posição na árvore) e
+                        o `wire:ignore` preservar o DOM antigo — clicar em "Pix" mantinha o
+                        formulário do cartão na tela. Bônus: os dados digitados no cartão
+                        não se perdem ao alternar as abas.
+                    --}}
+                    <div id="pay-panel-card" @class(['hidden' => $payMethod !== 'card'])>
                         <div class="mb-4">
                             <label for="pay-cpf" class="mb-1 block text-sm font-medium text-gray-700">
                                 CPF do titular
@@ -300,7 +308,9 @@
                                 <span x-show="processing" x-cloak>Processando…</span>
                             </button>
                         </div>
-                    @else
+                    </div>
+
+                    <div id="pay-panel-pix" @class(['hidden' => $payMethod !== 'pix'])>
                         @if (! $pixGenerated)
                             <div class="text-center">
                                 <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-600/10">
@@ -317,7 +327,10 @@
                                 </button>
                             </div>
                         @else
-                            <div class="text-center">
+                            {{-- `copied` e o $refs do código vivem no mesmo escopo Alpine:
+                                 com o x-data no próprio textarea, o botão (irmão) não
+                                 enxergava o $refs e o copiar não funcionava. --}}
+                            <div class="text-center" x-data="{ copied: false }">
                                 @if ($pixQrCode)
                                     {{-- SVG gerado localmente a partir do código — o modal
                                          não carrega imagem de domínio externo. --}}
@@ -331,7 +344,7 @@
                                     (ou use o código abaixo).
                                 </p>
 
-                                <textarea readonly rows="3" x-data="{ copied: false }" x-ref="pixCode"
+                                <textarea readonly rows="3" x-ref="pixCode"
                                     class="form-control mt-3 font-mono text-xs">{{ $pixCode }}</textarea>
 
                                 <div class="mt-3 flex flex-wrap justify-center gap-2">
@@ -350,7 +363,7 @@
                                 </div>
                             </div>
                         @endif
-                    @endif
+                    </div>
                 </div>
 
                 <div class="flex justify-end border-t border-gray-100 bg-gray-50 px-5 py-3">

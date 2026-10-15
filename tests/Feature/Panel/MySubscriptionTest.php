@@ -136,6 +136,39 @@ class MySubscriptionTest extends TestCase
             ->assertSee('Gerar QR Code Pix');
     }
 
+    /**
+     * Regressão de UX: as abas trocam por CLASSE, nunca por @if.
+     *
+     * Trocar os painéis com @if fazia o morph do Livewire reaproveitar o
+     * <div> do cartão (mesma posição na árvore) e o `wire:ignore` preservar o
+     * DOM antigo — clicar em "Pix" continuava mostrando o formulário do cartão.
+     */
+    public function test_payment_modal_keeps_both_panels_in_the_dom(): void
+    {
+        $this->fakeGateway();
+
+        $plan = SaasPlan::factory()->create(['price_monthly' => 49.90]);
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        $component = Livewire::test(MySubscription::class)
+            ->call('subscribe', (string) $plan->id, 'monthly');
+
+        // Cartão visível, Pix escondido — mas os dois painéis no HTML.
+        $html = $component->html();
+        $this->assertStringContainsString('<div id="pay-panel-card" class="">', $html);
+        $this->assertStringContainsString('<div id="pay-panel-pix" class="hidden">', $html);
+        $this->assertStringContainsString('Número do cartão', $html);
+        $this->assertStringContainsString('Gerar QR Code Pix', $html);
+
+        // Aba Pix: inverte a visibilidade sem tirar o painel do cartão do DOM.
+        $html = $component->call('setPayMethod', 'pix')->html();
+        $this->assertStringContainsString('<div id="pay-panel-card" class="hidden">', $html);
+        $this->assertStringContainsString('<div id="pay-panel-pix" class="">', $html);
+        $this->assertStringContainsString('Número do cartão', $html);
+    }
+
     public function test_teacher_subscribes_to_free_plan_and_activates(): void
     {
         $free = SaasPlan::factory()->create([
@@ -429,6 +462,46 @@ class MySubscriptionTest extends TestCase
         $this->assertSame(134.70, (float) $subscription->amount);
         $this->assertSame(Subscription::GATEWAY_PAGBANK, $subscription->gateway);
         $this->assertSame('ORDE_PIX', $subscription->payment_id);
+    }
+
+    /**
+     * Regressão do "copiar código Pix": o `x-data` do estado `copied` e o
+     * `x-ref` do código precisam estar no MESMO escopo Alpine — com o x-data no
+     * próprio textarea, o botão (irmão) não enxergava o $refs.
+     */
+    public function test_pix_copy_button_shares_the_alpine_scope_with_the_code(): void
+    {
+        $this->fakeGateway([
+            'createPixOrder' => [
+                'id' => 'ORDE_PIX',
+                'reference_id' => 'sub-1',
+                'status' => 'pending',
+                'gateway_status' => 'WAITING',
+                'charge_id' => 'CHAR_PIX',
+                'code' => '',
+                'message' => '',
+                'qr_code_text' => '0002010102122658BR.COM.PAGBANK...',
+                'qr_code_image' => '',
+            ],
+        ]);
+
+        // Plano pago: plano gratuito ativaria na hora e fecharia o modal.
+        $plan = SaasPlan::factory()->create(['price_monthly' => 99.90]);
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MySubscription::class)
+            ->call('subscribe', (string) $plan->id, 'monthly')
+            ->call('setPayMethod', 'pix')
+            ->call('payWithPix')
+            ->assertSet('showPaymentForm', true)
+            ->assertSee('x-data="{ copied: false }"', false)
+            ->assertSee('x-ref="pixCode"', false)
+            ->assertSee('Copiar código Pix')
+            // O textarea não pode carregar o x-data (senão o $refs fica fora
+            // do alcance do botão, que é irmão dele).
+            ->assertDontSee('<textarea readonly rows="3" x-data', false);
     }
 
     public function test_check_payment_activates_when_gateway_confirms(): void

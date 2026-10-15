@@ -292,6 +292,15 @@ sports ──1:N── training_sessions (restrict)
     partir do copia e cola (nada do parceiro é carregado na página), mostra o
     textarea e o botão "Copiar código Pix". A assinatura fica PENDING até a
     confirmação.
+    - **As duas abas do modal ficam SEMPRE no DOM** (`id="pay-panel-card"` /
+      `id="pay-panel-pix"`, alternando só a classe `hidden` via
+      `@class(['hidden' => ...])`). Trocar os blocos por `@if` fazia o morph do
+      Livewire reaproveitar o `<div>` do cartão (mesma posição na árvore) e o
+      `wire:ignore` preservar o DOM antigo — clicar em "Pix" continuava mostrando
+      o formulário do cartão. Bônus: o cartão digitado não se perde ao alternar.
+      O `x-data="{ copied: false }"` do copia e cola fica num wrapper que contém
+      o `<textarea x-ref="pixCode">` **e** o botão (irmão): com o `x-data` no
+      próprio textarea o `$refs` ficava fora do alcance do botão.
   - **Webhook** público `GET|POST /webhooks/pagbank`
     (`Webhooks\PagBankWebhookController`, isento de CSRF): o corpo da
     notificação **não é fonte de verdade** — o controller extrai o id do
@@ -517,12 +526,14 @@ sports ──1:N── training_sessions (restrict)
   - `StudentLimitTest` (7) — enforcement por plano (gratuito bloqueia o 11º
     aluno, ilimitado/liberado sem assinatura/cancelada não bloqueia, soft
     delete libera vaga, erro no `StudentForm`).
-  - `MySubscriptionTest` (21) — catálogo do treinador, assinar gratuito
+  - `MySubscriptionTest` (23) — catálogo do treinador, assinar gratuito
     ativa na hora, plano pago abre o modal sem gravar nada (sem PENDING
     órfão), campos de cartão + aba Pix no modal, `payWithCard`
     aprovado/recusado/em análise (payload criptografado conferido),
     validação de token/parcelas/CPF, isolamento entre treinadores, Pix com
-    QR Code, `checkPayment` confirmando/aguardando, gateway indisponível
+    QR Code, **os dois painéis sempre no DOM** (regressão do `wire:ignore` +
+    morph) e **escopo Alpine do copia e cola** (regressão do `$refs`),
+    `checkPayment` confirmando/aguardando, gateway indisponível
     (nada é gravado, erro amigável), `cancelPayment`, assinatura cancelada,
     admin bloqueado (403), guest, sidebar.
   - **Services** (`tests/Feature/Services`): `PagBankServiceTest` (13) —
@@ -536,7 +547,7 @@ sports ──1:N── training_sessions (restrict)
   - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
     auto-preço ao trocar plano, validações (plan_id/status/amount),
     cancelamento com rastro.
-  - **Total: 340 testes / 1159 assertions** (42 API + 220 painel + 11 console
+  - **Total: 342 testes / 1171 assertions** (42 API + 222 painel + 11 console
     + 8 notificações + 46 web + 13 services).
   - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
     ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,
