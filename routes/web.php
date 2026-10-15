@@ -42,6 +42,13 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
      */
     Route::get('treinador/{slug}', [TeacherLandingController::class, '__invoke'])->name('treinador');
 
+    /**
+     * Páginas legais (conteúdo editável em Configurações; texto padrão no código).
+     * Linkadas no rodapé da home e no aceite do formulário de registro.
+     */
+    Route::get('termos', [SiteController::class, 'terms'])->name('terms');
+    Route::get('privacidade', [SiteController::class, 'privacy'])->name('privacy');
+
 });
 
 /**

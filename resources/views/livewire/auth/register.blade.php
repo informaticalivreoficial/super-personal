@@ -58,6 +58,17 @@
                     <x-icon name="arrow-path" class="h-4 w-4 animate-spin" />
                 </span>
             </button>
+
+            {{-- Aceite contratual: os links abrem as páginas públicas em nova aba
+                 (o formulário Livewire não é perdido no caminho). --}}
+            <p class="text-center text-xs leading-relaxed text-gray-500">
+                Ao criar sua conta você concorda com os
+                <a href="{{ route('web.terms') }}" target="_blank" rel="noopener"
+                    class="font-semibold text-brand-600 hover:text-brand-700">Termos de Uso</a>
+                e com a
+                <a href="{{ route('web.privacy') }}" target="_blank" rel="noopener"
+                    class="font-semibold text-brand-600 hover:text-brand-700">Política de Privacidade</a>.
+            </p>
         </form>
 
         <p class="mt-6 border-t border-gray-100 pt-6 text-center text-sm text-gray-500">

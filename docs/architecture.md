@@ -536,8 +536,8 @@ sports ──1:N── training_sessions (restrict)
   - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
     auto-preço ao trocar plano, validações (plan_id/status/amount),
     cancelamento com rastro.
-  - **Total: 330 testes / 1108 assertions** (42 API + 220 painel + 11 console
-    + 8 notificações + 36 web + 13 services).
+  - **Total: 340 testes / 1159 assertions** (42 API + 220 painel + 11 console
+    + 8 notificações + 46 web + 13 services).
   - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
     ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,
     `DECLINED` com PENDING → past_due, `DECLINED` não derruba assinatura
@@ -672,6 +672,47 @@ sports ──1:N── training_sessions (restrict)
 - **Testes**: `tests/Feature/Web/HomeLandingTest` (5) — guest 200 com
   CTAs/seções, links de registro/login, planos do catálogo (nomes,
   preço, "Mais popular"), seção oculta sem catálogo, head SEO + ano.
+
+## Páginas legais — Termos de Uso e Política de Privacidade (2026-10-15)
+
+- **Rotas públicas** `GET /termos` (`web.terms`) e `GET /privacidade`
+  (`web.privacy`) → `SiteController::terms()`/`privacy()` (método privado
+  `legal()` compartilhado), view standalone `web/{template}/legal.blade.php`
+  (server-rendered p/ SEO, DNA visual do site: dark `brand-950`, Barlow
+  Condensed, laranja `brand-*`) + fragmentos de **texto padrão** em
+  `web/{template}/legal/{terms,privacy}.blade.php`.
+- **Conteúdo editável pelo admin**: os campos já existentes
+  `config.terms_condicions` e `config.privacy_policy` (editor Quill em
+  Configurações) sobrescrevem o texto padrão; a "Última atualização" mostra
+  `updated_at` da Config quando há conteúdo customizado e a data atual quando
+  é o texto do código. Fallback em `template` vazio (`?: 'default'`).
+- **Conteúdo sem texto = vazio**: o editor grava `<p><br></p>`/`&nbsp;`
+  quando o campo é apenas aberto e salvo — isso é detectado
+  (`strip_tags` + `html_entity_decode` + nbsp) e cai no texto padrão, para a
+  página legal **nunca** ficar em branco.
+- **Texto padrão (rascunho versionado, revisável pelo usuário)**: Termos com
+  9 seções (aceitação, cadastro/conta, planos e pagamento pré-pago + parceiro
+  de pagamentos sem citar marca, **treinador é controlador dos dados dos
+  alunos** / plataforma é operadora, uso aceitável, propriedade intelectual,
+  disponibilidade, alterações, lei BR + contato por e-mail da Config);
+  Privacidade com 11 seções LGPD (controlador/operador, dados tratados
+  incluindo avaliações e execuções, finalidades e bases legais,
+  compartilhamento com operadores sem venda de dados, cookies essenciais,
+  retenção, direitos do titular — art. 18, segurança/multi-tenant, menores
+  com consentimento do responsável, alterações, contato).
+- **Links**: rodapé da home (`Termos`/`Privacidade`) e aviso de aceite no
+  formulário de registro ("Ao criar sua conta você concorda com os Termos de
+  Uso e a Política de Privacidade", links em nova aba para não perder o form);
+  as páginas legais têm rodapé com Início/Termos/Privacidade/Entrar.
+- **GOTCHA do Blade**: `@if` **colado a uma palavra** (`Plataforma@if (...)`)
+  não é compilado (o `\B` da diretiva exige não-fronteira) e o `@endif`
+  correspondente estoura "unexpected token endif" na view compilada —
+  sempre com espaço/quebra de linha antes das diretivas (mesma família do
+  gotcha do `@assets` em comentário JS).
+- **Testes**: `tests/Feature/Web/LegalPagesTest` (10) — guest 200 nas duas
+  páginas com o texto padrão, conteúdo das Configurações prevalecendo, fallback
+  com campo vazio/`null`, `<p><br></p>` ignorado, `template` vazio, SEO + links
+  públicos, privacidade linkando termos, rodapé da home e aviso no registro.
 
 ## Blog do site público removido (2026-10-09)
 

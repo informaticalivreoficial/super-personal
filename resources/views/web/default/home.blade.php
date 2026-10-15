@@ -543,6 +543,8 @@
                 <a href="#diferenciais" class="text-white/60 transition hover:text-brand-400">Por que</a>
                 <a href="#planos" class="text-white/60 transition hover:text-brand-400">Planos</a>
                 <a href="#faq" class="text-white/60 transition hover:text-brand-400">Dúvidas</a>
+                <a href="{{ route('web.terms') }}" class="text-white/60 transition hover:text-brand-400">Termos</a>
+                <a href="{{ route('web.privacy') }}" class="text-white/60 transition hover:text-brand-400">Privacidade</a>
                 <a href="{{ route('login') }}" class="text-white/60 transition hover:text-brand-400">Entrar</a>
             </nav>
 
