@@ -5,7 +5,7 @@
  * IMask e flatpickr já são expostos globalmente em resources/js/app.js.
  *
  * Uso nas views:
- *   x-mask="cpf|cep|phone|cell"  → máscara IMask no input (wire:model ok:
+ *   x-mask="cpf|cep|phone|cell|card|cvv" → máscara IMask no input (wire:model ok:
  *       os mutators do User limpam a formatação no save e os accessors
  *       reformatam no prefill — mesmo contrato dos campos sem máscara).
  *   x-datepicker                 → flatpickr pt-BR, d/m/Y, até hoje.
@@ -17,6 +17,8 @@ const MASK_PATTERNS = {
     cep: '00000-000',
     phone: '(00) 0000-0000',
     cell: '(00) 00000-0000',
+    card: '0000 0000 0000 0000',
+    cvv: '0000',
 };
 
 document.addEventListener('alpine:init', () => {

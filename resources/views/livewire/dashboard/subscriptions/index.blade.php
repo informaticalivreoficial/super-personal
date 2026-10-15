@@ -83,8 +83,8 @@
                                 </td>
                                 <td class="text-right">R$ {{ number_format((float) $subscription->amount, 2, ',', '.') }}</td>
                                 <td class="text-center">
-                                    <span class="badge {{ $subscription->gateway === 'mercadopago' ? 'badge-info' : 'badge-secondary' }}">
-                                        {{ $subscription->gateway === 'mercadopago' ? 'Mercado Pago' : 'Manual' }}
+                                    <span class="badge {{ $subscription->gateway === 'manual' ? 'badge-secondary' : 'badge-info' }}">
+                                        {{ $subscription->gateway === 'manual' ? 'Manual' : 'Online' }}
                                     </span>
                                 </td>
                                 <td class="text-center text-sm">

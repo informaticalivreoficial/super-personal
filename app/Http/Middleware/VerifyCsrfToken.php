@@ -12,7 +12,7 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        // Webhook do Mercado Pago não envia token CSRF (chamada server-to-server).
-        'webhooks/mercadopago',
+        // Webhook do gateway de pagamentos não envia token CSRF (server-to-server).
+        'webhooks/pagbank',
     ];
 }

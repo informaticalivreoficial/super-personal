@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Web\SiteController;
 use App\Http\Controllers\Web\TeacherLandingController;
-use App\Http\Controllers\Webhooks\MercadoPagoWebhookController;
+use App\Http\Controllers\Webhooks\PagBankWebhookController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Dashboard\Dashboard;
@@ -45,11 +45,11 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
 });
 
 /**
- * Webhook do Mercado Pago (assinaturas do SaaS) — público, fora do
- * namespace Web do site. GET cobre notificações IPN legadas.
+ * Webhook do gateway de pagamentos (assinaturas do SaaS) — público, fora do
+ * namespace Web do site. Sempre reconsulta o pedido no gateway.
  */
-Route::match(['get', 'post'], 'webhooks/mercadopago', MercadoPagoWebhookController::class)
-    ->name('webhooks.mercadopago');
+Route::match(['get', 'post'], 'webhooks/pagbank', PagBankWebhookController::class)
+    ->name('webhooks.pagbank');
 
 /*
  * Painel do SaaS (treinadores + admin da plataforma).

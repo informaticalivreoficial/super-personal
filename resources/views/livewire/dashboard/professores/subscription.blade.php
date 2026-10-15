@@ -3,8 +3,8 @@
         <div class="card-header">
             <h2 class="text-base font-semibold text-gray-900">Assinatura da plataforma</h2>
             <p class="mt-0.5 text-xs text-gray-500">
-                O admin controla plano, status e vigência. Pagamentos são confirmados pelo
-                Mercado Pago (webhook) ou manualmente aqui.
+                O admin controla plano, status e vigência. Pagamentos são confirmados
+                automaticamente ou manualmente aqui.
             </p>
         </div>
 

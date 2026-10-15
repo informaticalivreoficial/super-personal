@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Assinatura do treinador COM a plataforma SaaS.
  * Não misturar com Payment (cobrança do aluno ao treinador).
- * Gateway: manual (admin) ou mercadopago (Checkout Pro).
+ * Gateway: manual (admin) ou pagbank (checkout transparente no painel).
  */
 class Subscription extends Model
 {
@@ -20,13 +20,12 @@ class Subscription extends Model
 
     public const GATEWAY_MANUAL = 'manual';
 
-    public const GATEWAY_MERCADOPAGO = 'mercadopago';
+    public const GATEWAY_PAGBANK = 'pagbank';
 
     protected $fillable = [
         'plan_id',
         'period',
         'gateway',
-        'preference_id',
         'payment_id',
         'status',
         'amount',
@@ -68,7 +67,7 @@ class Subscription extends Model
         return $this->plan?->max_students;
     }
 
-    /** Referência enviada ao gateway (external_reference do Checkout Pro). */
+    /** Referência enviada ao gateway (`reference_id` do pedido). */
     public function externalReference(): string
     {
         return 'sub-'.$this->id;

@@ -309,7 +309,7 @@
                         Comece grátis. Cresça quando fizer sentido.
                     </h2>
                     <p class="mx-auto mt-3 max-w-xl text-white/60">
-                        Pagamento via Mercado Pago (Pix, boleto e cartão). Sem fidelidade — troque de plano a qualquer momento.
+                        Pagamento via Pix, boleto e cartão. Sem fidelidade — troque de plano a qualquer momento.
                     </p>
 
                     <div class="mt-8 inline-flex border border-white/15 p-1">
@@ -387,7 +387,7 @@
                                 @if (! $plan->isFree())
                                     <li class="flex items-start gap-2">
                                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
-                                        Pagamento via Mercado Pago
+                                        Pagamento via Pix, boleto e cartão
                                     </li>
                                 @endif
                             </ul>
@@ -476,7 +476,7 @@
                         ['q' => 'Preciso de cartão de crédito para começar?', 'a' => 'Não. O plano Gratuito é gratuito para sempre e comporta até 10 alunos ativos — sem cartão, sem trial.'],
                         ['q' => 'Meus alunos precisam instalar alguma coisa?', 'a' => 'Sim, o app SportPlan para Android. O cadastro é feito com o código de convite que você gera na ficha de cada aluno.'],
                         ['q' => 'Consigo migrar minhas planilhas do Excel?', 'a' => 'Sim — cadastre os alunos, monte os treinos com nossa biblioteca de exercícios e publique. A maioria dos professores monta o primeiro plano em minutos.'],
-                        ['q' => 'Como funciona a cobrança dos planos pagos?', 'a' => 'Você assina pelo painel e paga via Mercado Pago (Pix, boleto ou cartão). Sem fidelidade: troque de plano ou cancele falando com o suporte.'],
+                        ['q' => 'Como funciona a cobrança dos planos pagos?', 'a' => 'Você assina pelo painel e paga via Pix, boleto ou cartão. Sem fidelidade: troque de plano ou cancele falando com o suporte.'],
                         ['q' => 'Funciona para qualquer modalidade?', 'a' => 'Sim — corrida, natação, ciclismo, triathlon, musculação, emagrecimento e condicionamento. A composição das sessões é livre.'],
                         ['q' => 'O aluno paga por mim pelo sistema?', 'a' => 'O SportPlan já traz o controle dos seus pagamentos com lembretes automáticos; a cobrança dos seus alunos continua do jeito que você preferir (Pix, transferência etc.).'],
                     ];

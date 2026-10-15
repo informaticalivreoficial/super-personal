@@ -31,11 +31,21 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'mercadopago' => [
-        'access_token' => env('MP_ACCESS_TOKEN'),
-        'public_key' => env('MP_PUBLIC_KEY'),
-        'webhook_secret' => env('MP_WEBHOOK_SECRET'),
-        'webhook_url' => env('MP_WEBHOOK_URL'),
+    /*
+    | Gateway de pagamentos das assinaturas do SaaS (checkout transparente:
+    | cartão criptografado no navegador + Pix com QR Code).
+    |
+    | `public_key` é opcional: quando vazia, é buscada na conta e cacheada.
+    | `sandbox` alterna entre as bases de teste e de produção.
+    */
+    'pagbank' => [
+        'token' => env('PAGBANK_TOKEN'),
+        'public_key' => env('PAGBANK_PUBLIC_KEY'),
+        'sandbox' => env('PAGBANK_SANDBOX', true),
+        'base_url' => env('PAGBANK_SANDBOX', true)
+            ? 'https://sandbox.api.pagseguro.com'
+            : 'https://api.pagseguro.com',
+        'webhook_url' => env('PAGBANK_WEBHOOK_URL'),
     ],
 
 ];

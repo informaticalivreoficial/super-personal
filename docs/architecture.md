@@ -228,8 +228,9 @@ sports ──1:N── training_sessions (restrict)
   - **Fix**: a tela legada de usuários (`Users\Form::create/update`) chama
     `ensureProfile` quando o papel é `teacher` — antes o treinador criado
     ali ficava sem tenant e o painel dele ficava vazio.
-- **Assinaturas do treinador (billing da plataforma) — com Mercado Pago**
-  (evolução de 2026-10-13; antes era só billing manual):
+- **Assinaturas do treinador (billing da plataforma) — checkout transparente
+  PagBank** (evolução de 2026-10-13; gateway trocado de Mercado Pago para
+  **PagBank** em 2026-10-15; antes disso era só billing manual):
   - **Catálogo `saas_plans`** (global, admin-only): `name/slug/description`,
     `max_students` (**null = ilimitado**), preços por período
     (`price_monthly/quarterly/annual`), `active`, `sort_order`.
@@ -243,32 +244,69 @@ sports ──1:N── training_sessions (restrict)
     assinaturas vinculadas, `SaasPlanPolicy`, `SaasPlanRequest`).
   - **`subscriptions` expandida**: `plan_id` (FK `saas_plans`,
     nullOnDelete — coluna legada `plan` string removida), `period`
-    (`BillingPeriod`), `gateway` (`manual|mercadopago`), `preference_id`,
-    `payment_id`; novo status **`PENDING`** ("Aguardando pagamento") no
-    enum `SubscriptionStatus`; helper `externalReference()` = `sub-{id}`,
-    `isCurrentlyActive()` e `maxStudents()`.
-  - **Fluxo Mercado Pago (Checkout Pro)**: pacote oficial
-    `mercadopago/dx-php` + `MercadoPagoService` (config em
-    `services.mercadopago` a partir de `MP_ACCESS_TOKEN/MP_PUBLIC_KEY/
-    MP_WEBHOOK_SECRET/MP_WEBHOOK_URL` no `.env`): cria preferência
-    (items, back_urls em `/admin/assinatura`, notification_url, metadata)
-    e retorna `sandbox_init_point`; `fetchPayment()` normaliza o pagamento;
-    validação HMAC-SHA256 da assinatura `x-signature`
-    (`ts=...,v1=...` com manifest `id:...;request-id:...;ts:...;` — sem
-    secret configurado aceita, p/ dev).
-  - **Webhook** público `GET|POST /webhooks/mercadopago`
-    (`Webhooks\MercadoPagoWebhookController`, isento de CSRF): pagamento
-    `approved` → `SubscriptionService::activateFromPayment` (status
-    ACTIVE, `payment_id`, `ends_at` = hoje + meses do período via
-    `addMonthsNoOverflow`); `rejected/cancelled/refunded/chargeback` →
-    PAST_DUE; `pending/in_process` espera o próximo evento; referência
-    externa desconhecida é ignorada (200).
-  - **`SubscriptionService`** ganhou: `assignFreePlan(Teacher)`
+    (`BillingPeriod`), `gateway` (`manual|pagbank`), `payment_id`
+    (id do pedido no gateway; a coluna `preference_id` do gateway anterior
+    foi **removida** na migration `2026_10_15_100001`); novo status
+    **`PENDING`** ("Aguardando pagamento") no enum `SubscriptionStatus`;
+    helper `externalReference()` = `sub-{id}` (usado no `reference_id` do
+    pedido), `isCurrentlyActive()` e `maxStudents()`.
+  - **`PagBankService`** (config `services.pagbank` ←
+    `PAGBANK_TOKEN/PAGBANK_PUBLIC_KEY/PAGBANK_SANDBOX/PAGBANK_WEBHOOK_URL`):
+    cliente HTTP (`Http::baseUrl` + `withToken`, timeout 20) contra
+    `https://sandbox.api.pagseguro.com` ou `https://api.pagseguro.com`;
+    **valores em centavos**; `isConfigured()`, `publicKey()` (usa a env quando
+    definida, senão busca em `GET /public-keys/card` e guarda em cache por
+    12 h), `createCardOrder()`, `createPixOrder()`, `fetchOrder()`,
+    `rejectionMessage()` e `normalizeOrder()` (id, `reference_id`, status do
+    gateway, `charge_id`, `code`/`message`, `qr_code_text`/`qr_code_image`).
+    Erros do gateway são logados com o detalhe técnico e re-lançados como
+    `RuntimeException` **neutra** (nada de marca do parceiro no texto que o
+    cliente vê).
+  - **Fluxo checkout transparente — cartão** (o usuário **nunca sai do
+    painel**): a página `/admin/assinatura` renderiza um modal com o form de
+    cartão (`resources/js/payment-card.js`, componente Alpine
+    `x-data="cardPayment({ publicKey, amount, cpfId })"`) — o SDK de
+    criptografia é carregado sob demanda (`ensureSdk()` com dedupe, timeout
+    de 15 s) e `PagSeguro.encryptCard()` gera o `encryptedCard` **no
+    navegador** (número/validade/CVV nunca são enviados em claro). O CPF do
+    titular fica num campo próprio (fora do `wire:ignore`, com `x-mask`);
+    o submit chama `$wire.call('payWithCard', { encrypted, holder,
+    installments, cpf })`.
+  - **Pagamento flui** por `SubscriptionService` (caminho único de escrita):
+    `payWithCard(Teacher, SaasPlan, BillingPeriod, array $card)` aplica
+    plano/período/PENDING **antes** da chamada ao gateway guardando um
+    **snapshot** (`getAttributes()`) — `PAID` → ativa; `WAITING`/
+    `IN_ANALYSIS` → grava `payment_id` e espera o webhook; recusa/erro →
+    `restoreSnapshot()` (quem tinha plano vigente não perde nada) e mensagem
+    pt-BR de `rejectionMessage()` (mapa por código: saldo, antifraude, razão
+    do emissor, cartão inválido, + fallback por texto). Validado por
+    `PayWithCardRequest` (`encrypted`, `holder`, `installments` 1–12, `cpf`
+    com 11 dígitos).
+  - **Fluxo checkout transparente — Pix**: `payWithPix()` cria o pedido com
+    `payment_method.type = PIX` e a resposta traz `charges[].qr_code.text`
+    (copia e cola) + a imagem do QR (`QRCODE.PNG`); o modal mostra a imagem,
+    o textarea com o código e o botão "Copiar código Pix". A assinatura fica
+    PENDING até a confirmação.
+  - **Webhook** público `GET|POST /webhooks/pagbank`
+    (`Webhooks\PagBankWebhookController`, isento de CSRF): o corpo da
+    notificação **não é fonte de verdade** — o controller extrai o id do
+    pedido (ou o `reference_id`) e **reconsulta** `GET /orders/{id}` via
+    `SubscriptionService::syncFromOrder()`. Sem id/referência identificável a
+    notificação é apenas ignorada (200). A validação por assinatura de
+    payload foi descartada de propósito (o PagBank não envia o corpo
+    assinado de forma documentada para este fluxo) — documento em
+    `docs/architecture.md`/controller.
+  - **`applyOrder()`** (aplicação de estado, idempotente e conservadora):
+    `PAID` → ativa (`ends_at` = hoje + meses do período via
+    `addMonthsNoOverflow`); `DECLINED` só marca PAST_DUE se a assinatura
+    estiver **PENDING**; `REFUNDED`/`IN_DISPUTE`/`CANCELED` só marcam
+    PAST_DUE se a assinatura estiver ACTIVE **e** o `payment_id` for o do
+    pedido do evento (evita falso past_due em assinatura restaurada).
+  - **`SubscriptionService`** também tem: `assignFreePlan(Teacher)`
     (idempotente, sem downgrades — chamado no `TeacherService::store` e no
-    `Register`: **todo novo treinador nasce no plano gratuito**);
-    `subscribe(Teacher, SaasPlan, BillingPeriod)` (gratuito ativa na hora
-    sem gateway; pago grava PENDING + preferência e retorna a URL de
-    checkout).
+    `Register`: **todo novo treinador nasce no plano gratuito**) e
+    `activateFreePlan()/subscribe()` (plano gratuito ativa na hora, sem
+    gateway).
   - **Enforcement de alunos**: `StudentService::store` bloqueia com
     `ValidationException` quando a assinatura **vigente**
     (`isCurrentlyActive()`) tem limite definido e o tenant já atingiu
@@ -276,16 +314,26 @@ sports ──1:N── training_sessions (restrict)
     upgrade é sugerido na própria mensagem ("Minha assinatura").
   - **Admin**: índice `/admin/assinaturas`
     (`Subscriptions\SubscriptionIndex`: busca por treinador/e-mail, filtro
-    de status, badges, gateway, vigência, link "Gerenciar" →
-    `professors.edit`); card `ProfessorSubscription` com **dropdown do
-    catálogo** + período + auto-preço do plano ao trocar plano/período;
-    sidebar "Plataforma" com "Assinaturas" e "Planos do SaaS".
+    de status, badges, gateway — "Manual"/"Online" (sem expor a marca do
+    parceiro) —, vigência, link "Gerenciar" → `professors.edit`); card
+    `ProfessorSubscription` com **dropdown do catálogo** + período +
+    auto-preço do plano ao trocar plano/período; sidebar "Plataforma" com
+    "Assinaturas" e "Planos do SaaS".
   - **Treinador — self-service** (`/admin/assinatura`, `role:teacher`):
     card da assinatura atual (plano, período, valor, vigência, nota
     "Aguardando pagamento" quando PENDING) + **catálogo de planos ativos**
     em cards com botões Mensal/Trimestral/Anual (gratuito = "Usar plano
-    gratuito", ativa na hora) — `MySubscription::subscribe` redireciona
-    para o checkout do Mercado Pago quando configurado.
+    gratuito", ativa na hora) — plano pago abre o **modal de checkout**
+    (`MySubscription::subscribe` → `openPaymentForm` → abas Cartão/Pix) e
+    `payWithCard`/`payWithPix` finalizam; o botão "Já efetuei o pagamento"
+    (`checkPayment`) reconsulta o pedido quando o webhook não chega
+    (ambiente local sem URL pública). O cliente **nunca** sai do painel.
+  - **Ambiente**: em dev (`PAGBANK_SANDBOX=true`, `APP_URL` HTTP) o pedido é
+    criado sem `notification_urls` (o gateway exige HTTPS) — por isso o
+    botão de conferência manual; `PAGBANK_WEBHOOK_URL` define a URL de
+    produção. A conta sandbox precisa de **chave Pix cadastrada** para o
+    fluxo Pix funcionar (o gateway responde `40010 PIX_KEY_NOT_FOUND` sem
+    ela).
   - **Refino anterior mantido**: link "Minha assinatura" no sidebar só
     para `isTeacher()`; admin continua ajustando manualmente no
     `ProfessorForm` (inclusive voltando para trial/cancelada).
@@ -464,18 +512,33 @@ sports ──1:N── training_sessions (restrict)
   - `StudentLimitTest` (7) — enforcement por plano (gratuito bloqueia o 11º
     aluno, ilimitado/liberado sem assinatura/cancelada não bloqueia, soft
     delete libera vaga, erro no `StudentForm`).
-  - `MercadoPagoWebhookTest` (9) — `approved` ativa (mensal/anual +12
-    meses), `rejected` → past_due, `pending` mantém, referência externa
-    ignorada, sem id aceito, assinatura inválida 403, manifest HMAC
-    correto/errado, IPN via GET.
-  - `MySubscriptionTest` (10) — catálogo do treinador, assinar gratuito
-    ativa na hora, pago redireciona para o checkout (mock do
-    `MercadoPagoService`), pendente/cancelada, isolamento, sidebar.
+  - `MySubscriptionTest` (21) — catálogo do treinador, assinar gratuito
+    ativa na hora, plano pago abre o modal sem gravar nada (sem PENDING
+    órfão), campos de cartão + aba Pix no modal, `payWithCard`
+    aprovado/recusado/em análise (payload criptografado conferido),
+    validação de token/parcelas/CPF, isolamento entre treinadores, Pix com
+    QR Code, `checkPayment` confirmando/aguardando, gateway indisponível
+    (nada é gravado, erro amigável), `cancelPayment`, assinatura cancelada,
+    admin bloqueado (403), guest, sidebar.
+  - **Services** (`tests/Feature/Services`): `PagBankServiceTest` (12) —
+    `isConfigured`, chave pública (env, `GET /public-keys/card` + cache,
+    `null` em falha), payload de cartão (centavos, parcelas, `tax_id`,
+    `notification_urls` só com HTTPS), erro 400 → `RuntimeException`
+    neutra, pedido Pix (`qr_code.text` + link `QRCODE.PNG`), formato
+    legado `qr_codes[]`, `fetchOrder` normalizado/nulo e mapa de
+    mensagens de recusa.
   - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
     auto-preço ao trocar plano, validações (plan_id/status/amount),
     cancelamento com rastro.
-  - **Total: 288 testes / 938 assertions** (33 API + 200 painel + 11 console
-    + 8 notificações + 34 web).
+  - **Total: 329 testes / 1106 assertions** (42 API + 220 painel + 11 console
+    + 8 notificações + 36 web + 12 services).
+  - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
+    ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,
+    `DECLINED` com PENDING → past_due, `DECLINED` não derruba assinatura
+    vigente, `REFUNDED` de pedido pago → past_due, notificação só com
+    `reference_id` usa o `payment_id` guardado, referência desconhecida é
+    ignorada, sem identificação não consulta o gateway (200), GET aceito e
+    rota isenta de CSRF.
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter

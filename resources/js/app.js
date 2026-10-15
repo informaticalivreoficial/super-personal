@@ -18,3 +18,7 @@ import './via-cep';
 // Máscaras (IMask), datepicker (flatpickr) e força de senha — x-mask,
 // x-datepicker e x-data="passwordField".
 import './masks';
+
+// Checkout transparente: criptografia do cartão no navegador —
+// x-data="cardPayment({ publicKey, amount, cpfId })".
+import './payment-card';
