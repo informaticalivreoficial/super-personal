@@ -10,7 +10,7 @@
          destoaria do avatar abaixo). No modo mini não cabe: vira raio. --}}
     @if (! empty($config->logo_admin))
         <a href="{{ route('admin') }}" wire:navigate title="Painel de Controle"
-            class="flex shrink-0 items-center justify-center gap-2 border-b border-white/10 bg-[#F7F4F2] px-4 py-4 transition hover:bg-[#EFE9E6]">
+            class="flex shrink-0 items-center justify-center gap-2 border-b border-white/10 bg-[#F7F4F2] px-3 py-3 transition hover:bg-[#EFE9E6]">
             <img src="{{ $config->getlogoadmin() }}" alt="{{ $config->app_name ?? config('app.name') }}"
                 class="h-9 w-auto"
                 :class="$store.nav.mini ? 'lg:hidden' : ''" />
