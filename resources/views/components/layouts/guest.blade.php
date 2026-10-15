@@ -7,7 +7,7 @@
 
     <title>{{ $title ?? 'Acesso' }} | {{ config('app.name', 'SportPlan') }}</title>
 
-    <link rel="icon" href="{{ asset('images/chave.png') }}" type="image/x-icon">
+    <link rel="icon" href="{{ $config->favicon ? $config->getfaveicon() : asset('images/chave.png') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 

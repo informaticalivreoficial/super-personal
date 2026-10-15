@@ -8,7 +8,8 @@
 
     <title>{{ $title ?? 'Painel' }} | {{ config('app.name', 'SportPlan') }}</title>
 
-    <link rel="icon" href="{{ asset('images/chave.png') }}" type="image/x-icon">
+    {{-- Favicon da plataforma (Configurações) com fallback da marca --}}
+    <link rel="icon" href="{{ $config->favicon ? $config->getfaveicon() : asset('images/chave.png') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 

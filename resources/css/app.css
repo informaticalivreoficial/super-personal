@@ -702,3 +702,16 @@
 .flatpickr-current-month .flatpickr-monthDropdown-months {
     background: transparent;
 }
+
+@layer utilities {
+    /* Rola sem exibir a barra (sidebar do painel): a página tem só uma
+       barra de rolagem visível; o menu ainda rola pelo mouse-wheel. */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+}

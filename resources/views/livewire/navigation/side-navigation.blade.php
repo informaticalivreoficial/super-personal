@@ -5,16 +5,30 @@
         $store.nav.mobile ? 'translate-x-0' : '-translate-x-full',
     ]">
 
-    {{-- Marca --}}
-    <a href="{{ route('admin') }}" wire:navigate
-        class="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-4">
-        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
-            <x-icon name="bolt" class="h-5 w-5" />
-        </span>
-        <span class="truncate text-sm font-semibold tracking-tight text-white" :class="$store.nav.mini ? 'lg:hidden' : ''">
-            {{ $config->app_name ?? config('app.name') }}
-        </span>
-    </a>
+    {{-- Logomarca (Configurações → logo_admin) em placa clara — centralizada
+         horizontalmente (a imagem tem margem interna; alinhar à esquerda
+         destoaria do avatar abaixo). No modo mini não cabe: vira raio. --}}
+    @if (! empty($config->logo_admin))
+        <a href="{{ route('admin') }}" wire:navigate title="Painel de Controle"
+            class="flex shrink-0 items-center justify-center gap-2 border-b border-white/10 bg-[#F7F4F2] px-4 py-4 transition hover:bg-[#EFE9E6]">
+            <img src="{{ $config->getlogoadmin() }}" alt="{{ $config->app_name ?? config('app.name') }}"
+                class="h-9 w-auto"
+                :class="$store.nav.mini ? 'lg:hidden' : ''" />
+            {{-- Modo mini: a logo não cabe (95px na coluna de 80px) → favicon da
+                 marca; sem favicon configurado, cai no raio laranja. --}}
+            <span class="hidden items-center justify-center"
+                :class="$store.nav.mini ? 'lg:flex' : ''">
+                @if (! empty($config->favicon))
+                    <img src="{{ $config->getfaveicon() }}" alt="{{ $config->app_name ?? config('app.name') }}"
+                        class="h-8 w-8" />
+                @else
+                    <span class="flex h-8 w-8 items-center justify-center bg-brand-400 text-brand-950">
+                        <x-icon name="bolt" class="h-4 w-4" />
+                    </span>
+                @endif
+            </span>
+        </a>
+    @endif
 
     {{-- Usuário --}}
     <div class="flex items-center gap-3 border-b border-white/10 px-4 py-4">
@@ -31,7 +45,7 @@
     </div>
 
     {{-- Menu --}}
-    <nav class="flex-1 overflow-y-auto px-3 py-4">
+    <nav class="scrollbar-hide flex-1 overflow-y-auto px-3 py-4 pb-10">
         <ul class="space-y-1">
             <li>
                 <a href="{{ route('admin') }}" wire:navigate

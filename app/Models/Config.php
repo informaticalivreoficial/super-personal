@@ -63,23 +63,28 @@ class Config extends Model
 
     /**
      * Accerssors and Mutators
+     *
+     * Imagens de configuração salvas pela tela Configurações vão para o
+     * disco `public` (`storage/app/public/config/...`, servidas via
+     * symlink `/storage`). Antes alguns acessores checavam o disco `local`
+     * (raiz `storage/app`) e sempre caían no fallback — corrigido em 2026-10-14.
      */
     public function getmetaimg()
     {
-        if (empty($this->metaimg) || ! Storage::disk()->exists($this->metaimg)) {
+        if (empty($this->metaimg) || ! Storage::disk('public')->exists($this->metaimg)) {
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->metaimg);
+        return Storage::disk('public')->url($this->metaimg);
     }
 
     public function getlogo()
     {
-        if (empty($this->logo) || ! Storage::disk()->exists($this->logo)) {
+        if (empty($this->logo) || ! Storage::disk('public')->exists($this->logo)) {
             return asset('images/image.jpg');
         }
 
-        return Storage::url($this->logo);
+        return Storage::disk('public')->url($this->logo);
     }
 
     public function getlogoadmin()
@@ -88,43 +93,43 @@ class Config extends Model
             return asset('images/image.jpg');
         }
 
-        return Storage::url($this->logo_admin);
+        return Storage::disk('public')->url($this->logo_admin);
     }
 
     public function getfaveicon()
     {
-        if (empty($this->favicon) || ! Storage::disk()->exists($this->favicon)) {
+        if (empty($this->favicon) || ! Storage::disk('public')->exists($this->favicon)) {
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->favicon);
+        return Storage::disk('public')->url($this->favicon);
     }
 
     public function getwatermark()
     {
-        if (empty($this->watermark) || ! Storage::disk()->exists($this->watermark)) {
+        if (empty($this->watermark) || ! Storage::disk('public')->exists($this->watermark)) {
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->watermark);
+        return Storage::disk('public')->url($this->watermark);
     }
 
     public function getheadersite()
     {
-        if (empty($this->imgheader) || ! Storage::disk()->exists($this->imgheader)) {
+        if (empty($this->imgheader) || ! Storage::disk('public')->exists($this->imgheader)) {
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->imgheader);
+        return Storage::disk('public')->url($this->imgheader);
     }
 
     public function getlogofooter()
     {
-        if (empty($this->logo_footer) || ! Storage::disk()->exists($this->logo_footer)) {
+        if (empty($this->logo_footer) || ! Storage::disk('public')->exists($this->logo_footer)) {
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->logo_footer);
+        return Storage::disk('public')->url($this->logo_footer);
     }
 
     public function setZipcodeAttribute($value)
