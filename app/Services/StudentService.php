@@ -78,10 +78,22 @@ class StudentService
 
     public function update(Student $student, array $data): Student
     {
-        $student->fill($data);
-        $student->save();
+        return DB::transaction(function () use ($student, $data) {
+            $student->fill($data);
+            $student->save();
 
-        return $student;
+            // O nome do aluno é o mesmo no login (`users.name`): sem esta
+            // sincronização a home do app seguiria mostrando o nome antigo (a
+            // tela lê a sessão autenticada, não o cadastro do aluno).
+            // O e-mail NÃO segue por aqui de propósito: ele muda apenas pelo
+            // fluxo com código de confirmação (ProfileService).
+            if (array_key_exists('name', $data) && $student->user !== null) {
+                $student->user->name = $data['name'];
+                $student->user->save();
+            }
+
+            return $student;
+        });
     }
 
     /**

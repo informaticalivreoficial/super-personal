@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../auth/auth_controller.dart';
 import 'models/dashboard.dart';
 import 'models/notification.dart';
 import 'models/payment.dart';
@@ -197,6 +198,9 @@ class ProfileController extends AsyncNotifier<StudentProfile> {
     final updated =
         await ref.read(studentRepositoryProvider).updateProfile(data);
     state = AsyncValue.data(updated);
+    // Nome do aluno também vive na conta (`users.name`): a home lê a sessão.
+    await ref.read(authControllerProvider.notifier).reload();
+
     return updated;
   }
 
@@ -215,4 +219,33 @@ class ProfileController extends AsyncNotifier<StudentProfile> {
     state = AsyncValue.data(updated);
     return updated;
   }
+
+  /// Pede a troca do e-mail de acesso (código vai para o endereço novo).
+  Future<String> requestEmailChange(String email) =>
+      ref.read(studentRepositoryProvider).requestEmailChange(email);
+
+  /// Confirma o código, efetiva o e-mail e recarrega a sessão (a home mostra
+  /// o endereço novo).
+  Future<void> confirmEmailChange(String code) async {
+    await ref.read(studentRepositoryProvider).confirmEmailChange(code);
+    await ref.read(authControllerProvider.notifier).reload();
+  }
+
+  /// Desiste da troca de e-mail em andamento.
+  Future<void> cancelEmailChange() async {
+    await ref.read(studentRepositoryProvider).cancelEmailChange();
+    await ref.read(authControllerProvider.notifier).reload();
+  }
+
+  /// Troca a senha (exige a atual).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String password,
+    required String confirmation,
+  }) =>
+      ref.read(studentRepositoryProvider).changePassword(
+            currentPassword: currentPassword,
+            password: password,
+            confirmation: confirmation,
+          );
 }

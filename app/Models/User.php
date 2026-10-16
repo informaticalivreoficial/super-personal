@@ -57,6 +57,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'email_change_expires_at' => 'datetime',
         'password' => 'hashed',
         'role' => UserRole::class,
     ];
@@ -133,6 +134,27 @@ class User extends Authenticatable
         }
 
         return $missing;
+    }
+
+    /**
+     * Troca de e-mail com validação: `pending_email` guarda o endereço novo
+     * até o titular confirmar o código enviado para ele. As colunas do fluxo
+     * (`pending_email`, `email_change_code`, `email_change_expires_at`,
+     * `email_change_attempts`) não são fillable — quem escreve é o
+     * `ProfileService`.
+     */
+    public function hasPendingEmailChange(): bool
+    {
+        return filled($this->pending_email);
+    }
+
+    /** Limpa o fluxo de troca de e-mail (confirmado/cancelado/expirado). */
+    public function clearEmailChange(): void
+    {
+        $this->pending_email = null;
+        $this->email_change_code = null;
+        $this->email_change_expires_at = null;
+        $this->email_change_attempts = 0;
     }
 
     /**

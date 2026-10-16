@@ -59,6 +59,25 @@ class AuthController extends AsyncNotifier<User?> {
     state = const AsyncValue.data(null);
   }
 
+  /// Recarrega a sessão sem passar por `loading` (o guard não deve jogar a
+  /// tela para o splash). Usado depois de mexer nos dados da própria conta —
+  /// nome e e-mail aparecem na home/card do app.
+  Future<void> reload() async {
+    final token = await ref.read(tokenStorageProvider).read();
+
+    if (token == null || token.isEmpty) {
+      state = const AsyncValue.data(null);
+
+      return;
+    }
+
+    try {
+      state = AsyncValue.data(await ref.read(authRepositoryProvider).me());
+    } on ApiException {
+      // Sem rede: mantém a sessão atual (401 já cai pelo onUnauthorized).
+    }
+  }
+
   void _handleUnauthorized() {
     if (ref.mounted) {
       state = const AsyncValue.data(null);

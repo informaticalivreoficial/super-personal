@@ -120,6 +120,67 @@ class StudentRepository {
     }
   }
 
+  /// Pede a troca do e-mail de acesso em `POST /student/profile/email`.
+  ///
+  /// O e-mail atual continua valendo: a API envia um código de 6 dígitos para
+  /// o endereço novo e devolve o endereço pendente.
+  Future<String> requestEmailChange(String email) async {
+    try {
+      final response = await _client.dio.post(
+        'student/profile/email',
+        data: {'email': email},
+      );
+      final body = response.data as Map<String, dynamic>;
+
+      return body['pending_email'] as String? ?? email;
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  /// Confirma o código e efetiva o novo e-mail
+  /// (`POST /student/profile/email/confirm`).
+  Future<void> confirmEmailChange(String code) async {
+    try {
+      await _client.dio.post(
+        'student/profile/email/confirm',
+        data: {'code': code},
+      );
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  /// Desiste da troca de e-mail em andamento (`DELETE /student/profile/email`).
+  Future<void> cancelEmailChange() async {
+    try {
+      await _client.dio.delete('student/profile/email');
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  /// Troca a senha em `PUT /student/profile/password` (a atual é obrigatória e
+  /// as outras sessões caem).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String password,
+    required String confirmation,
+  }) async {
+    try {
+      await _client.dio.put(
+        'student/profile/password',
+        data: {
+          'current_password': currentPassword,
+          'password': password,
+          'password_confirmation': confirmation,
+        },
+      );
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
   StudentProfile _unwrapProfile(dynamic body) {
     if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
       return StudentProfile.fromJson(body['data'] as Map<String, dynamic>);

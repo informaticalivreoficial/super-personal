@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/api/api_exception.dart';
@@ -66,8 +67,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _phone.text = profile.phone ?? '';
     _cpf.text = formatCpf(profile.document);
     _birthDate = profile.birthDate;
-    _birthDateText.text =
-        _birthDate == null ? '' : formatDate(_birthDate!);
+    _birthDateText.text = _birthDate == null ? '' : formatDate(_birthDate!);
     _height.text = profile.height?.toString() ?? '';
     _gender = profile.gender;
     _days.addAll(profile.availableDays);
@@ -80,7 +80,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: _birthDate ?? DateTime(today.year - 30, today.month, today.day),
+      initialDate:
+          _birthDate ?? DateTime(today.year - 30, today.month, today.day),
       firstDate: DateTime(1900),
       lastDate: limit,
       helpText: 'Data de nascimento',
@@ -101,7 +102,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       final height = int.tryParse(_height.text.trim());
       final cpf = cpfDigits(_cpf.text);
-      await ref.read(profileProvider.notifier).save(
+      await ref
+          .read(profileProvider.notifier)
+          .save(
             ProfileUpdateData(
               name: _name.text.trim(),
               phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
@@ -113,9 +116,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil atualizado.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Perfil atualizado.')));
       Navigator.of(context).pop();
     } on ApiException catch (error) {
       if (!mounted) return;
@@ -175,9 +177,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       await ref.read(profileProvider.notifier).removePhoto();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Foto removida.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Foto removida.')));
     } on ApiException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -370,8 +371,11 @@ class _ProfileForm extends StatelessWidget {
                                 )
                               : const Padding(
                                   padding: EdgeInsets.all(6),
-                                  child: Icon(Icons.camera_alt,
-                                      size: 16, color: Colors.white),
+                                  child: Icon(
+                                    Icons.camera_alt,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                         ),
                       ),
@@ -383,11 +387,13 @@ class _ProfileForm extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(email,
-                          style: Theme.of(context).textTheme.bodyMedium),
+                      Text(
+                        email,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                       const SizedBox(height: 2),
                       Text(
-                        'E-mail de acesso (não editável aqui)',
+                        'Foto e dados do seu cadastro no treino',
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(color: scheme.outline),
                       ),
@@ -418,10 +424,9 @@ class _ProfileForm extends StatelessWidget {
                   labelText: 'Nome',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    (value == null || value.trim().isEmpty)
-                        ? 'Informe seu nome.'
-                        : null,
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Informe seu nome.'
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -466,7 +471,9 @@ class _ProfileForm extends StatelessWidget {
                 ),
                 controller: birthDateText,
                 validator: (_) {
-                  if (birthDate == null) return 'Informe sua data de nascimento.';
+                  if (birthDate == null) {
+                    return 'Informe sua data de nascimento.';
+                  }
                   return ageInYears(birthDate!) >= 18
                       ? null
                       : 'É preciso ter 18 anos ou mais para usar o aplicativo.';
@@ -482,7 +489,9 @@ class _ProfileForm extends StatelessWidget {
                 items: [
                   for (final option in _genders)
                     DropdownMenuItem(
-                        value: option.value, child: Text(option.label)),
+                      value: option.value,
+                      child: Text(option.label),
+                    ),
                 ],
                 onChanged: onGenderChanged,
               ),
@@ -505,8 +514,10 @@ class _ProfileForm extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 16),
-              Text('Dias disponíveis',
-                  style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                'Dias disponíveis',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 4),
               Text(
                 'Toque nos dias em que você costuma treinar.',
@@ -543,9 +554,18 @@ class _ProfileForm extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Dados de treino e avaliação são gerenciados pelo seu treinador.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: scheme.outline,
-              ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: scheme.outline),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.lock_outline, color: scheme.primary),
+            title: const Text('E-mail e senha'),
+            subtitle: const Text('Dados de acesso ao aplicativo'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/conta'),
+          ),
         ),
       ],
     );

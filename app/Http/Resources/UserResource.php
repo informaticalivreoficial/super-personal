@@ -15,6 +15,9 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            // Troca de e-mail aguardando o código de confirmação (null = nada
+            // pendente); o app usa para mostrar "aguardando confirmação".
+            'pending_email' => $this->pending_email,
             'role' => $this->role?->value,
             'phone' => $this->phone,
             'avatar' => $this->avatar,

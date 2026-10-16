@@ -458,6 +458,13 @@ sports ──1:N── training_sessions (restrict)
   senha nunca re-aparece preenchida após salvar; toast de sucesso; link
   "Meu perfil" no sidebar para teacher e admin (bloco "Conta", acima de
   "Minha página pública").
+- **Troca de e-mail/senha no painel**: o `ProfileService` ganhou também um
+  fluxo de troca de e-mail **com código** (`requestEmailChange`/
+  `confirmEmailChange`/`cancelEmailChange`, 15 min e 5 tentativas) e
+  `changePassword` (derruba as outras sessões), que hoje são consumidos pela
+  **API do aluno** (`/api/v1/student/profile/email*` e `/profile/password`).
+  Na página do painel o e-mail continua sendo editado direto pelo próprio
+  usuário (não há código ali).
 
 ### Cadastro obrigatório do treinador (primeiro acesso)
 
@@ -567,11 +574,22 @@ sports ──1:N── training_sessions (restrict)
     gateway), falha do gateway vira 422 com `message` (não 500), criação de
     cobrança online pelo treinador (resposta com `payable`) e bloqueio da 11ª
     cobrança manual do mês.
-  - `StudentProfileTest` (7) — perfil do aluno: salva CPF (aceita máscara) e
+  - `StudentProfileTest` (8) — perfil do aluno: salva CPF (aceita máscara) e
     data de nascimento, `show` devolve os dois campos, menor de 18 é recusado
     (422), quem completa 18 hoje passa (borda), formato inválido é recusado,
-    CPF exige 11 dígitos e os campos do treinador (e-mail, pesos, `active`)
-    são ignorados.
+    CPF exige 11 dígitos, os campos do treinador (e-mail, pesos, `active`) são
+    ignorados e o nome é sincronizado com `users.name` (home do app).
+  - `StudentEmailChangeTest` (12) — troca de e-mail com código: pedido guarda
+    `pending_email` (e-mail atual segue valendo) e envia o código com hash para
+    o endereço novo, confirmação atualiza `users.email` + `students.email` e
+    limpa o pedido, código errado conta tentativa, código expirado e tentativas
+    esgotadas exigem novo pedido, e-mail em uso (conta ou outro aluno) e igual
+    ao atual recusados, endereço tomado entre pedido e confirmação recusado,
+    cancelamento limpa o pedido e endpoints exigem autenticação.
+  - `StudentPasswordChangeTest` (7) — troca de senha com a atual (e login com a
+    nova), senha atual errada/ausente recusada, nova senha exige 8 caracteres e
+    confirmação, as outras sessões são revogadas mantendo o token que pediu,
+    treinador recebe 403 e endpoint exige autenticação.
 - Suíte do painel em `tests/Feature/Panel`:
   - `PanelAccessTest` — redirecionamento de guest, acesso por papel (teacher/admin
     200, student 403), login por papel (student/inativo bloqueados), registro cria tenant.
@@ -690,7 +708,7 @@ sports ──1:N── training_sessions (restrict)
     cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
     admin no treinador), form cria cobrança online (payable), quota manual
     erra no form e o índice mostra canal + KPIs.
-  - **Total: 394 testes / 1376 assertions** (58 API + 245 painel + 11 console
+  - **Total: 414 testes / 1481 assertions** (78 API + 245 painel + 11 console
     + 8 notificações + 46 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
     ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,
@@ -833,8 +851,22 @@ sports ──1:N── training_sessions (restrict)
   lista; quem confirma é o webhook). Sem CPF no cadastro a API responde
   `422 errors.cpf` e o sheet revela o campo de CPF e refaz a chamada; falha do
   gateway (422 `message`) aparece como mensagem para o aluno.
-- **Qualidade**: `dart analyze` limpo; `flutter test` = **20/20**
-  (`test/auth_repository_test.dart` 6 + `test/student_repository_test.dart` 8 +
+- **Conta no app (2026-10-16)** — o acesso fica em uma **tela própria**
+  (`/conta`, `AccountScreen` → "Conta e acesso", `account_screen.dart`),
+  separada de "Meu perfil" (dados de treino) para não misturar cadastro com
+  credenciais; chega-se lá por uma linha "E-mail e senha" no fim do perfil:
+  - card **"E-mail de acesso"**: `showEmailChangeSheet` (`email_change_sheet.dart`)
+    pede o endereço novo → a API envia o código de 6 dígitos → o aluno confirma
+    (com "Reenviar código"). Com troca pendente o card mostra o aviso âmbar
+    (`pending_email` da sessão) com "Digitar código" e "Cancelar troca";
+  - card **"Alterar senha"** (`_PasswordCard`): senha atual + nova (8+) +
+    confirmação, com olho de mostrar/ocultar, `PUT /student/profile/password`;
+  - `User.pendingEmail` (do `UserResource`) e `AuthController.reload()`
+    (recarrega a sessão sem passar por `loading`) fazem a home refletir o nome
+    e o e-mail novos logo após salvar — o nome do aluno vive em `students` e em
+    `users.name` (`StudentService::update` sincroniza os dois).
+- **Qualidade**: `dart analyze` limpo; `flutter test` = **27/27**
+  (`test/auth_repository_test.dart` 6 + `test/student_repository_test.dart` 15 +
   `test/formatters_test.dart` 6 — helpers compartilhados em
   `test/support/api_test_helpers.dart`).
 

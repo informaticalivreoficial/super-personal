@@ -131,4 +131,21 @@ class StudentProfileTest extends TestCase
         $this->assertSame($original['current_weight'], $this->student->current_weight);
         $this->assertTrue($this->student->active);
     }
+
+    /**
+     * O nome do aluno vive em `students` e em `users.name` (sessão do app): o
+     * app mostra a home a partir da própria conta, então os dois andam juntos.
+     *
+     * A conferência é no banco porque o `Sanctum::actingAs` memoiza a instância
+     * do usuário na guarda — a resposta de `/auth/me` repetiria o objeto antigo
+     * (artefato do teste; em produção cada requisição reautentica do banco).
+     */
+    public function test_profile_update_keeps_the_login_name_in_sync(): void
+    {
+        $this->putJson('/api/v1/student/profile', ['name' => 'Novo Nome'])
+            ->assertOk();
+
+        $this->assertSame('Novo Nome', $this->student->fresh()->name);
+        $this->assertSame('Novo Nome', $this->student->user->fresh()->name);
+    }
 }

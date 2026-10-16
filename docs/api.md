@@ -82,6 +82,10 @@ possui conta, aluno inativo ou e-mail já em uso por outra conta.
 | GET | `/student/dashboard` | resumo: treinos de hoje/próximos, plano ativo, pagamentos pendentes, notificações não lidas |
 | GET | `/student/profile` | perfil do aluno |
 | PUT | `/student/profile` | atualiza perfil (name, phone, gender, height, document, birth_date, available_days) |
+| PUT | `/student/profile/password` | troca a senha (`current_password` + `password` + `password_confirmation`) |
+| POST | `/student/profile/email` | pede a troca do e-mail (`email`) — envia código ao endereço novo |
+| POST | `/student/profile/email/confirm` | confirma a troca (`code` de 6 dígitos) |
+| DELETE | `/student/profile/email` | cancela a troca de e-mail em andamento |
 | GET | `/student/training-plans` | planos ativos do aluno (paginado) |
 | GET | `/student/training-plans/{plan}` | plano com semanas, sessões e itens |
 | GET | `/student/calendar` | sessões ordenadas por `scheduled_date` (paginado) |
@@ -112,12 +116,39 @@ fica `false` e o Pix é recusado).
 
 ##### Perfil do aluno (`PUT /student/profile`)
 
+- `name` é sincronizado com a conta (`users.name`): o app mostra a home a
+  partir da própria sessão.
 - `document` (CPF, com ou sem máscara) é validado com **11 dígitos** quando
   informado — é o `tax_id` enviado ao gateway no Pix.
 - `birth_date` no formato `aaaa-mm-dd`; **menor de 18 anos é recusado**
   (`422 errors.birth_date`). O app exige a data no formulário de perfil.
 - `email`, `teacher_id`, pesos/avaliação e `active` são ignorados (não estão
-  nas regras) — quem manda nesses dados é o treinador.
+  nas regras) — o e-mail só muda pelo fluxo com código abaixo.
+
+##### Troca do e-mail de acesso (com validação)
+
+1. `POST /student/profile/email` com `{email}` → `200 {message, pending_email}`
+   e um **código de 6 dígitos** é enviado para o endereço novo (`users.email`
+   continua o antigo). Erros: `422 errors.email` (e-mail igual ao atual ou já
+   em uso por outra conta/aluno).
+2. `POST /student/profile/email/confirm` com `{code}` → `200 {message, user}`
+   (a `UserResource` do aluno, já com o e-mail novo). A confirmação atualiza
+   `users.email` e o cadastro do aluno (`students.email`).
+   Erros: `422 errors.code` (código errado, expirado ou tentativas esgotadas).
+3. `DELETE /student/profile/email` desiste do pedido pendente.
+
+Regras: código vale **15 minutos**, com no máximo **5 tentativas** erradas
+(depois disso é preciso pedir outro); ficam suspensas as rotas
+`POST|PUT profile/email*` e `profile/password` com throttle de 6/min; `GET
+/auth/me` devolve `pending_email` (null quando não há troca em andamento).
+
+##### Troca de senha (`PUT /student/profile/password`)
+
+- Exige `current_password` (conferida com `Hash::check`) — erro em
+  `422 errors.current_password`;
+- `password` com `min:8` + `confirmed` — erro em `422 errors.password`;
+- a troca **revoga as outras sessões** (tokens Sanctum), mantendo o token que
+  fez o pedido.
 
 ### Payload de execução (`complete` / `execution`)
 

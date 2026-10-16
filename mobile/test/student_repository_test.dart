@@ -178,4 +178,155 @@ void main() {
       expect(payment.payable, isFalse);
     });
   });
+
+  group('StudentRepository.requestEmailChange', () {
+    test('faz POST com o novo e-mail e devolve o endereço pendente', () async {
+      late RequestOptions captured;
+      final client = clientWith((options) async {
+        captured = options;
+        return jsonResponse({
+          'message': 'Enviamos um código de confirmação para o novo e-mail.',
+          'pending_email': 'novo@superpersonal.test',
+        }, 200);
+      });
+
+      final pending = await StudentRepository(client)
+          .requestEmailChange('novo@superpersonal.test');
+
+      expect(captured.method, 'POST');
+      expect(captured.uri.path, '/api/v1/student/profile/email');
+      expect((captured.data as Map)['email'], 'novo@superpersonal.test');
+      expect(pending, 'novo@superpersonal.test');
+    });
+
+    test('422 com e-mail em uso vira erro no campo email', () async {
+      final client = clientWith(
+        (_) async => jsonResponse({
+          'message': 'Dados inválidos.',
+          'errors': {
+            'email': ['Este e-mail já está em uso.'],
+          },
+        }, 422),
+      );
+
+      await expectLater(
+        StudentRepository(client).requestEmailChange('ocupado@teste.com'),
+        throwsA(
+          isA<ApiException>().having(
+            (error) => error.fieldErrors['email'],
+            'erro do campo email',
+            'Este e-mail já está em uso.',
+          ),
+        ),
+      );
+    });
+  });
+
+  group('StudentRepository.confirmEmailChange', () {
+    test('faz POST do código', () async {
+      late RequestOptions captured;
+      final client = clientWith((options) async {
+        captured = options;
+        return jsonResponse({
+          'message': 'E-mail atualizado.',
+          'user': {'id': 83, 'name': 'Aluno', 'email': 'novo@superpersonal.test'},
+        }, 200);
+      });
+
+      await StudentRepository(client).confirmEmailChange('123456');
+
+      expect(captured.method, 'POST');
+      expect(captured.uri.path, '/api/v1/student/profile/email/confirm');
+      expect((captured.data as Map)['code'], '123456');
+    });
+
+    test('422 com código errado vira erro no campo code', () async {
+      final client = clientWith(
+        (_) async => jsonResponse({
+          'message': 'Dados inválidos.',
+          'errors': {
+            'code': ['Código incorreto. Confira o e-mail que enviamos.'],
+          },
+        }, 422),
+      );
+
+      await expectLater(
+        StudentRepository(client).confirmEmailChange('000000'),
+        throwsA(
+          isA<ApiException>().having(
+            (error) => error.fieldErrors['code'],
+            'erro do campo code',
+            'Código incorreto. Confira o e-mail que enviamos.',
+          ),
+        ),
+      );
+    });
+  });
+
+  group('StudentRepository.cancelEmailChange', () {
+    test('faz DELETE do pedido pendente', () async {
+      late RequestOptions captured;
+      final client = clientWith((options) async {
+        captured = options;
+        return jsonResponse({'message': 'Troca de e-mail cancelada.'}, 200);
+      });
+
+      await StudentRepository(client).cancelEmailChange();
+
+      expect(captured.method, 'DELETE');
+      expect(captured.uri.path, '/api/v1/student/profile/email');
+    });
+  });
+
+  group('StudentRepository.changePassword', () {
+    test('faz PUT com a senha atual e a confirmação', () async {
+      late RequestOptions captured;
+      final client = clientWith((options) async {
+        captured = options;
+        return jsonResponse(
+          {'message': 'Senha atualizada. As outras sessões foram encerradas.'},
+          200,
+        );
+      });
+
+      await StudentRepository(client).changePassword(
+        currentPassword: 'antiga123',
+        password: 'nova12345',
+        confirmation: 'nova12345',
+      );
+
+      final body = captured.data as Map;
+      expect(captured.method, 'PUT');
+      expect(captured.uri.path, '/api/v1/student/profile/password');
+      expect(body['current_password'], 'antiga123');
+      expect(body['password'], 'nova12345');
+      expect(body['password_confirmation'], 'nova12345');
+    });
+
+    test('422 com senha atual errada vira erro no campo', () async {
+      final client = clientWith(
+        (_) async => jsonResponse({
+          'message': 'Dados inválidos.',
+          'errors': {
+            'current_password': ['A senha atual não confere.'],
+          },
+        }, 422),
+      );
+
+      await expectLater(
+        StudentRepository(client).changePassword(
+          currentPassword: 'errada',
+          password: 'nova12345',
+          confirmation: 'nova12345',
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (error) => error.fieldErrors['current_password'],
+            'erro do campo current_password',
+            'A senha atual não confere.',
+          ),
+        ),
+      );
+    });
+  });
 }

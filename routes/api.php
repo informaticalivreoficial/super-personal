@@ -44,6 +44,12 @@ Route::prefix('v1')->group(function () {
             Route::put('profile', [StudentProfile::class, 'update']);
             Route::post('profile/photo', [StudentProfile::class, 'uploadPhoto']);
             Route::delete('profile/photo', [StudentProfile::class, 'removePhoto']);
+            // Conta: troca de senha (exige a atual) e de e-mail com código
+            // enviado ao novo endereço (throttle contra força bruta do código).
+            Route::put('profile/password', [StudentProfile::class, 'updatePassword'])->middleware('throttle:6,1');
+            Route::post('profile/email', [StudentProfile::class, 'requestEmailChange'])->middleware('throttle:6,1');
+            Route::post('profile/email/confirm', [StudentProfile::class, 'confirmEmailChange'])->middleware('throttle:6,1');
+            Route::delete('profile/email', [StudentProfile::class, 'cancelEmailChange']);
 
             Route::get('training-plans', [StudentTrainingPlans::class, 'index']);
             Route::get('training-plans/{plan}', [StudentTrainingPlans::class, 'show'])->whereNumber('plan');
