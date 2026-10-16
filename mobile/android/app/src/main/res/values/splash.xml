@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cor de fundo da abertura (mesma da arte do ícone: #FCFAEB). Em arquivo
+     separado de colors.xml porque este é gerado/atualizado pelo
+     flutter_launcher_icons (ícone adaptativo). -->
+<resources>
+    <color name="splash_background">#FCFAEB</color>
+</resources>

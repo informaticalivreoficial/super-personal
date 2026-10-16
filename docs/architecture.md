@@ -870,6 +870,31 @@ sports ──1:N── training_sessions (restrict)
   `test/formatters_test.dart` 6 — helpers compartilhados em
   `test/support/api_test_helpers.dart`).
 
+### Ícone e abertura do app (2026-10-16)
+
+- **Arte**: `mobile/assets/icon/app_icon.png` — quadrada 1024×1024, fundo creme
+  `#FCFAEB` (a arte é horizontal, 73%×52% do canvas, centrada).
+- **Geração**: `flutter_launcher_icons` (dev dependency, configuração no fim do
+  `pubspec.yaml`) — `cd mobile && dart run flutter_launcher_icons` escreve os 5
+  `mipmap-*/ic_launcher.png`, o **ícone adaptativo** Android
+  (`mipmap-anydpi-v26/ic_launcher.xml` + `drawable-*/ic_launcher_foreground.png`
+  + `values/colors.xml` com `ic_launcher_background`) e os 16 ícones do iOS.
+- **Ícone adaptativo**: o Android recorta ~61% do centro (máscara), então o
+  foreground entra com `adaptive_icon_foreground_inset: 18` — a arte fica com
+  raio ~29% (zona segura = 30,5%) e o fundo do ícone é o creme da própria arte,
+  o que deixa a emenda do inset invisível.
+- **Abertura sem flash**: `drawable/launch_background.xml` e
+  `drawable-v21/launch_background.xml` usam `@color/splash_background`
+  (`values/splash.xml` = `#FCFAEB`, arquivo separado porque `values/colors.xml`
+  é reescrito pelo gerador) e a `SplashScreen` do Flutter mostra a própria arte
+  (`Image.asset`) sobre a mesma cor.
+- **Gotcha do gerador (iOS)**: o `flutter_launcher_icons` substitui por regex
+  **qualquer** linha com `ASSETCATALOG` do `ios/Runner.xcodeproj/project.pbxproj`
+  por `= AppIcon` — isso corrompe
+  `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS` (espera
+  `YES`/`NO`). Depois de rodar o gerador, conferir e voltar as linhas para
+  `YES` (foi o que aconteceu aqui).
+
 ## Landing do SaaS — home pública `/` (2026-10-13)
 
 - **`SiteController::home()`** reescrito: a home deixou de ser o stub "Home

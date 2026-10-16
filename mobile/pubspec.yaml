@@ -47,6 +47,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Gera os ícones do launcher (Android/iOS) a partir de uma arte quadrada:
+  # `dart run flutter_launcher_icons` (config no fim deste arquivo).
+  flutter_launcher_icons: ^0.14.4
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -64,6 +68,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Arte do app (ícone do launcher e logo usada na splash).
+  assets:
+    - assets/icon/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -95,3 +103,25 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Ícone do aplicativo (`dart run flutter_launcher_icons` gera os mipmaps do
+# Android, o ícone adaptativo (Android 8+) e os ícones do iOS a partir de
+# `assets/icon/app_icon.png` — arte quadrada 1024x1024, fundo creme #FCFAEB).
+#
+# No ícone adaptativo o sistema recorta só ~61% do centro (o resto é máscara),
+# então o foreground (a própria arte) entra com `inset: 18%`: a arte fica com
+# ~29% de raio, dentro da zona segura e com margem. O fundo creme é o mesmo da
+# arte, então a emenda do inset não aparece.
+#
+# ATENÇÃO (iOS): o gerador troca por regex TODA linha com `ASSETCATALOG` do
+# ios/Runner.xcodeproj/project.pbxproj por `= AppIcon`, o que corrompe
+# ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS (espera YES/NO).
+# Depois de rodar, conferir e voltar essas linhas para `= YES;`.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/app_icon.png
+  adaptive_icon_background: "#FCFAEB"
+  adaptive_icon_foreground: assets/icon/app_icon.png
+  adaptive_icon_foreground_inset: 18
+  remove_alpha_ios: true
