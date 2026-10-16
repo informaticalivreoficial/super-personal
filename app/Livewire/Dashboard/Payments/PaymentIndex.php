@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard\Payments;
 
+use App\Enums\PaymentChannel;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Services\PaymentService;
@@ -21,6 +22,8 @@ class PaymentIndex extends Component
 
     public string $filterStatus = '';
 
+    public string $filterChannel = '';
+
     public $deleteId = null;
 
     public function mount(): void
@@ -34,6 +37,11 @@ class PaymentIndex extends Component
     }
 
     public function updatingFilterStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterChannel(): void
     {
         $this->resetPage();
     }
@@ -84,12 +92,31 @@ class PaymentIndex extends Component
             ->when($this->filterStatus, function ($query) {
                 $query->where('status', $this->filterStatus);
             })
+            ->when($this->filterChannel, function ($query) {
+                $query->where('channel', $this->filterChannel);
+            })
             ->orderByDesc('due_date')
             ->paginate(15);
+
+        // KPIs do tenant autenticado (global scope `tenant` já filtra).
+        $manualThisMonth = Payment::query()
+            ->where('channel', PaymentChannel::MANUAL)
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->count();
+
+        $awaitingPayout = Payment::query()
+            ->where('channel', PaymentChannel::ONLINE)
+            ->where('status', PaymentStatus::PAID)
+            ->whereNull('payout_id');
 
         return view('livewire.dashboard.payments.index', [
             'payments' => $payments,
             'statuses' => PaymentStatus::labels(),
+            'channels' => PaymentChannel::labels(),
+            'manualThisMonth' => $manualThisMonth,
+            'manualLimit' => PaymentService::MANUAL_MONTHLY_LIMIT,
+            'awaitingPayoutCount' => (clone $awaitingPayout)->count(),
+            'awaitingPayoutTotal' => (float) (clone $awaitingPayout)->sum('net_amount'),
         ]);
     }
 }

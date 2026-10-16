@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard\Payments;
 
+use App\Enums\PaymentChannel;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Http\Requests\StorePaymentRequest;
@@ -35,6 +36,8 @@ class PaymentForm extends Component
 
     public $due_date = '';
 
+    public $channel = 'manual';
+
     public $status = 'pending';
 
     public $payment_method = '';
@@ -57,6 +60,7 @@ class PaymentForm extends Component
             $this->description = $payment->description;
             $this->amount = $payment->amount;
             $this->due_date = $payment->due_date?->format('Y-m-d');
+            $this->channel = $payment->channel?->value ?? PaymentChannel::MANUAL->value;
             $this->status = $payment->status->value;
             $this->payment_method = $payment->payment_method?->value;
             $this->paid_at = $payment->paid_at?->format('Y-m-d');
@@ -124,6 +128,7 @@ class PaymentForm extends Component
             'description' => $this->description,
             'amount' => $this->amount !== '' ? (float) str_replace(',', '.', $this->amount) : null,
             'due_date' => $this->due_date ?: null,
+            'channel' => $this->channel ?: null,
             'status' => $this->status ?: null,
             'payment_method' => $this->payment_method ?: null,
             'paid_at' => $this->paid_at ?: null,
@@ -134,14 +139,18 @@ class PaymentForm extends Component
     #[Title('Formulário de Pagamento')]
     public function render()
     {
+        $payment = $this->paymentId
+            ? Payment::with('student')->findOrFail($this->paymentId)
+            : null;
+
         return view('livewire.dashboard.payments.form', [
             'students' => Student::orderBy('name')->get(),
             'statuses' => PaymentStatus::labels(),
             'methods' => PaymentMethod::labels(),
+            'channels' => PaymentChannel::labels(),
             'isEdit' => (bool) $this->paymentId,
-            'paymentStudent' => $this->paymentId
-                ? Payment::with('student')->findOrFail($this->paymentId)->student
-                : null,
+            'payment' => $payment,
+            'paymentStudent' => $payment?->student,
         ]);
     }
 }

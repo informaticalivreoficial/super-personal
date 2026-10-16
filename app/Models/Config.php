@@ -59,7 +59,25 @@ class Config extends Model
         'sitemap',
         'sitemap_data',
         'analytics_id',
+        'fee_percent',
     ];
+
+    public const DEFAULT_FEE_PERCENT = 5.0;
+
+    protected $casts = [
+        'fee_percent' => 'decimal:2',
+    ];
+
+    /**
+     * Taxa da plataforma (%) sobre as cobranças online do aluno.
+     * Fonte: `config.fee_percent` (editável em Configurações); fallback 5%.
+     */
+    public static function feePercent(): float
+    {
+        $value = static::query()->value('fee_percent');
+
+        return $value !== null ? (float) $value : self::DEFAULT_FEE_PERCENT;
+    }
 
     /**
      * Accerssors and Mutators

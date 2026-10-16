@@ -13,6 +13,9 @@ class Payment {
     this.paymentMethod,
     this.paymentMethodLabel,
     this.notes,
+    this.channel = 'manual',
+    this.channelLabel,
+    this.payable = false,
   });
 
   final int id;
@@ -26,6 +29,13 @@ class Payment {
   final String? paymentMethodLabel;
   final String? notes;
 
+  /// `manual` (paga por fora) ou `online` (paga pelo app via Pix).
+  final String channel;
+  final String? channelLabel;
+
+  /// `true` quando a cobrança é online e está aguardando pagamento no app.
+  final bool payable;
+
   factory Payment.fromJson(Map<String, dynamic> json) => Payment(
         id: (json['id'] as num?)?.toInt() ?? 0,
         description: json['description'] as String? ?? '',
@@ -37,6 +47,9 @@ class Payment {
         paymentMethod: json['payment_method'] as String?,
         paymentMethodLabel: json['payment_method_label'] as String?,
         notes: json['notes'] as String?,
+        channel: json['channel'] as String? ?? 'manual',
+        channelLabel: json['channel_label'] as String?,
+        payable: json['payable'] as bool? ?? false,
       );
 
   /// Valor formatado em reais: `R$ 1.234,56`.
@@ -57,4 +70,30 @@ class Payment {
     }
     return buffer.toString();
   }
+}
+
+/// Resposta de `POST /student/payments/{id}/checkout` (Pix gerado).
+///
+/// `qrCode` é o copia e cola (desenhamos o QR localmente a partir dele);
+/// `qrImage` é o link da imagem no gateway, usado só como fallback.
+class PaymentCheckout {
+  const PaymentCheckout({
+    required this.status,
+    required this.orderId,
+    required this.qrCode,
+    this.qrImage,
+  });
+
+  final String status;
+  final String orderId;
+  final String qrCode;
+  final String? qrImage;
+
+  factory PaymentCheckout.fromJson(Map<String, dynamic> json) =>
+      PaymentCheckout(
+        status: json['status'] as String? ?? '',
+        orderId: json['order_id'] as String? ?? '',
+        qrCode: json['qr_code'] as String? ?? '',
+        qrImage: json['qr_image'] as String?,
+      );
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PixKeyType;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -68,6 +69,9 @@ class UpdateProfileRequest extends FormRequest
             'state' => ['nullable', 'string', 'regex:/^[A-Za-z]{2}$/'],
             // Segurança
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            // Repasse (chave Pix do treinador; só ele recebe repasses).
+            'pix_key' => ['nullable', 'string', 'max:255'],
+            'pix_key_type' => ['nullable', Rule::enum(PixKeyType::class)],
         ];
     }
 
@@ -96,6 +100,8 @@ class UpdateProfileRequest extends FormRequest
             'state.regex' => 'A UF deve ter 2 letras (ex.: SP).',
             'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
             'password.confirmed' => 'A confirmação de senha não confere.',
+            'pix_key.max' => 'A chave Pix pode ter no máximo 255 caracteres.',
+            'pix_key_type.enum' => 'Selecione um tipo de chave Pix válido.',
         ];
     }
 }

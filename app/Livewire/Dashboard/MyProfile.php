@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Enums\PixKeyType;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Models\User;
 use App\Services\ProfileService;
@@ -63,6 +64,11 @@ class MyProfile extends Component
     public string $cellPhone = '';
 
     public string $whatsapp = '';
+
+    // Repasse (chave Pix do treinador — usada nos repasses das cobranças online)
+    public string $pixKey = '';
+
+    public string $pixKeyType = '';
 
     // Endereço
     public string $zipcode = '';
@@ -126,6 +132,8 @@ class MyProfile extends Component
             'phone' => $this->phone ?: null,
             'cell_phone' => $this->cellPhone ?: null,
             'whatsapp' => $this->whatsapp ?: null,
+            'pix_key' => $this->pixKey ?: null,
+            'pix_key_type' => $this->pixKeyType ?: null,
             'zipcode' => $this->zipcode ?: null,
             'street' => $this->street ?: null,
             'number' => $this->number ?: null,
@@ -242,6 +250,8 @@ class MyProfile extends Component
         $this->phone = $user->phone ?: ($user->teacher?->phone ?? '');
         $this->cellPhone = $user->cell_phone ?? '';
         $this->whatsapp = $user->whatsapp ?? '';
+        $this->pixKey = $user->teacher?->pix_key ?? '';
+        $this->pixKeyType = $user->teacher?->pix_key_type ?? '';
         $this->zipcode = $user->zipcode ?? '';
         $this->street = $user->street ?? '';
         $this->number = $user->number ?? '';
@@ -283,6 +293,7 @@ class MyProfile extends Component
         return view('livewire.dashboard.my-profile', [
             'isTeacher' => auth()->user()->isTeacher(),
             'completing' => $this->isCompleting(),
+            'pixKeyTypes' => PixKeyType::labels(),
             // Campos exigidos que ainda faltam (banner do primeiro acesso).
             'missingFields' => auth()->user()->missingProfileFields(),
             'avatarPreview' => $this->avatarPreviewUrl(),

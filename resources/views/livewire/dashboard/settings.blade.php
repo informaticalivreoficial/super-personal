@@ -83,6 +83,18 @@
                                         @enderror
                                     </div>
                                 </div>
+                                @if(\Illuminate\Support\Facades\Auth::user()->isPlatformAdmin())
+                                    <div class="col-12 col-md-6 col-sm-6 col-lg-6 mb-2">
+                                        <div class="form-group">
+                                            <label class="mb-1 block text-sm font-medium text-gray-700"><b>Taxa das cobranças online (%)</b></label>
+                                            <input type="number" step="0.01" min="0" max="100" class="form-control @error('configData.fee_percent') is-invalid @enderror" placeholder="Ex.: 5" wire:model="configData.fee_percent" id="fee_percent">
+                                            @error('configData.fee_percent')
+                                                <span class="error erro-feedback">{{ $message }}</span>
+                                            @enderror
+                                            <small class="text-muted">Retida pela plataforma nas cobranças pagas pelo app; o restante é repassado ao treinador.</small>
+                                        </div>
+                                    </div>
+                                @endif
                                 <div class="col-12 col-md-6 col-sm-6 col-lg-6 mb-2">
                                     @if(\Illuminate\Support\Facades\Auth::user()->isPlatformAdmin())
                                         <div class="form-group">

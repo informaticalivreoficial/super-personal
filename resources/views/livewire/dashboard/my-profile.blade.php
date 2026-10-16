@@ -240,6 +240,51 @@
             </div>
         </div>
 
+        {{-- Repasse (chave Pix do treinador) --}}
+        @if ($isTeacher)
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-base font-semibold text-gray-900">Repasse</h2>
+                </div>
+
+                <div class="card-body">
+                    <p class="mb-4 text-sm text-gray-500">
+                        Usada para receber o líquido das cobranças <strong>online</strong> pagas pelos alunos.
+                    </p>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="profile_pix_key_type">Tipo de chave Pix</label>
+                                <select class="form-control @error('pix_key_type') is-invalid @enderror"
+                                    id="profile_pix_key_type" wire:model="pixKeyType">
+                                    <option value="">Selecione...</option>
+                                    @foreach ($pixKeyTypes as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('pix_key_type')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label for="profile_pix_key">Chave Pix</label>
+                                <input type="text" class="form-control @error('pix_key') is-invalid @enderror"
+                                    id="profile_pix_key" wire:model="pixKey"
+                                    placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória">
+                                @error('pix_key')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{-- Endereço (auto-preenchido via ViaCEP) --}}
         <div class="card">
             <div class="card-header">

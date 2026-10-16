@@ -219,6 +219,21 @@ class StudentRepository {
     );
   }
 
+  /// Gera o Pix da cobrança online em
+  /// `POST /student/payments/{id}/checkout`.
+  ///
+  /// [cpf] só é necessário quando o aluno ainda não tem CPF no cadastro
+  /// (a API responde 422 em `errors.cpf` nesse caso).
+  Future<PaymentCheckout> checkoutPayment(int paymentId, {String? cpf}) async {
+    final digits = cpf?.replaceAll(RegExp(r'\D'), '');
+    final json = await _post(
+      'student/payments/$paymentId/checkout',
+      digits == null || digits.isEmpty ? null : {'cpf': digits},
+    );
+
+    return PaymentCheckout.fromJson(json);
+  }
+
   Future<PagedResult<T>> _paged<T>(
     String path,
     Map<String, dynamic> query,

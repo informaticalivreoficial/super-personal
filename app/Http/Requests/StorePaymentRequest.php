@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PaymentChannel;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,6 +18,7 @@ class StorePaymentRequest extends FormRequest
         return [
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
+            'channel' => ['sometimes', Rule::enum(PaymentChannel::class)],
             'due_date' => ['required', 'date'],
             'status' => ['sometimes', Rule::enum(PaymentStatus::class)],
             'payment_method' => ['nullable', Rule::enum(PaymentMethod::class)],

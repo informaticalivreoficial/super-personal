@@ -2,9 +2,6 @@
 
 namespace Tests\Feature\Services;
 
-use App\Enums\BillingPeriod;
-use App\Models\SaasPlan;
-use App\Models\Subscription;
 use App\Services\PagBankService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -14,6 +11,10 @@ use Tests\TestCase;
 /**
  * PagBankService contra a API de Pedidos. Todas as chamadas são interceptadas
  * por Http::fake — nenhum request sai de verdade.
+ *
+ * O service é genérico: recebe um "subject" (referência, descrição e valor em
+ * centavos) usado pela assinatura (`sub-{id}`) e pela cobrança do aluno
+ * (`pay-{id}`).
  */
 class PagBankServiceTest extends TestCase
 {
@@ -32,15 +33,16 @@ class PagBankServiceTest extends TestCase
         ]);
     }
 
-    private function subscription(float $amount = 49.90): Subscription
+    /**
+     * @return array{reference: string, description: string, amount_cents: int}
+     */
+    private function charge(float $amount = 49.90, string $reference = 'sub-1'): array
     {
-        $plan = SaasPlan::factory()->create(['name' => 'Pro']);
-
-        return Subscription::factory()->create([
-            'plan_id' => $plan->id,
-            'period' => BillingPeriod::MONTHLY,
-            'amount' => $amount,
-        ]);
+        return [
+            'reference' => $reference,
+            'description' => 'Assinatura Pro (monthly)',
+            'amount_cents' => (int) round($amount * 100),
+        ];
     }
 
     public function test_is_configured_follows_the_token(): void
@@ -102,9 +104,7 @@ class PagBankServiceTest extends TestCase
             ], 201),
         ]);
 
-        $subscription = $this->subscription(49.90);
-
-        $order = app(PagBankService::class)->createCardOrder($subscription, [
+        $order = app(PagBankService::class)->createCardOrder($this->charge(49.90), [
             'encrypted' => 'hash-criptografado',
             'holder' => 'Fulano de Tal',
             'installments' => 3,
@@ -115,11 +115,11 @@ class PagBankServiceTest extends TestCase
             'tax_id' => '12345678900',
         ]);
 
-        Http::assertSent(function (Request $request) use ($subscription) {
+        Http::assertSent(function (Request $request) {
             $charge = $request['charges'][0];
 
             return $request->url() === 'https://sandbox.api.pagseguro.com/orders'
-                && $request['reference_id'] === $subscription->externalReference()
+                && $request['reference_id'] === 'sub-1'
                 && $request['customer']['email'] === 'treinador@teste.com'
                 && $request['items'][0]['unit_amount'] === 4990 // centavos
                 && $charge['payment_method']['type'] === 'CREDIT_CARD'
@@ -136,7 +136,7 @@ class PagBankServiceTest extends TestCase
         $this->assertSame('ORDE_1', $order['id']);
         $this->assertSame('approved', $order['status']);
         $this->assertSame('PAID', $order['gateway_status']);
-        $this->assertSame($subscription->externalReference(), $order['reference_id']);
+        $this->assertSame('sub-1', $order['reference_id']);
     }
 
     public function test_card_order_omits_notification_urls_on_http(): void
@@ -146,7 +146,7 @@ class PagBankServiceTest extends TestCase
 
         Http::fake(['*/orders' => Http::response(['id' => 'ORDE_2', 'charges' => [['status' => 'PAID']]], 201)]);
 
-        app(PagBankService::class)->createCardOrder($this->subscription(), [
+        app(PagBankService::class)->createCardOrder($this->charge(), [
             'encrypted' => 'hash',
             'holder' => 'Fulano',
             'installments' => 1,
@@ -167,7 +167,7 @@ class PagBankServiceTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Não foi possível processar o pagamento (400)');
 
-        app(PagBankService::class)->createCardOrder($this->subscription(), [
+        app(PagBankService::class)->createCardOrder($this->charge(), [
             'encrypted' => 'hash',
             'holder' => 'Fulano',
             'installments' => 1,
@@ -194,7 +194,7 @@ class PagBankServiceTest extends TestCase
             ], 201),
         ]);
 
-        $order = app(PagBankService::class)->createPixOrder($this->subscription(99.90), [
+        $order = app(PagBankService::class)->createPixOrder($this->charge(99.90), [
             'name' => 'Treinador Teste',
             'email' => 'treinador@teste.com',
         ]);
@@ -233,7 +233,7 @@ class PagBankServiceTest extends TestCase
             ], 201),
         ]);
 
-        $order = app(PagBankService::class)->createPixOrder($this->subscription(), ['email' => 'treinador@teste.com']);
+        $order = app(PagBankService::class)->createPixOrder($this->charge(), ['email' => 'treinador@teste.com']);
 
         $this->assertSame('00020126580014BR.COM...', $order['qr_code_text']);
         $this->assertSame('https://sandbox.api.pagseguro.com/qrcode/QRCO_2/png', $order['qr_code_image']);
@@ -242,10 +242,10 @@ class PagBankServiceTest extends TestCase
     public function test_pix_order_without_copy_paste_text_is_detected(): void
     {
         // Sem `text` não há QR para mostrar: o service devolve vazio e o
-        // SubscriptionService trata como falha (restaura e avisa).
+        // PaymentService/SubscriptionService tratam como falha.
         Http::fake(['*/orders' => Http::response(['id' => 'ORDE_VAZIO', 'reference_id' => 'sub-1'], 201)]);
 
-        $order = app(PagBankService::class)->createPixOrder($this->subscription(), ['email' => 'treinador@teste.com']);
+        $order = app(PagBankService::class)->createPixOrder($this->charge(), ['email' => 'treinador@teste.com']);
 
         $this->assertSame('', $order['qr_code_text']);
     }

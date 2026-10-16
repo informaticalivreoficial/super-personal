@@ -133,6 +133,8 @@ class Settings extends Component
     {
         return array_merge([
             'configData.app_name' => 'required|min:3',
+            // Taxa retida pela plataforma nas cobranças online dos alunos.
+            'configData.fee_percent' => 'nullable|numeric|min:0|max:100',
             // 'configData.email' => 'required|email',
         ], $this->imageValidationRules());
     }

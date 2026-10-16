@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'models/payment.dart';
+import 'pix_payment_sheet.dart';
 import 'student_providers.dart';
 
 /// Pagamentos do aluno (histórico com status).
@@ -30,6 +32,24 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Gera o Pix da cobrança online e, ao voltar, recarrega a lista.
+  Future<void> _openPix(Payment payment) async {
+    final paid = await showPixPaymentSheet(context, payment);
+    if (paid != true || !mounted) return;
+
+    await ref.read(paymentsProvider.notifier).refresh();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Pagamento em conferência. O status muda para "Pago" assim que '
+          'for identificado.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -107,13 +127,32 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                     child: const Icon(Icons.attach_money, size: 20),
                   ),
                   title: Text(payment.description),
-                  subtitle: Text([
-                    payment.amountLabel,
-                    if (payment.dueDate != null)
-                      'Vence ${payment.dueDate!.day.toString().padLeft(2, '0')}/'
-                          '${payment.dueDate!.month.toString().padLeft(2, '0')}/'
-                          '${payment.dueDate!.year}',
-                  ].join(' · ')),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text([
+                        payment.amountLabel,
+                        if (payment.dueDate != null)
+                          'Vence ${payment.dueDate!.day.toString().padLeft(2, '0')}/'
+                              '${payment.dueDate!.month.toString().padLeft(2, '0')}/'
+                              '${payment.dueDate!.year}',
+                        if (payment.channel == 'online' &&
+                            payment.channelLabel != null)
+                          payment.channelLabel!,
+                      ].join(' · ')),
+                      if (payment.payable) ...[
+                        const SizedBox(height: 6),
+                        FilledButton.tonalIcon(
+                          onPressed: () => _openPix(payment),
+                          icon: const Icon(Icons.qr_code_2, size: 18),
+                          label: const Text('Pagar com Pix'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   trailing: Chip(
                     label: Text(payment.statusLabel ?? payment.status),
                     visualDensity: VisualDensity.compact,

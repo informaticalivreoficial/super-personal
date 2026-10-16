@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PaymentChannel;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
@@ -22,12 +23,21 @@ class PaymentFactory extends Factory
                 ->value('teacher_id'),
             'description' => fake()->randomElement(['Mensalidade', 'Aula avulsa', 'Pacote de 10 treinos', 'Avaliação física']),
             'amount' => fake()->randomFloat(2, 150, 800),
+            'channel' => PaymentChannel::MANUAL,
             'due_date' => now()->addDays(10)->format('Y-m-d'),
             'paid_at' => null,
             'status' => PaymentStatus::PENDING,
             'payment_method' => null,
             'notes' => fake()->optional()->sentence(6),
         ];
+    }
+
+    /** Cobrança online (paga pelo app, gera taxa da plataforma). */
+    public function online(): static
+    {
+        return $this->state(fn () => [
+            'channel' => PaymentChannel::ONLINE,
+        ]);
     }
 
     public function paid(): static

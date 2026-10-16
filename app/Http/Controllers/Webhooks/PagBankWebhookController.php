@@ -3,20 +3,21 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
+use App\Services\PaymentService;
 use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 
 /**
- * Webhook do gateway de pagamentos — assinaturas do SaaS.
+ * Webhook do gateway de pagamentos.
  *
  * O corpo da notificação NÃO é fonte de verdade: sempre reconsultamos o
- * pedido no gateway e aplicamos o estado real à assinatura (referência
- * `sub-{id}`). Por isso o endpoint não depende da assinatura do payload —
- * uma notificação forjada não consegue "aprovar" nada.
+ * pedido no gateway e aplicamos o estado real. A referência decide o alvo:
+ * `sub-{id}` = assinatura do treinador; `pay-{id}` = cobrança online do aluno.
+ * Por isso uma notificação forjada não consegue "aprovar" nada.
  */
 class PagBankWebhookController extends Controller
 {
-    public function __invoke(Request $request, SubscriptionService $subscriptions)
+    public function __invoke(Request $request, SubscriptionService $subscriptions, PaymentService $payments)
     {
         $orderId = (string) ($request->input('id') ?? '');
         $reference = (string) ($request->input('reference_id') ?? '');
@@ -26,7 +27,11 @@ class PagBankWebhookController extends Controller
             return response()->json(['received' => true]);
         }
 
-        $subscriptions->syncFromOrder($orderId, $reference);
+        if (str_starts_with($reference, 'pay-')) {
+            $payments->syncFromOrder($orderId, $reference);
+        } else {
+            $subscriptions->syncFromOrder($orderId, $reference);
+        }
 
         // Sempre 200: o gateway não precisa reenviar (estado é reconsultado).
         return response()->json(['received' => true]);

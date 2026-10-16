@@ -2,20 +2,22 @@
 
 namespace App\Services;
 
-use App\Models\Subscription;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Integração com o gateway de pagamentos (API de Pedidos) para as
- * assinaturas do SaaS.
+ * Integração com o gateway de pagamentos (API de Pedidos).
  *
- * Checkout transparente: o cartão é criptografado NO NAVEGADOR (SDK do
- * gateway + chave pública da conta) e só o hash chega ao servidor — o número
- * do cartão nunca passa por aqui. O Pix é criado no servidor e devolvido como
- * QR Code (imagem + copia e cola).
+ * Genérico o bastante para qualquer cobrança: recebe um "subject" (referência,
+ * descrição e valor em centavos) e devolve o pedido normalizado. Hoje é usado
+ * pela assinatura do treinador (`sub-{id}`) e pela cobrança online do aluno
+ * (`pay-{id}`).
+ *
+ * Checkout transparente: o cartão é criptografado NO NAVEGADOR (SDK do gateway
+ * + chave pública da conta) e só o hash chega ao servidor — o número do cartão
+ * nunca passa por aqui. O Pix é criado no servidor e devolvido como QR Code.
  *
  * Todos os acessos à API passam por este service: facilita mock nos testes e
  * concentra o mapa de status do gateway.
@@ -83,24 +85,23 @@ class PagBankService
     /**
      * Cria um pedido com cartão de crédito (dados já criptografados).
      *
+     * @param  array{reference: string, description: string, amount_cents: int}  $charge
      * @param  array{encrypted: string, holder: string, installments: int|string, cpf: string}  $card
      * @param  array{name?: string, email?: string, tax_id?: string}  $payer
      * @return array<string, mixed> pedido normalizado (ver normalizeOrder)
      *
      * @throws \RuntimeException quando o gateway não responde ou recusa o pedido.
      */
-    public function createCardOrder(Subscription $subscription, array $card, array $payer): array
+    public function createCardOrder(array $charge, array $card, array $payer): array
     {
-        $subject = "{$subscription->externalReference()}-c1";
-
         $request = [
-            'reference_id' => $subscription->externalReference(),
+            'reference_id' => $charge['reference'],
             'customer' => $this->customer($payer),
-            'items' => [$this->item($subscription)],
+            'items' => [$this->item($charge)],
             'charges' => [[
-                'reference_id' => $subject,
-                'description' => $this->description($subscription),
-                'amount' => ['value' => $this->amountInCents($subscription), 'currency' => 'BRL'],
+                'reference_id' => "{$charge['reference']}-c1",
+                'description' => $charge['description'],
+                'amount' => ['value' => $charge['amount_cents'], 'currency' => 'BRL'],
                 'payment_method' => [
                     'type' => 'CREDIT_CARD',
                     'installments' => max(1, (int) $card['installments']),
@@ -118,7 +119,7 @@ class PagBankService
             ]],
         ];
 
-        return $this->normalizeOrder($this->post('orders', $request, $subscription, 'cartão'));
+        return $this->normalizeOrder($this->post('orders', $request, $charge['reference'], 'cartão'));
     }
 
     /**
@@ -129,24 +130,25 @@ class PagBankService
      * responde `40010 PIX_KEY_NOT_FOUND` — confirmado no sandbox, onde o
      * `qr_codes` funciona (201) sem nenhuma chave cadastrada.
      *
+     * @param  array{reference: string, description: string, amount_cents: int}  $charge
      * @param  array{name?: string, email?: string, tax_id?: string}  $payer
      * @return array<string, mixed> pedido normalizado (com qr_code_text/qr_code_image)
      *
      * @throws \RuntimeException quando o gateway não responde ou recusa o pedido.
      */
-    public function createPixOrder(Subscription $subscription, array $payer): array
+    public function createPixOrder(array $charge, array $payer): array
     {
         $request = [
-            'reference_id' => $subscription->externalReference(),
+            'reference_id' => $charge['reference'],
             'customer' => $this->customer($payer),
-            'items' => [$this->item($subscription)],
+            'items' => [$this->item($charge)],
             'qr_codes' => [[
-                'amount' => ['value' => $this->amountInCents($subscription)],
+                'amount' => ['value' => $charge['amount_cents']],
                 'expiration_date' => now()->addDay()->toIso8601String(),
             ]],
         ];
 
-        return $this->normalizeOrder($this->post('orders', $request, $subscription, 'Pix'));
+        return $this->normalizeOrder($this->post('orders', $request, $charge['reference'], 'Pix'));
     }
 
     /**
@@ -259,7 +261,7 @@ class PagBankService
      *
      * @throws \RuntimeException
      */
-    private function post(string $path, array $payload, Subscription $subscription, string $label): array
+    private function post(string $path, array $payload, string $reference, string $label): array
     {
         $payload = array_merge($payload, $this->notificationPayload());
 
@@ -267,7 +269,7 @@ class PagBankService
             $response = $this->client()->post($path, $payload);
         } catch (\Throwable $e) {
             Log::error('Gateway: falha de comunicação ao criar o pedido', [
-                'subscription_id' => $subscription->id,
+                'reference' => $reference,
                 'label' => $label,
                 'hint' => 'Verifique a rede e o token configurado.',
                 'error' => $e->getMessage(),
@@ -278,7 +280,7 @@ class PagBankService
 
         if (! $response->successful()) {
             Log::error('Gateway: recusa ao criar o pedido', [
-                'subscription_id' => $subscription->id,
+                'reference' => $reference,
                 'label' => $label,
                 'status' => $response->status(),
                 'response' => $response->json(),
@@ -332,32 +334,17 @@ class PagBankService
         return $customer;
     }
 
-    /** @return array<string, mixed> */
-    private function item(Subscription $subscription): array
+    /**
+     * @param  array{reference: string, description: string, amount_cents: int}  $charge
+     * @return array<string, mixed>
+     */
+    private function item(array $charge): array
     {
         return [
-            'reference_id' => $subscription->externalReference(),
-            'name' => $this->description($subscription),
+            'reference_id' => $charge['reference'],
+            'name' => $charge['description'],
             'quantity' => 1,
-            'unit_amount' => $this->amountInCents($subscription),
+            'unit_amount' => $charge['amount_cents'],
         ];
-    }
-
-    /** Descrição apresentada ao pagador (plano + período). */
-    private function description(Subscription $subscription): string
-    {
-        $subscription->loadMissing('plan');
-
-        return sprintf(
-            'Assinatura %s (%s)',
-            $subscription->plan?->name ?? 'plano',
-            $subscription->period?->value ?? ''
-        );
-    }
-
-    /** O gateway trabalha em centavos. */
-    private function amountInCents(Subscription $subscription): int
-    {
-        return (int) round(((float) $subscription->amount) * 100);
     }
 }

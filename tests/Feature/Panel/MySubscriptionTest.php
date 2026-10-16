@@ -226,13 +226,14 @@ class MySubscriptionTest extends TestCase
         $teacher = Teacher::factory()->create();
 
         $this->fakeGateway([
-            'createCardOrder' => function (Subscription $subscription, array $card, array $payer) use ($teacher) {
+            'createCardOrder' => function (array $charge, array $card, array $payer) use ($teacher) {
                 // Cartão criptografado no cliente + CPF higienizado (só dígitos).
                 $this->assertSame('hash-abc', $card['encrypted']);
                 $this->assertSame('Fulano de Tal', $card['holder']);
                 $this->assertSame('12345678900', $card['cpf']);
                 $this->assertSame($teacher->user->email, $payer['email']);
-                $this->assertSame(49.90, (float) $subscription->amount);
+                $this->assertSame(4990, $charge['amount_cents']);
+                $this->assertStringStartsWith('sub-', $charge['reference']);
 
                 return $this->paidOrder();
             },
@@ -429,15 +430,15 @@ class MySubscriptionTest extends TestCase
         $teacher->user->update(['cpf' => '123.456.789-00']);
 
         $this->fakeGateway([
-            'createPixOrder' => function (Subscription $subscription, array $payer) use ($teacher) {
+            'createPixOrder' => function (array $charge, array $payer) use ($teacher) {
                 $this->assertSame('12345678900', $payer['tax_id']);
                 $this->assertSame($teacher->user->email, $payer['email']);
-                $this->assertSame(134.70, (float) $subscription->amount);
-                $this->assertSame('sub-'.$subscription->id, $subscription->externalReference());
+                $this->assertSame(13470, $charge['amount_cents']);
+                $this->assertStringStartsWith('sub-', $charge['reference']);
 
                 return [
                     'id' => 'ORDE_PIX',
-                    'reference_id' => $subscription->externalReference(),
+                    'reference_id' => $charge['reference'],
                     'status' => 'pending',
                     'gateway_status' => 'WAITING',
                     'charge_id' => 'CHAR_PIX',

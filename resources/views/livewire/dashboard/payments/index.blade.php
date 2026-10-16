@@ -8,10 +8,45 @@
             </h1>
             <p class="mt-1 text-sm text-gray-500">Cobranças e recebimentos dos alunos</p>
         </div>
-        <a wire:navigate href="{{ route('payments.create') }}" class="btn btn-primary">
-            <x-icon name="plus" class="h-4 w-4" />
-            Novo pagamento
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a wire:navigate href="{{ route('payouts.index') }}" class="btn btn-secondary">
+                <x-icon name="banknotes" class="h-4 w-4" />
+                Repasses
+            </a>
+            <a wire:navigate href="{{ route('payments.create') }}" class="btn btn-primary">
+                <x-icon name="plus" class="h-4 w-4" />
+                Novo pagamento
+            </a>
+        </div>
+    </div>
+
+    {{-- KPIs de cobrança --}}
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="card">
+            <div class="card-body flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+                    <x-icon name="currency-dollar" class="h-5 w-5" />
+                </span>
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Cobranças manuais este mês</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ $manualThisMonth }} / {{ $manualLimit }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+                    <x-icon name="banknotes" class="h-5 w-5" />
+                </span>
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Aguardando repasse (online)</p>
+                    <p class="text-lg font-semibold text-gray-900">
+                        R$ {{ number_format($awaitingPayoutTotal, 2, ',', '.') }}
+                        <span class="text-sm font-normal text-gray-500">({{ $awaitingPayoutCount }})</span>
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -37,6 +72,12 @@
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
+                <select class="form-control form-control-sm max-w-[200px]" wire:model.live="filterChannel">
+                    <option value="">Todos os canais</option>
+                    @foreach ($channels as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
 
@@ -49,6 +90,8 @@
                             <th>Descrição</th>
                             <th>Vencimento</th>
                             <th class="text-right">Valor</th>
+                            <th class="text-center">Canal</th>
+                            <th class="text-right">Líquido</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">Método</th>
                             <th class="text-center">Ações</th>
@@ -61,6 +104,25 @@
                                 <td>{{ $payment->description }}</td>
                                 <td>{{ $payment->due_date?->format('d/m/Y') ?? '—' }}</td>
                                 <td class="text-right">R$ {{ number_format((float) $payment->amount, 2, ',', '.') }}</td>
+                                <td class="text-center">
+                                    @php
+                                        $channel = $payment->channel?->value;
+                                        $channelBadge = $channel === 'online' ? 'badge-info' : 'badge-secondary';
+                                    @endphp
+                                    <span class="badge {{ $channelBadge }}">
+                                        {{ $channels[$channel] ?? $channel ?? '—' }}
+                                    </span>
+                                </td>
+                                <td class="text-right">
+                                    @if ($payment->isOnline() && $payment->net_amount !== null)
+                                        R$ {{ number_format((float) $payment->net_amount, 2, ',', '.') }}
+                                        <small class="block text-gray-500">
+                                            taxa R$ {{ number_format((float) $payment->fee_amount, 2, ',', '.') }}
+                                        </small>
+                                    @else
+                                        <span class="text-gray-400">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-center">
                                     @php
                                         $badgeClass = match ($payment->status->value) {

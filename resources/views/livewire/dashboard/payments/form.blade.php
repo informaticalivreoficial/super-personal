@@ -105,6 +105,21 @@
 
                     <div class="col-md-3">
                         <div class="form-group">
+                            <label for="channel">Canal de cobrança *</label>
+                            <select class="form-control @error('channel') is-invalid @enderror"
+                                id="channel" wire:model.live="channel">
+                                @foreach ($channels as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('channel')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="form-group">
                             <label for="payment_method">Forma de pagamento</label>
                             <select class="form-control @error('payment_method') is-invalid @enderror"
                                 id="payment_method" wire:model="payment_method">
@@ -142,6 +157,33 @@
                             @enderror
                         </div>
                     </div>
+
+                    @if ($channel === 'online')
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <x-icon name="information-circle" class="h-5 w-5" />
+                                <span>
+                                    Cobrança <strong>online</strong>: o aluno paga pelo app (Pix) e o valor cai na conta
+                                    da plataforma. Você recebe o <strong>líquido</strong> (valor menos a taxa de
+                                    {{ number_format(\App\Models\Config::feePercent(), 2, ',', '.') }}%) no repasse.
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($isEdit && $payment?->isOnline() && $payment?->fee_amount !== null)
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Repasse desta cobrança</label>
+                                <input type="text" class="form-control" readonly
+                                    value="Taxa: R$ {{ number_format((float) $payment->fee_amount, 2, ',', '.') }} · Líquido: R$ {{ number_format((float) $payment->net_amount, 2, ',', '.') }}">
+                                <small class="text-muted">
+                                    Status no gateway: {{ $payment->gateway_status ?: '—' }}.
+                                    O repasse é acompanhado em "Repasses".
+                                </small>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 

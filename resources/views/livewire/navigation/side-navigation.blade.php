@@ -209,6 +209,18 @@
                         <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Minha assinatura</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('payouts.index') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('payouts.index')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="arrow-path" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Repasses</span>
+                    </a>
+                </li>
             @endif
 
             @if (auth()->user()->isPlatformAdmin())
@@ -246,6 +258,16 @@
                         ])>
                         <x-icon name="currency-dollar" class="h-5 w-5 shrink-0" />
                         <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Planos do SaaS</span>
+                    </a>
+                    <a href="{{ route('payouts.admin') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('payouts.admin')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="arrow-path" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Repasses</span>
                     </a>
                     <a href="{{ route('settings') }}" wire:navigate
                         @class([

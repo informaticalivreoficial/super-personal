@@ -102,7 +102,7 @@ class SubscriptionService
         [$subscription, $snapshot] = $this->preparePending($teacher, $plan, $period);
 
         try {
-            $order = $this->gateway->createCardOrder($subscription, $card, $this->payer($teacher, $card['cpf'] ?? null));
+            $order = $this->gateway->createCardOrder($this->charge($subscription), $card, $this->payer($teacher, $card['cpf'] ?? null));
         } catch (\Throwable $e) {
             $this->restoreSnapshot($subscription, $snapshot);
 
@@ -160,7 +160,7 @@ class SubscriptionService
         [$subscription, $snapshot] = $this->preparePending($teacher, $plan, $period);
 
         try {
-            $order = $this->gateway->createPixOrder($subscription, $payer);
+            $order = $this->gateway->createPixOrder($this->charge($subscription), $payer);
         } catch (\Throwable $e) {
             $this->restoreSnapshot($subscription, $snapshot);
 
@@ -330,6 +330,27 @@ class SubscriptionService
         }
 
         $subscription->save();
+    }
+
+    /**
+     * "Subject" da cobrança enviado ao gateway (referência `sub-{id}`, valor
+     * do plano em centavos e descrição legível).
+     *
+     * @return array{reference: string, description: string, amount_cents: int}
+     */
+    private function charge(Subscription $subscription): array
+    {
+        $subscription->loadMissing('plan');
+
+        return [
+            'reference' => $subscription->externalReference(),
+            'description' => sprintf(
+                'Assinatura %s (%s)',
+                $subscription->plan?->name ?? 'plano',
+                $subscription->period?->value ?? ''
+            ),
+            'amount_cents' => (int) round(((float) $subscription->amount) * 100),
+        ];
     }
 
     /**

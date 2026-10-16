@@ -68,6 +68,9 @@ class ProfileService
             if ($teacher !== null) {
                 $teacher->name = $data['name'];
                 $teacher->phone = ($data['phone'] ?? '') ?: null;
+                // Chave Pix usada nos repasses das cobranças online.
+                $teacher->pix_key = ($data['pix_key'] ?? '') ?: null;
+                $teacher->pix_key_type = ($data['pix_key_type'] ?? '') ?: null;
                 $teacher->save();
             }
 

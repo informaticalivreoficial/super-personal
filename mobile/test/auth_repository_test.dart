@@ -1,53 +1,9 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:super_personal/core/api/api_client.dart';
 import 'package:super_personal/core/api/api_exception.dart';
-import 'package:super_personal/core/storage/token_storage.dart';
 import 'package:super_personal/features/auth/auth_repository.dart';
 
-/// Adapter fake: responde com o JSON devolvido pelo handler, sem rede.
-class _FakeAdapter implements HttpClientAdapter {
-  _FakeAdapter(this._handler);
-
-  final Future<ResponseBody> Function(RequestOptions options) _handler;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) {
-    return _handler(options);
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
-ApiClient _clientWith(
-  Future<ResponseBody> Function(RequestOptions options) handler,
-) {
-  final client = ApiClient(
-    tokenStorage: InMemoryTokenStorage(),
-    baseUrl: 'https://api.test/api/v1',
-  );
-  client.dio.httpClientAdapter = _FakeAdapter(handler);
-
-  return client;
-}
-
-ResponseBody _json(Object body, int status) {
-  return ResponseBody.fromString(
-    jsonEncode(body),
-    status,
-    headers: {
-      Headers.contentTypeHeader: [Headers.jsonContentType],
-    },
-  );
-}
+import 'support/api_test_helpers.dart';
 
 const _userJson = {
   'id': 7,
@@ -60,9 +16,9 @@ void main() {
   group('AuthRepository.login', () {
     test('grava o token e devolve o usuário', () async {
       late RequestOptions captured;
-      final client = _clientWith((options) async {
+      final client = clientWith((options) async {
         captured = options;
-        return _json({
+        return jsonResponse({
           'token': 'tok-123',
           'token_type': 'Bearer',
           'user': _userJson,
@@ -82,8 +38,8 @@ void main() {
     });
 
     test('401 vira ApiException com mensagem da API', () async {
-      final client = _clientWith(
-        (_) async => _json({'message': 'Credenciais inválidas.'}, 401),
+      final client = clientWith(
+        (_) async => jsonResponse({'message': 'Credenciais inválidas.'}, 401),
       );
 
       expect(
@@ -101,8 +57,8 @@ void main() {
     });
 
     test('422 expõe erros por campo', () async {
-      final client = _clientWith(
-        (_) async => _json({
+      final client = clientWith(
+        (_) async => jsonResponse({
           'message': 'Dados inválidos.',
           'errors': {
             'email': ['Informe um e-mail válido.'],
@@ -123,7 +79,7 @@ void main() {
     });
 
     test('sem resposta (offline) vira mensagem de conexão', () async {
-      final client = _clientWith((_) async {
+      final client = clientWith((_) async {
         throw DioException.connectionTimeout(
           timeout: const Duration(seconds: 1),
           requestOptions: RequestOptions(path: 'auth/login'),
@@ -145,8 +101,8 @@ void main() {
 
   group('AuthRepository.me', () {
     test('desembrulha {data: ...} do recurso', () async {
-      final client = _clientWith(
-        (_) async => _json({'data': _userJson}, 200),
+      final client = clientWith(
+        (_) async => jsonResponse({'data': _userJson}, 200),
       );
       await client.tokenStorage.write('tok-123');
 
@@ -159,8 +115,8 @@ void main() {
 
   group('AuthRepository.logout', () {
     test('sempre descarta o token local, mesmo com falha na API', () async {
-      final client = _clientWith(
-        (_) async => _json({'message': 'Erro.'}, 500),
+      final client = clientWith(
+        (_) async => jsonResponse({'message': 'Erro.'}, 500),
       );
       await client.tokenStorage.write('tok-123');
 

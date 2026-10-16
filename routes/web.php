@@ -13,6 +13,8 @@ use App\Livewire\Dashboard\MyProfile;
 use App\Livewire\Dashboard\MySubscription;
 use App\Livewire\Dashboard\Payments\PaymentForm;
 use App\Livewire\Dashboard\Payments\PaymentIndex;
+use App\Livewire\Dashboard\Payouts\AdminPayoutIndex;
+use App\Livewire\Dashboard\Payouts\PayoutIndex;
 use App\Livewire\Dashboard\Plans\PlanForm;
 use App\Livewire\Dashboard\Plans\PlanIndex;
 use App\Livewire\Dashboard\Plans\PlanShow;
@@ -120,6 +122,9 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
         Route::get('assinaturas/planos', SaasPlanIndex::class)->name('saas-plans.index');
         Route::get('assinaturas/planos/cadastrar', SaasPlanForm::class)->name('saas-plans.create');
         Route::get('assinaturas/planos/{plan}/editar', SaasPlanForm::class)->name('saas-plans.edit');
+        // Repasses das cobranças online (líquido do treinador): o admin confirma
+        // a transferência e marca como pago.
+        Route::get('assinaturas/repasses', AdminPayoutIndex::class)->name('payouts.admin');
     });
 
     // *********************** Minha página pública *******************************
@@ -148,6 +153,14 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     // o admin não tem tenant — ele gerencia em /admin/professores/{id}/editar.
     Route::get('assinatura', MySubscription::class)
         ->name('subscription.show')
+        ->middleware('role:teacher');
+
+    // *********************** Repasses (saldo do treinador) **********************
+    // Líquido das cobranças online: saldo disponível, cobranças aguardando
+    // repasse e histórico. Exclusivo do treinador (o admin gerencia em
+    // /admin/assinaturas/repasses).
+    Route::get('repasses', PayoutIndex::class)
+        ->name('payouts.index')
         ->middleware('role:teacher');
 
     // *********************** Configurações do site *******************************/

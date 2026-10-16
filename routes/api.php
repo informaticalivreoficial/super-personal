@@ -58,6 +58,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('progress', [StudentProgress::class, 'index']);
             Route::get('payments', [StudentPayments::class, 'index']);
+            Route::post('payments/{payment}/checkout', [StudentPayments::class, 'checkout'])->whereNumber('payment');
             Route::get('notifications', [StudentNotifications::class, 'index']);
         });
 
