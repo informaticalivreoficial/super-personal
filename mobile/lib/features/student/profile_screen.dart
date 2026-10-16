@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/api/api_exception.dart';
+import 'cpf_input_formatter.dart';
+import 'formatters.dart';
 import 'models/student_profile.dart';
 import 'student_providers.dart';
 
@@ -23,7 +26,8 @@ final _genders = const [
   (value: 'other', label: 'Outro'),
 ];
 
-/// Perfil do aluno: edita nome, telefone, gênero, altura e dias disponíveis.
+/// Perfil do aluno: edita nome, telefone, CPF, data de nascimento, gênero,
+/// altura e dias disponíveis.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -35,7 +39,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _phone = TextEditingController();
+  final _cpf = TextEditingController();
+  final _birthDateText = TextEditingController();
   final _height = TextEditingController();
+  DateTime? _birthDate;
   String? _gender;
   final Set<int> _days = {};
   bool _initialized = false;
@@ -46,6 +53,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void dispose() {
     _name.dispose();
     _phone.dispose();
+    _cpf.dispose();
+    _birthDateText.dispose();
     _height.dispose();
     super.dispose();
   }
@@ -55,9 +64,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _initialized = true;
     _name.text = profile.name;
     _phone.text = profile.phone ?? '';
+    _cpf.text = formatCpf(profile.document);
+    _birthDate = profile.birthDate;
+    _birthDateText.text =
+        _birthDate == null ? '' : formatDate(_birthDate!);
     _height.text = profile.height?.toString() ?? '';
     _gender = profile.gender;
     _days.addAll(profile.availableDays);
+  }
+
+  /// Seletor de data limitado a maiores de 18 anos (a API valida de novo).
+  Future<void> _pickBirthDate() async {
+    final today = DateTime.now();
+    final limit = DateTime(today.year - 18, today.month, today.day);
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(today.year - 30, today.month, today.day),
+      firstDate: DateTime(1900),
+      lastDate: limit,
+      helpText: 'Data de nascimento',
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _birthDate = picked;
+        _birthDateText.text = formatDate(picked);
+      });
+    }
   }
 
   Future<void> _save(StudentProfile profile) async {
@@ -66,12 +100,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _saving = true);
     try {
       final height = int.tryParse(_height.text.trim());
+      final cpf = cpfDigits(_cpf.text);
       await ref.read(profileProvider.notifier).save(
             ProfileUpdateData(
               name: _name.text.trim(),
               phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
               gender: _gender,
               height: height,
+              document: cpf.isEmpty ? null : cpf,
+              birthDate: _birthDate,
               availableDays: _days.toList()..sort(),
             ),
           );
@@ -220,6 +257,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             formKey: _formKey,
             name: _name,
             phone: _phone,
+            cpf: _cpf,
+            birthDate: _birthDate,
+            birthDateText: _birthDateText,
             height: _height,
             gender: _gender,
             days: _days,
@@ -228,6 +268,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             photoUrl: data.photoUrl,
             uploadingPhoto: _uploadingPhoto,
             onChangePhoto: () => _showPhotoSheet(data.photoUrl),
+            onPickBirthDate: _pickBirthDate,
             onGenderChanged: (value) => setState(() => _gender = value),
             onToggleDay: (day) => setState(() {
               _days.contains(day) ? _days.remove(day) : _days.add(day);
@@ -245,6 +286,9 @@ class _ProfileForm extends StatelessWidget {
     required this.formKey,
     required this.name,
     required this.phone,
+    required this.cpf,
+    required this.birthDate,
+    required this.birthDateText,
     required this.height,
     required this.gender,
     required this.days,
@@ -253,6 +297,7 @@ class _ProfileForm extends StatelessWidget {
     required this.photoUrl,
     required this.uploadingPhoto,
     required this.onChangePhoto,
+    required this.onPickBirthDate,
     required this.onGenderChanged,
     required this.onToggleDay,
     required this.onSave,
@@ -261,6 +306,9 @@ class _ProfileForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController name;
   final TextEditingController phone;
+  final TextEditingController cpf;
+  final DateTime? birthDate;
+  final TextEditingController birthDateText;
   final TextEditingController height;
   final String? gender;
   final Set<int> days;
@@ -269,6 +317,7 @@ class _ProfileForm extends StatelessWidget {
   final String? photoUrl;
   final bool uploadingPhoto;
   final VoidCallback onChangePhoto;
+  final VoidCallback onPickBirthDate;
   final ValueChanged<String?> onGenderChanged;
   final ValueChanged<int> onToggleDay;
   final VoidCallback onSave;
@@ -382,6 +431,46 @@ class _ProfileForm extends StatelessWidget {
                   labelText: 'Telefone',
                   border: OutlineInputBorder(),
                 ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: cpf,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  const CpfInputFormatter(),
+                ],
+                decoration: const InputDecoration(
+                  labelText: 'CPF',
+                  helperText: 'Usado para gerar o Pix das cobranças online.',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  final digits = cpfDigits(value);
+                  if (digits.isEmpty) return null;
+                  return digits.length == 11
+                      ? null
+                      : 'Informe um CPF válido (11 dígitos).';
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                readOnly: true,
+                onTap: onPickBirthDate,
+                decoration: InputDecoration(
+                  labelText: 'Data de nascimento',
+                  helperText: 'É preciso ter 18 anos ou mais para usar o app.',
+                  hintText: 'dd/mm/aaaa',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: const Icon(Icons.calendar_today_outlined),
+                ),
+                controller: birthDateText,
+                validator: (_) {
+                  if (birthDate == null) return 'Informe sua data de nascimento.';
+                  return ageInYears(birthDate!) >= 18
+                      ? null
+                      : 'É preciso ter 18 anos ou mais para usar o aplicativo.';
+                },
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(

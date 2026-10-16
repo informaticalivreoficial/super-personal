@@ -359,6 +359,74 @@ sports ──1:N── training_sessions (restrict)
     para `isTeacher()`; admin continua ajustando manualmente no
     `ProfessorForm` (inclusive voltando para trial/cancelada).
 
+### Cobrança do aluno (manual x online) — 2026-10-16
+
+> Não confundir com a **assinatura do treinador** (seção acima): aqui é o
+> aluno pagando o treinador.
+
+- **Modelo decidido**: receber na conta PagBank **da plataforma** e repassar
+  ao treinador (sem split). A plataforma retém uma **taxa configurável**
+  (`config.fee_percent`, padrão **5%**) **apenas nas cobranças online**; o
+  treinador recebe o líquido (`net_amount`) via **repasse (`Payout`)**.
+  Pix primeiro; cartão depois.
+- **Canais** (`payments.channel`, enum `PaymentChannel`):
+  - `manual` (**padrão**): cobrança paga por fora (transferência/comprovante);
+    **sem taxa** e **limite de 10 por mês por treinador**
+    (`PaymentService::MANUAL_MONTHLY_LIMIT`, `ValidationException` em
+    `channel` ao exceder — contagem por `created_at` do mês).
+  - `online`: paga pelo app no gateway; gera `fee_amount`/`net_amount` ao
+    confirmar.
+- **Colunas novas em `payments`**: `channel`, `fee_amount`, `net_amount`,
+  `gateway`, `gateway_order_id`, `gateway_status`, `payout_id`.
+- **`PaymentService`** (caminho único de escrita, API e painel):
+  `store/update/delete`; `checkoutPix(Payment, {cpf?})` gera o Pix na conta da
+  plataforma (`pay-{id}` como referência, `qr_codes[]`), grava
+  `gateway_order_id`/`gateway_status` e mantém o status pendente;
+  `syncFromOrder`/`applyOrder` aplicam a notificação **reconsultando o pedido**
+  (o corpo nunca é fonte de verdade): `approved` → paga + taxa + líquido;
+  `REFUNDED/IN_DISPUTE/CANCELED` de uma paga → `cancelled` e limpa
+  taxa/líquido. CPF do pagador: do request ou `students.document`.
+- **`PagBankWebhookController`** roteia por prefixo da referência: `pay-` →
+  `PaymentService`, senão `SubscriptionService`.
+- **API**: `POST /student/payments/{payment}/checkout` (aluno, cobrança online)
+  → `{status, order_id, qr_code, qr_image}`; `payment.channel` no
+  `StorePaymentRequest`; `PaymentResource` expõe `channel`, `channel_label`,
+  `fee_amount`, `net_amount`, `gateway_status`, `payable`.
+  - **Erros**: sem CPF no cadastro e sem `cpf` no payload →
+    `ValidationException` em `cpf` (422 com `errors.cpf`, **antes** do gateway);
+    `RuntimeException` do gateway (conexão/recusa) é convertida em **422 com
+    `message`** no controller (não 500) para o app exibir ao aluno.
+- **`Payout`** (`payouts`, enum `PayoutStatus` = requested/paid/cancelled):
+  repasse do líquido ao treinador (`amount` bruto, `fee_total`, `net_amount`,
+  `paid_at`, `notes`; `teacher_id` **fora do fillable** — setado pelo service).
+  `PayoutService`: `awaitingPayments`/`balance` (soma de `net_amount` das
+  cobranças online pagas sem `payout_id`), `request` (agrupa as cobranças num
+  `Payout` `requested`; sem saldo → `ValidationException`), `markPaid`,
+  `cancel` (devolve as cobranças ao saldo) e totais. `update`/`store` do
+  `PaymentService` recalculam taxa/líquido (`syncPlatformFee`) — confirmar
+  manualmente uma cobrança online também aplica a taxa.
+- **Painel — treinador**: `GET /admin/repasses` (`Payouts\PayoutIndex`,
+  `role:teacher`): KPIs (saldo disponível, solicitado, já repassado), tabela
+  das cobranças aguardando (com taxa e líquido), campo de observação e
+  **"Solicitar repasse"**; histórico com bruto/taxas/líquido/status. Link
+  "Repasses" no sidebar (só `isTeacher()`).
+- **Painel — admin**: `GET /admin/assinaturas/repasses`
+  (`Payouts\AdminPayoutIndex`, `role:admin`, `payouts.admin`): KPIs (a repassar
+  / já repassado), filtro de status, repasses de todos os treinadores com
+  **"Marcar como pago"** e **cancelar** (`wire:confirm`).
+- **Painel — cobranças**: o form de pagamento ganhou o **canal**
+  (manual/online) e mostra a taxa/líquido ao editar uma cobrança online paga;
+  o índice mostra badge de canal, coluna de líquido/taxa, filtro por canal e
+  os KPIs "cobranças manuais este mês (n/10)" e "aguardando repasse (online)".
+- **Chave Pix do treinador**: card "Repasse" no "Meu perfil" (`pix_key` +
+  `pix_key_type`, enum `PixKeyType`) — `ProfileService` persiste no `teachers`.
+- **Taxa da plataforma**: campo "Taxa das cobranças online (%)" em
+  Configurações (admin) → `config.fee_percent` (validado 0–100).
+- **Ainda pendente**: a descontinuação do modelo antigo de quota por
+  `SaasPlan`/`Subscription` (`StudentService::ensureStudentQuota`) — mantido por
+  ora. A tela "Pagar" (Pix) do app foi concluída em 2026-10-16 (ver
+  "Telas do aluno no app").
+
 ### Meu perfil (conta do usuário logado)
 
 - **Página** `/admin/meu-perfil` (`App\Livewire\Dashboard\MyProfile`, rota
@@ -491,6 +559,19 @@ sports ──1:N── training_sessions (restrict)
   - `TeacherIsolationTest` — treinador não vê/edita dados de outro (404/403).
   - `StudentTrainingTest` — aluno vê só os próprios treinos, `complete` cria
     execução vinculada ao aluno correto, execução visível só ao treinador dono.
+  - `StudentPaymentCheckoutTest` (9) — cobrança do aluno pela API: Pix da
+    própria cobrança online, 403 para a cobrança de um colega do mesmo
+    treinador e 404 cross-tenant (o binding resolve dentro do tenant),
+    checkout de cobrança manual recusado (422), validação do CPF, aluno sem
+    CPF no cadastro precisa enviá-lo (422 em `errors.cpf`, sem chamar o
+    gateway), falha do gateway vira 422 com `message` (não 500), criação de
+    cobrança online pelo treinador (resposta com `payable`) e bloqueio da 11ª
+    cobrança manual do mês.
+  - `StudentProfileTest` (7) — perfil do aluno: salva CPF (aceita máscara) e
+    data de nascimento, `show` devolve os dois campos, menor de 18 é recusado
+    (422), quem completa 18 hoje passa (borda), formato inválido é recusado,
+    CPF exige 11 dígitos e os campos do treinador (e-mail, pesos, `active`)
+    são ignorados.
 - Suíte do painel em `tests/Feature/Panel`:
   - `PanelAccessTest` — redirecionamento de guest, acesso por papel (teacher/admin
     200, student 403), login por papel (student/inativo bloqueados), registro cria tenant.
@@ -591,11 +672,26 @@ sports ──1:N── training_sessions (restrict)
     contra `charges[].payment_method.pix`), QR lido também de
     `charges[].qr_code`, pedido sem copia e cola, `fetchOrder`
     normalizado/nulo e mapa de mensagens de recusa.
+  - `PaymentServiceTest` (13) — cobrança do aluno no service: canal `manual`
+    por padrão, quota de 10 manuais/mês (11ª bloqueada com mensagem, online
+    não conta, reseta no mês seguinte), `checkoutPix` (referência `pay-{id}`,
+    centavos, `tax_id` do cadastro, CPF avulso, manual recusada e **sem CPF
+    falha antes do gateway** sem gravar nada), `applyOrder` (taxa padrão 5% e
+    `config.fee_percent` customizado, líquido, reversão de estorno limpa
+    taxa/líquido, referência desconhecida ignorada) e `syncFromOrder` usando
+    o `gateway_order_id`.
   - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
     auto-preço ao trocar plano, validações (plan_id/status/amount),
     cancelamento com rastro.
-  - **Total: 354 testes / 1237 assertions** (42 API + 234 painel + 11 console
-    + 8 notificações + 46 web + 13 services).
+  - `PayoutFlowTest` (11) — repasses e canal de cobrança no painel: saldo
+    (só online paga), manuais/pendentes e de outro tenant fora do saldo,
+    solicitar repasse (agrupa as cobranças, bruto/taxas/líquido, observação),
+    sem saldo → toast de erro sem gravar, admin marca como pago, admin
+    cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
+    admin no treinador), form cria cobrança online (payable), quota manual
+    erra no form e o índice mostra canal + KPIs.
+  - **Total: 394 testes / 1376 assertions** (58 API + 245 painel + 11 console
+    + 8 notificações + 46 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
     ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,
     `DECLINED` com PENDING → past_due, `DECLINED` não derruba assinatura
@@ -704,6 +800,43 @@ sports ──1:N── training_sessions (restrict)
   ```
   > USB direto exige regra udev (Samsung `04e8`) ou `adb` como root; sem
   > isso `adb devices` mostra `no permissions`.
+
+### Telas do aluno no app (itens 3 a 7)
+
+- **Feature** `mobile/lib/features/student/`: models (`dashboard`,
+  `training_session`, `training_plan`, `training_week`, `session_item`,
+  `execution`, `sport`, `payment`, `notification`, `progress`, `profile`),
+  `student_repository.dart` (todos os endpoints `/student/*`, com
+  `PagedResult<T>`) e `student_providers.dart` (`PagedController` abstrato com
+  `loadMore`/`refresh` + um controller por recurso).
+- **Telas**: painel (KPIs), treinos (tabs por status), detalhe do treino
+  (itens, start/complete/skip, form de métricas com FC máxima e esforço 0–10),
+  calendário, planos, progresso, pagamentos, notificações e **Meu perfil**
+  (nome, telefone, **CPF com máscara**, **data de nascimento com seletor
+  limitado a 18+**, gênero, altura, dias + foto).
+- **Maioridade (18+)**: o formulário exige a data de nascimento (validação
+  local com `ageInYears`) e a API valida de novo
+  (`UpdateStudentProfileRequest`: `birth_date` `aaaa-mm-dd` + 18 anos). O CPF é
+  gravado só com dígitos e passa a alimentar o Pix das cobranças online.
+- **Idioma**: `flutter_localizations` com `locale: pt-BR` no `MaterialApp`
+  (calendário e textos do Material em português).
+- **Formatadores** (`formatters.dart`): `formatDuration`, `formatDistance`,
+  `formatDate` (`dd/mm/aaaa`), `isoDate` (`aaaa-mm-dd`) e `ageInYears`;
+  máscara de CPF em `cpf_input_formatter.dart` (`CpfInputFormatter`/`formatCpf`/
+  `cpfDigits`, também usada no campo de CPF do Pix).
+- **Pagamentos (2026-10-16)** — `payments_screen.dart` +
+  `pix_payment_sheet.dart`: cobrança online em aberto (`payable`) mostra o
+  botão **"Pagar com Pix"** → bottom sheet que chama
+  `POST /student/payments/{id}/checkout` e desenha o QR Code **localmente**
+  (`qr_flutter`, a partir do copia e cola — sem depender da imagem do gateway),
+  com "Copiar código Pix" (`Clipboard`) e "Já efetuei o pagamento" (recarrega a
+  lista; quem confirma é o webhook). Sem CPF no cadastro a API responde
+  `422 errors.cpf` e o sheet revela o campo de CPF e refaz a chamada; falha do
+  gateway (422 `message`) aparece como mensagem para o aluno.
+- **Qualidade**: `dart analyze` limpo; `flutter test` = **20/20**
+  (`test/auth_repository_test.dart` 6 + `test/student_repository_test.dart` 8 +
+  `test/formatters_test.dart` 6 — helpers compartilhados em
+  `test/support/api_test_helpers.dart`).
 
 ## Landing do SaaS — home pública `/` (2026-10-13)
 
@@ -874,6 +1007,12 @@ sports ──1:N── training_sessions (restrict)
 - Próximos passos da Fase 3: rodar o app no aparelho/visualizar login,
   telas do aluno (dashboard, planos, treinos com start/complete, progresso)
   sobre a API já existente.
-- Swagger (docs manuais), refresh token, gateway de pagamento,
-  integrações Strava/Garmin.
+- Swagger (docs manuais), refresh token, integrações Strava/Garmin.
+- **Cobrança do aluno — próximos passos**: a tela "Pagar" (Pix) no app do aluno
+  e, depois disto, descontinuar o modelo antigo de quota por
+  `SaasPlan`/`Subscription` (`StudentService::ensureStudentQuota`). As telas do
+  painel (lançar online/manual com a quota, taxa/líquido, saldo e repasses do
+  treinador, confirmação pelo admin) foram concluídas em 2026-10-16.
+- Cartão de crédito na cobrança **do aluno** (hoje só Pix) — o cartão do
+  checkout transparente já existe, mas para a assinatura **do treinador**.
 - Push FCM (notificações hoje são canal `database`; entra na etapa mobile).

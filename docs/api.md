@@ -81,7 +81,7 @@ possui conta, aluno inativo ou e-mail já em uso por outra conta.
 |---|---|---|
 | GET | `/student/dashboard` | resumo: treinos de hoje/próximos, plano ativo, pagamentos pendentes, notificações não lidas |
 | GET | `/student/profile` | perfil do aluno |
-| PUT | `/student/profile` | atualiza perfil (name, phone, gender, height, available_days) |
+| PUT | `/student/profile` | atualiza perfil (name, phone, gender, height, document, birth_date, available_days) |
 | GET | `/student/training-plans` | planos ativos do aluno (paginado) |
 | GET | `/student/training-plans/{plan}` | plano com semanas, sessões e itens |
 | GET | `/student/calendar` | sessões ordenadas por `scheduled_date` (paginado) |
@@ -92,8 +92,32 @@ possui conta, aluno inativo ou e-mail já em uso por outra conta.
 | POST | `/student/trainings/{session}/skip` | marca sessão como pulada |
 | POST | `/student/trainings/{session}/execution` | registro manual de métricas (mesmo ciclo do complete) |
 | GET | `/student/progress` | histórico de progresso (paginado) |
-| GET | `/student/payments` | pagamentos do aluno (paginado) |
+| GET | `/student/payments` | pagamentos do aluno (paginado; `payable` indica a cobrança online em aberto) |
+| POST | `/student/payments/{payment}/checkout` | gera o Pix da cobrança **online** (`{cpf?}` opcional; retorna `qr_code` copia e cola + `qr_image`) |
 | GET | `/student/notifications` | notificações (database) |
+
+##### Erros do checkout Pix
+
+- `422` com `errors.cpf` — o aluno não tem CPF no cadastro (`students.document`)
+  e não enviou `cpf`: o app pede o dado e refaz a chamada.
+- `422` com `message` — falha do gateway (conexão/recusa); é erro de negócio,
+  não `500` (o app exibe a mensagem).
+- `422` com `errors.payment` — cobrança manual, cancelada ou já paga.
+- `403`/`404` — cobrança de outro aluno (mesmo tenant) / de outro treinador.
+
+A confirmação do pagamento chega pelo webhook do gateway (`pay-{id}`): o aluno
+recarrega `GET /student/payments` e vê o novo status (não há endpoint de
+reconsulta pelo app). A cobrança **manual** não é pagável no app (`payable`
+fica `false` e o Pix é recusado).
+
+##### Perfil do aluno (`PUT /student/profile`)
+
+- `document` (CPF, com ou sem máscara) é validado com **11 dígitos** quando
+  informado — é o `tax_id` enviado ao gateway no Pix.
+- `birth_date` no formato `aaaa-mm-dd`; **menor de 18 anos é recusado**
+  (`422 errors.birth_date`). O app exige a data no formulário de perfil.
+- `email`, `teacher_id`, pesos/avaliação e `active` são ignorados (não estão
+  nas regras) — quem manda nesses dados é o treinador.
 
 ### Payload de execução (`complete` / `execution`)
 
@@ -160,9 +184,16 @@ Campos aceitos (store/update): `name`, `email` (único por tenant), `phone`,
 | GET | `/teacher/students/{student}/progress` | histórico de progresso |
 | POST | `/teacher/students/{student}/progress` | registra medição (`recorded_at` obrigatório + peso, gordura, medidas, FC, FTP, paces) |
 | GET | `/teacher/students/{student}/payments` | pagamentos (filtro `status`) |
-| POST | `/teacher/students/{student}/payments` | cria (`description`, `amount`, `due_date` + `status`, `payment_method`, `paid_at`, `notes`) |
+| POST | `/teacher/students/{student}/payments` | cria (`description`, `amount`, `due_date`, `channel` = `manual`\|`online` + `status`, `payment_method`, `paid_at`, `notes`) |
 | PUT | `/teacher/payments/{payment}` | atualiza |
 | DELETE | `/teacher/payments/{payment}` | remove |
+
+#### Canais de cobrança
+
+- `manual` (**padrão**): paga por fora (transferência); o treinador confirma. Limite de **10 por mês** por treinador (`422` no `channel` ao exceder).
+- `online`: paga pelo app no gateway da plataforma. A plataforma retém a **taxa** (`fee_amount`, `config.fee_percent`, padrão 5%) e o treinador recebe `net_amount` via repasse. `payable: true` enquanto `pending`/`overdue`.
+
+O recurso `payment` expõe `channel`, `channel_label`, `fee_amount`, `net_amount`, `gateway_status` e `payable`.
 
 ---
 
