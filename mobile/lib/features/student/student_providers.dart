@@ -66,6 +66,8 @@ abstract class PagedController<T> extends AsyncNotifier<List<T>> {
     });
   }
 
+
+
   void _track(PagedResult<T> result) {
     _page = result.currentPage;
     _hasMore = result.hasMore;
@@ -126,6 +128,36 @@ class NotificationsController extends PagedController<AppNotification> {
   @override
   Future<PagedResult<AppNotification>> fetchPage(int page) =>
       ref.read(studentRepositoryProvider).notifications(page: page);
+
+  /// Recarrega a **primeira página** sem passar por `loading` e acrescenta no
+  /// topo só o que chegou depois (polling com a tela aberta e, no futuro, push).
+  ///
+  /// - não mexe em `_page`/`_hasMore`: a lista já carregada continua válida e o
+  ///   "carregar mais" segue de onde parou;
+  /// - sem lista na tela não faz nada (quem carrega é a própria tela);
+  /// - falha de rede mantém o que está na tela.
+  Future<void> refreshSilently() async {
+    final current = state.value;
+
+    if (current == null) {
+      return;
+    }
+
+    try {
+      final page = await fetchPage(1);
+      final known = current.map((item) => item.id).toSet();
+      final newItems =
+          page.items.where((item) => !known.contains(item.id)).toList();
+
+      if (newItems.isEmpty || !ref.mounted) {
+        return;
+      }
+
+      state = AsyncValue.data([...newItems, ...current]);
+    } catch (_) {
+      // Sem rede: o próximo ciclo tenta de novo.
+    }
+  }
 }
 
 final notificationsProvider =
@@ -147,6 +179,21 @@ class DashboardController extends AsyncNotifier<StudentDashboard> {
     state = await AsyncValue.guard(
       () => ref.read(studentRepositoryProvider).dashboard(),
     );
+  }
+
+  /// Atualiza o resumo **sem** passar por `loading` (polling com o app aberto):
+  /// mantém o que está na tela — nada de skeleton piscando a cada ciclo — e
+  /// ignora falha de rede.
+  Future<void> refreshSilently() async {
+    try {
+      final data = await ref.read(studentRepositoryProvider).dashboard();
+
+      if (ref.mounted) {
+        state = AsyncValue.data(data);
+      }
+    } catch (_) {
+      // Sem rede: o próximo ciclo tenta de novo.
+    }
   }
 }
 

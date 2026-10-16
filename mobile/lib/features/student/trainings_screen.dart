@@ -2,9 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/sport_icon.dart';
+import '../../core/widgets/status_chip.dart';
 import 'formatters.dart';
 import 'models/training_session.dart';
 import 'student_providers.dart';
+
+/// Filtros da lista (rótulo → status da API).
+const _filters = <({String label, String? status})>[
+  (label: 'Todos', status: null),
+  (label: 'Planejados', status: 'planned'),
+  (label: 'Concluídos', status: 'completed'),
+  (label: 'Pulados', status: 'skipped'),
+];
 
 /// Lista de treinos do aluno com filtro por status e paginação.
 class TrainingsScreen extends ConsumerStatefulWidget {
@@ -17,23 +31,15 @@ class TrainingsScreen extends ConsumerStatefulWidget {
   ConsumerState<TrainingsScreen> createState() => _TrainingsScreenState();
 }
 
-class _TrainingsScreenState extends ConsumerState<TrainingsScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs;
+class _TrainingsScreenState extends ConsumerState<TrainingsScreen> {
+  late int _index;
   final _scrollController = ScrollController();
-
-  // Índice da aba → status da API (null = todos).
-  static const _statuses = <String?>[null, 'planned', 'completed', 'skipped'];
 
   @override
   void initState() {
     super.initState();
-    final initialIndex =
-        _statuses.indexOf(widget.initialStatus).clamp(0, _statuses.length - 1);
-    _tabs = TabController(length: _statuses.length, vsync: this, initialIndex: initialIndex)
-      ..addListener(() {
-        if (!_tabs.indexIsChanging) setState(() {});
-      });
+    final inicial = _filters.indexWhere((f) => f.status == widget.initialStatus);
+    _index = inicial < 0 ? 0 : inicial;
     _scrollController.addListener(_onScroll);
   }
 
@@ -41,16 +47,14 @@ class _TrainingsScreenState extends ConsumerState<TrainingsScreen>
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 200) {
-      final controller = ref.read(trainingsProvider(status).notifier);
-      controller.loadMore();
+      ref.read(trainingsProvider(status).notifier).loadMore();
     }
   }
 
-  String? get status => _statuses[_tabs.index];
+  String? get status => _filters[_index].status;
 
   @override
   void dispose() {
-    _tabs.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -61,27 +65,59 @@ class _TrainingsScreenState extends ConsumerState<TrainingsScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Treinos'),
-        bottom: TabBar(
-          controller: _tabs,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'Todos'),
-            Tab(text: 'Planejados'),
-            Tab(text: 'Concluídos'),
-            Tab(text: 'Pulados'),
-          ],
+        title: const Text('Meus treinos'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                children: [
+                  for (var i = 0; i < _filters.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: Text(_filters[i].label),
+                      selected: _index == i,
+                      onSelected: (_) => setState(() => _index = i),
+                      labelStyle: Theme.of(context)
+                          .textTheme
+                          .labelMedium!
+                          .copyWith(
+                            color: _index == i
+                                ? AppColors.brand800
+                                : AppColors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: trainings.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorRetry(
-          message: error.toString(),
-          onRetry: () => ref.read(trainingsProvider(status).notifier).refresh(),
+        loading: () => const SkeletonCardList(count: 5),
+        error: (error, _) => RefreshableState(
+          onRefresh: () => ref.read(trainingsProvider(status).notifier).refresh(),
+          child: ErrorState(
+            message: error.toString(),
+            onRetry: () =>
+                ref.read(trainingsProvider(status).notifier).refresh(),
+          ),
         ),
         data: (items) {
           if (items.isEmpty) {
-            return const _Empty();
+            return RefreshableState(
+              onRefresh: () =>
+                  ref.read(trainingsProvider(status).notifier).refresh(),
+              child: EmptyState(
+                icon: Icons.fitness_center_rounded,
+                title: _emptyTitle,
+                message: _emptyMessage,
+              ),
+            );
           }
 
           final controller = ref.read(trainingsProvider(status).notifier);
@@ -92,13 +128,13 @@ class _TrainingsScreenState extends ConsumerState<TrainingsScreen>
             child: ListView.separated(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               itemCount: items.length + (controller.hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 if (index >= items.length) {
                   return const Padding(
-                    padding: EdgeInsets.all(16),
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
@@ -114,9 +150,23 @@ class _TrainingsScreenState extends ConsumerState<TrainingsScreen>
       ),
     );
   }
+
+  String get _emptyTitle => switch (status) {
+        'planned' => 'Nenhum treino agendado',
+        'completed' => 'Nenhum treino concluído',
+        'skipped' => 'Nenhum treino pulado',
+        _ => 'Nenhum treino por aqui',
+      };
+
+  String get _emptyMessage => switch (status) {
+        'planned' => 'Quando seu treinador enviar o próximo treino, ele aparece aqui.',
+        'completed' => 'Assim que você concluir um treino, ele fica registrado aqui.',
+        'skipped' => 'Você não pulou nenhum treino. Bom ritmo!',
+        _ => 'Seu treinador ainda não enviou treinos.',
+      };
 }
 
-/// Tile reutilizável de sessão (lista e calendário).
+/// Card de sessão (lista de treinos e calendário).
 class TrainingListTile extends StatelessWidget {
   const TrainingListTile({
     super.key,
@@ -129,105 +179,74 @@ class TrainingListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final meta = _metaParts.join(' · ');
 
-    return ListTile(
-      leading: _StatusAvatar(session: session),
-      title: Text(session.title),
-      subtitle: Text(
-        [
-          if (session.scheduledDateLabel.isNotEmpty) session.scheduledDateLabel,
-          if (session.sport?.name != null) session.sport!.name,
-          if (session.estimatedDuration != null)
-            formatDuration(session.estimatedDuration!),
-        ].join(' · '),
-      ),
-      trailing: session.statusLabel != null
-          ? Chip(
-              label: Text(session.statusLabel!),
-              visualDensity: VisualDensity.compact,
-              backgroundColor: switch (session.status) {
-                'completed' => scheme.primaryContainer,
-                'skipped' => scheme.surfaceContainerHighest,
-                _ => scheme.tertiaryContainer,
-              },
-            )
-          : const Icon(Icons.chevron_right),
+    return AppCard(
       onTap: onTap,
-    );
-  }
-}
-
-class _StatusAvatar extends StatelessWidget {
-  const _StatusAvatar({required this.session});
-
-  final TrainingSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final (icon, color) = switch (session.status) {
-      'completed' => (Icons.check, scheme.primary),
-      'skipped' => (Icons.remove, scheme.outline),
-      _ => (Icons.schedule, scheme.tertiary),
-    };
-
-    return CircleAvatar(
-      backgroundColor: color.withValues(alpha: 0.15),
-      foregroundColor: color,
-      child: Icon(icon, size: 20),
-    );
-  }
-}
-
-class _Empty extends StatelessWidget {
-  const _Empty();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.fitness_center,
-              size: 48, color: Theme.of(context).colorScheme.outline),
-          const SizedBox(height: 12),
-          const Text('Nenhum treino por aqui.'),
-          const SizedBox(height: 4),
-          Text(
-            'Seu treinador ainda não enviou treinos.',
-            style: Theme.of(context).textTheme.bodySmall,
+          SportIcon(name: session.sport?.name, size: 46),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.title,
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (meta.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(meta, style: theme.textTheme.bodySmall),
+                ],
+                if (session.statusLabel != null) ...[
+                  const SizedBox(height: 10),
+                  StatusChip(
+                    label: session.statusLabel!,
+                    status: session.status,
+                  ),
+                ],
+              ],
+            ),
           ),
+          thenChevron,
         ],
       ),
     );
   }
-}
 
-class _ErrorRetry extends StatelessWidget {
-  const _ErrorRetry({required this.message, required this.onRetry});
+  static const thenChevron =
+      Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 22);
 
-  final String message;
-  final VoidCallback onRetry;
+  List<String> get _metaParts => [
+        ?_dateLabel,
+        ?session.sport?.name,
+        if (session.estimatedDuration != null &&
+            session.estimatedDuration! > 0)
+          formatDuration(session.estimatedDuration!),
+        if (session.distance != null && session.distance! > 0)
+          formatDistance(session.distance!),
+      ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.cloud_off,
-                size: 48, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(
-                onPressed: onRetry, child: const Text('Tentar novamente')),
-          ],
-        ),
-      ),
-    );
+  /// Data amigável: `Hoje`, `Amanhã` ou `dd/mm/aaaa`.
+  String? get _dateLabel {
+    final date = session.scheduledDate;
+    if (date == null) return null;
+
+    final hoje = DateTime.now();
+    final alvo = DateTime(date.year, date.month, date.day);
+    final base = DateTime(hoje.year, hoje.month, hoje.day);
+    final diff = alvo.difference(base).inDays;
+
+    if (diff == 0) return 'Hoje';
+    if (diff == 1) return 'Amanhã';
+    if (diff == -1) return 'Ontem';
+
+    return session.scheduledDateLabel;
   }
 }
