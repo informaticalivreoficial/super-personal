@@ -822,7 +822,9 @@ sports ──1:N── training_sessions (restrict)
     (`SecureTokenStorage` no aparelho / `InMemoryTokenStorage` em teste);
   - `router/app_router.dart` — GoRouter com `refreshListenable` =
     `ValueNotifier<AsyncValue>` escutando `authControllerProvider`
-    (guard splash → login → home).
+    (guard splash → login → home). As telas do aluno são **filhas de `/`**:
+    navegar por elas (mesmo com `go`) mantém a home na pilha — ver
+    "Navegação (pilha)" abaixo.
 - **Auth** (`mobile/lib/features/auth/`): `User` (recorte do `UserResource`),
   `AuthRepository` (`POST /auth/login` grava token; `GET /auth/me`
   desembrulha `data`; `POST /auth/logout` descarta token mesmo com falha),
@@ -894,11 +896,19 @@ sports ──1:N── training_sessions (restrict)
     (recarrega a sessão sem passar por `loading`) fazem a home refletir o nome
     e o e-mail novos logo após salvar — o nome do aluno vive em `students` e em
     `users.name` (`StudentService::update` sincroniza os dois).
-- **Qualidade**: `dart analyze` limpo; `flutter test` = **59/59**
+- **Navegação (pilha)**: no `app_router.dart` as telas do aluno são **filhas da
+  home** (`routes:` aninhadas em `/`, com `treinos/:id` filha de `treinos`), e as
+  telas navegam com `context.push(...)`. Assim toda tela empilhada tem a home
+  embaixo: a `AppBar` mostra o **botão de voltar** e o "voltar" do Android
+  retorna tela a tela em vez de **sair do app** (bug de rota plana + `context.go`,
+  que substituía a pilha). Regressão em `test/router_navigation_test.dart`
+  (home → Meu painel → Ver cobranças e o `popRoute` do sistema).
+- **Qualidade**: `dart analyze` limpo; `flutter test` = **62/62**
   (`auth_repository_test` 6, `student_repository_test` 15, `formatters_test` 8,
   `live_refresh_test` 10, `screens_render_test` 16, `screens_layout_test` 2,
-  `brand_mark_test` 2 — helpers/fakes compartilhados em `test/support/`:
-  `api_test_helpers.dart`, `fake_auth.dart`, `fake_student_repository.dart`).
+  `brand_mark_test` 2, `router_navigation_test` 3 — helpers/fakes compartilhados
+  em `test/support/`: `api_test_helpers.dart`, `fake_auth.dart`,
+  `fake_student_repository.dart`).
 
 ### Ícone e abertura do app (2026-10-16)
 

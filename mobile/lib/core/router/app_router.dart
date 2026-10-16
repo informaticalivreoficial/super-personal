@@ -60,49 +60,61 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+      // A home é a raiz das telas do aluno: como elas são filhas, navegar
+      // (mesmo com `go`) mantém a home na pilha — o botão de voltar aparece
+      // na AppBar e o "voltar" do Android volta para a tela anterior em vez
+      // de sair do app.
       GoRoute(
-        path: '/painel',
-        builder: (context, state) => const StudentDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/treinos',
-        builder: (context, state) =>
-            TrainingsScreen(initialStatus: state.uri.queryParameters['status']),
-      ),
-      GoRoute(
-        path: '/treinos/:id',
-        builder: (context, state) => TrainingDetailScreen(
-          sessionId: int.parse(state.pathParameters['id']!),
-        ),
-      ),
-      GoRoute(
-        path: '/calendario',
-        builder: (context, state) => const CalendarScreen(),
-      ),
-      GoRoute(
-        path: '/planos',
-        builder: (context, state) => const PlansScreen(),
-      ),
-      GoRoute(
-        path: '/progresso',
-        builder: (context, state) => const ProgressScreen(),
-      ),
-      GoRoute(
-        path: '/pagamentos',
-        builder: (context, state) => const PaymentsScreen(),
-      ),
-      GoRoute(
-        path: '/notificacoes',
-        builder: (context, state) => const NotificationsScreen(),
-      ),
-      GoRoute(
-        path: '/perfil',
-        builder: (context, state) => const ProfileScreen(),
-      ),
-      GoRoute(
-        path: '/conta',
-        builder: (context, state) => const AccountScreen(),
+        path: '/',
+        builder: (context, state) => const HomeScreen(),
+        routes: [
+          GoRoute(
+            path: 'painel',
+            builder: (context, state) => const StudentDashboardScreen(),
+          ),
+          GoRoute(
+            path: 'treinos',
+            builder: (context, state) => TrainingsScreen(
+              initialStatus: state.uri.queryParameters['status'],
+            ),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) => TrainingDetailScreen(
+                  sessionId: int.parse(state.pathParameters['id']!),
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'calendario',
+            builder: (context, state) => const CalendarScreen(),
+          ),
+          GoRoute(
+            path: 'planos',
+            builder: (context, state) => const PlansScreen(),
+          ),
+          GoRoute(
+            path: 'progresso',
+            builder: (context, state) => const ProgressScreen(),
+          ),
+          GoRoute(
+            path: 'pagamentos',
+            builder: (context, state) => const PaymentsScreen(),
+          ),
+          GoRoute(
+            path: 'notificacoes',
+            builder: (context, state) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: 'perfil',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: 'conta',
+            builder: (context, state) => const AccountScreen(),
+          ),
+        ],
       ),
     ],
   );
