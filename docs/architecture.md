@@ -512,6 +512,21 @@ sports ──1:N── training_sessions (restrict)
   - entrega pelo canal `database` (`BaseNotification::via()`); push Android
     entra no `via()` no futuro. Leitura do aluno: API existente
     `GET /api/v1/student/notifications`.
+- **Como o aluno fica sabendo (decidido em 2026-10-16)**: a API **não tem
+  websocket** — o app **consulta** (`GET /student/notifications` + o contador de
+  não lidas do `GET /student/dashboard`) e, com o app aberto, o **polling**
+  mantém o resumo fresco; com o app **fechado**, o aviso será por **push (FCM)**.
+  - Polling no app (`mobile/lib/core/polling/live_refresh.dart`): widget
+    `LiveRefresh` roda um `onTick` a cada **30 s** (badge/contadores do resumo,
+    montado no `MaterialApp.router` do `app.dart`, só com sessão ativa) e a cada
+    **20 s** na tela de notificações (mescla o que chegou no topo da lista);
+  - para o ciclo quando o app sai do 1º plano e faz um tick imediato na volta;
+  - os controllers ganharam `refreshSilently()`: **não** passam por `loading`
+    (nada de skeleton piscando), não mexem em paginação e ignoram falha de rede
+    (mantêm o que está na tela);
+  - **FCM (próximo passo)**: precisa de um projeto Firebase (do usuário) —
+    `google-services.json` no Android, service account no backend, tabela de
+    tokens por dispositivo e um canal de notification no `via()`.
 - **`NewTrainingAvailable` por evento** (gatilho de publicação de plano):
   - `App\Events\TrainingPlanPublished` (payload: plano) + listener
     `App\Listeners\SendNewTrainingAvailableNotification` registrado no
@@ -522,6 +537,19 @@ sports ──1:N── training_sessions (restrict)
     reativação) — editar um plano já ativo não reavisa;
   - payload `data`: title/message (pt-BR), plan_id, student_id, teacher_id,
     status; aluno sem conta/bloqueado é pulado pelo listener.
+- **Mensagem do treinador** (`StudentMessages`, painel): notificação
+  `TeacherMessage` gravada no ato do clique.
+- **Como o aluno recebe hoje (sem push, sem tempo real)**: `BaseNotification::via()`
+  devolve **só `['database']`** — não há broadcast (websocket) nem FCM, e a fila é
+  `sync`. Ou seja: o registro é criado na hora (mensagem/plano) ou pelo cron das
+  07:00 (cobrança/treino), mas o app do aluno **descobre quando consulta**:
+  `GET /api/v1/student/notifications` (tela de notificações, com pull-to-refresh)
+  e o contador de não lidas do `GET /student/dashboard` (badge da home). Se o app
+  estiver aberto na home quando o treinador envia algo, o badge só muda depois de
+  uma atualização/entrada na tela. Para "tempo real" as opções são: (a) *polling*
+  curto no app enquanto está aberto; (b) websockets (Laravel Reverb + cliente
+  Dart no app); (c) **FCM** (push com o app fechado) — este exige projeto Firebase
+  e credencial de servidor no backend.
 
 ### Visual — painel 100% Tailwind (sem AdminLTE)
 
@@ -822,12 +850,13 @@ sports ──1:N── training_sessions (restrict)
 ### Telas do aluno no app (itens 3 a 7)
 
 - **Feature** `mobile/lib/features/student/`: models (`dashboard`,
-  `training_session`, `training_plan`, `training_week`, `session_item`,
-  `execution`, `sport`, `payment`, `notification`, `progress`, `profile`),
-  `student_repository.dart` (todos os endpoints `/student/*`, com
+  `training_session`, `training_plan` — que também define `TrainingWeek` —,
+  `session_item`, `execution`, `sport`, `payment`, `notification`, `progress`,
+  `profile`), `student_repository.dart` (todos os endpoints `/student/*`, com
   `PagedResult<T>`) e `student_providers.dart` (`PagedController` abstrato com
   `loadMore`/`refresh` + um controller por recurso).
-- **Telas**: painel (KPIs), treinos (tabs por status), detalhe do treino
+- **Telas**: painel (KPIs), treinos (filtros em pílulas por status), detalhe do
+  treino
   (itens, start/complete/skip, form de métricas com FC máxima e esforço 0–10),
   calendário, planos, progresso, pagamentos, notificações e **Meu perfil**
   (nome, telefone, **CPF com máscara**, **data de nascimento com seletor
@@ -865,10 +894,11 @@ sports ──1:N── training_sessions (restrict)
     (recarrega a sessão sem passar por `loading`) fazem a home refletir o nome
     e o e-mail novos logo após salvar — o nome do aluno vive em `students` e em
     `users.name` (`StudentService::update` sincroniza os dois).
-- **Qualidade**: `dart analyze` limpo; `flutter test` = **27/27**
-  (`test/auth_repository_test.dart` 6 + `test/student_repository_test.dart` 15 +
-  `test/formatters_test.dart` 6 — helpers compartilhados em
-  `test/support/api_test_helpers.dart`).
+- **Qualidade**: `dart analyze` limpo; `flutter test` = **57/57**
+  (`auth_repository_test` 6, `student_repository_test` 15, `formatters_test` 8,
+  `live_refresh_test` 10, `screens_render_test` 16, `screens_layout_test` 2 —
+  helpers/fakes compartilhados em `test/support/`: `api_test_helpers.dart`,
+  `fake_auth.dart`, `fake_student_repository.dart`).
 
 ### Ícone e abertura do app (2026-10-16)
 
@@ -894,6 +924,83 @@ sports ──1:N── training_sessions (restrict)
   `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS` (espera
   `YES`/`NO`). Depois de rodar o gerador, conferir e voltar as linhas para
   `YES` (foi o que aconteceu aqui).
+
+### Design system do app (2026-10-16)
+
+- **Paleta** (`mobile/lib/core/theme/app_colors.dart`): a escala `brand` é a
+  **mesma do painel web** (`tailwind.config.js` — laranja `brand-400/500` até o
+  marrom `brand-950`), com neutros **quentes** (creme `#FCFAEB`, fundo
+  `#F8F5F1`, texto `#241A15`) e tons semânticos (success/warning/danger/info com
+  variante suave). O `headerGradient` (950→700) é o topo das telas principais.
+- **Tema** (`app_theme.dart`, aplicado em `app.dart`): `ColorScheme.fromSeed`
+  ajustado nos papéis que importam (primary `brand-600` = AA com branco),
+  tipografia **Plus Jakarta Sans** e, em um só lugar, os componentes: AppBar
+  chapada com fio de borda, card 18px com borda `#EDE5DC`, botões (altura 50,
+  raio 14), campos preenchidos com foco laranja, chips em pílula, bottom sheet
+  com drag handle, snackbar escuro flutuante, badge, checkbox/switch e o
+  `DatePicker` com cabeçalho na cor da marca.
+- **Fontes**: `mobile/assets/fonts/PlusJakartaSans-{Regular,Medium,SemiBold,Bold,ExtraBold}.ttf`
+  — instâncias estáticas geradas da **variável** do Google Fonts com `fontTools`
+  (`instantiateVariableFont` + `pyftsubset`), subset latim + acentos pt-BR:
+  ~35 KB por peso (~170 KB no total). Licença OFL em `assets/fonts/OFL.txt`.
+- **Widgets compartilhados** (`mobile/lib/core/widgets/`) — é o vocabulário que
+  as telas usam, para não repetir estilo:
+  - `AppCard` (card branco clicável com ripple), `SectionHeader` (título + ação);
+  - `StatCard` (KPI com ícone em `IconTile`), `IconTile`, `StatusChip` +
+    `AppTone`/`toneForStatus()` (status cru da API → tom e cor);
+  - `EmptyState` / `ErrorState` / `RefreshableState` (estado vazio/erro ainda
+    permite o "puxar para atualizar") / `AlertCard` (pendências e avisos);
+  - `SkeletonBox` / `SkeletonCardList` (carregamento em blocos pulsantes, no
+    lugar do spinner central);
+  - `SportIcon` (ícone e tom por modalidade, normalizando acentos do nome que vem
+    da API) e `AppHeader` (gradiente da marca com cantos inferiores arredondados).
+- **Telas redesenhadas** (todas as telas do aluno já usam o vocabulário):
+  - **Home** (cabeçalho em gradiente com avatar/notificações/atualização, três
+    números do dia, alerta de cobrança em aberto, atalhos em grade de 2 colunas
+    e um card de dica);
+  - **Meu painel** (KPIs 2x2 clicáveis + atalhos);
+  - **Meus treinos** (filtros em pílulas — no lugar do `TabBar` — e cards com
+    ícone da modalidade, meta "Hoje/Amanhã/Ontem · duração · distância" e selo de
+    status);
+  - **Detalhe do treino** (hero em gradiente com modalidade/status/meta,
+    composição numerada, recado do treinador e as ações
+    iniciar/concluir/pular; o formulário de execução virou um card rolável com
+    "sensação" em `ChoiceChip`);
+  - **Pagamentos** (resumo do que está em aberto no topo, cards com selo de
+    status e botão "Pagar com Pix" só nas cobranças `payable`) e o
+    **`pix_payment_sheet`** (QR branco, copiar código, campo de CPF quando a API
+    responde `errors.cpf`);
+  - **Notificações** (cards com ícone/tom por tipo e data "Hoje/Ontem/dd/mm/aaaa"
+    — continua com o `LiveRefresh` de 20 s);
+  - **Meus planos** (plano → semana → sessão em `ExpansionTile` encadeados,
+    abrindo o detalhe do treino), **Calendário** (agrupado por dia com
+    "Hoje/Amanhã/Ontem" e contagem) e **Meu progresso** (cards com as métricas em
+    pílulas e bottom sheet com os detalhes/observações);
+  - **Login** (marca + formulário em card), **Meu perfil** (cartão de avatar com
+    câmera, "Dados pessoais" e "Rotina de treino" em cards separados) e
+    **Conta e acesso** (e-mail com troca por código e troca de senha).
+  - **Números em pt-BR**: use `formatDecimal()` (`78,5`) e `formatDistance()`
+    (`12,3 km`) em `formatters.dart` — `toStringAsFixed` sozinho imprime com
+    ponto.
+- **Regra**: tela **não** hardcodeia cor/tamanho — se faltar algo, acrescente um
+  token no tema.
+- **Testes de tela**: `mobile/test/screens_render_test.dart` (uma passada por
+  tela: renderiza, mostra os textos principais e não estoura exceção) e
+  `mobile/test/screens_layout_test.dart` (regressão do `Row`/`stretch`), sobre
+  os fakes de `mobile/test/support/` (`fake_auth.dart`,
+  `fake_student_repository.dart`).
+- **Gotcha — tela em branco (bug real de 2026-10-16)**: `Row` com
+  `crossAxisAlignment: CrossAxisAlignment.stretch` **dentro de área de altura
+  livre** (item de `ListView`/`Column` em `ListView`) quebra o layout — a altura
+  máxima é infinita, o eixo cruzado do `stretch` não tem o que esticar e o
+  framework estoura (`!_debugDoingThisLayout` + cascata de `RenderBox was not
+  laid out`); nenhum frame fecha e **a tela fica só com o fundo do scaffold**
+  (parece "app que não abre", e o logcat não mostra o erro — ele aparece no
+  console do Dart/`flutter attach`). Conserto: envolver a linha em
+  `IntrinsicHeight` (mantém os cards da mesma linha com a mesma altura) ou usar
+  `CrossAxisAlignment.start`. Coberto por `mobile/test/screens_layout_test.dart`
+  (Home e Meu painel, com os providers dublados) — o teste falhava com ~6.000
+  exceções antes do conserto.
 
 ## Landing do SaaS — home pública `/` (2026-10-13)
 

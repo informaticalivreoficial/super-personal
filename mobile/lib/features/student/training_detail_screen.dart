@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/section_header.dart';
+import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/sport_icon.dart';
+import '../../core/widgets/status_chip.dart';
 import 'formatters.dart';
 import 'models/execution.dart';
+import 'models/session_item.dart';
 import 'models/training_session.dart';
 import 'student_providers.dart';
 
@@ -27,11 +37,14 @@ class TrainingDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Treino')),
       body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorView(
-          message: error.toString(),
-          onRetry: () =>
+        loading: () => const SkeletonCardList(count: 4),
+        error: (error, _) => RefreshableState(
+          onRefresh: () async =>
               ref.invalidate(trainingDetailProvider(sessionId)),
+          child: ErrorState(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(trainingDetailProvider(sessionId)),
+          ),
         ),
         data: (session) => _DetailBody(
           session: session,
@@ -97,8 +110,7 @@ class _DetailBody extends ConsumerWidget {
     await _run(
       context,
       ref,
-      () =>
-          ref.read(studentRepositoryProvider).skipTraining(session.id),
+      () => ref.read(studentRepositoryProvider).skipTraining(session.id),
       successMessage: 'Treino marcado como pulado.',
     );
   }
@@ -119,204 +131,166 @@ class _DetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
     final execution = session.execution;
     final planned = session.isPlanned;
     final inProgress = execution?.status == 'in_progress';
+    final temRegistro = execution != null && _hasMetrics(execution);
 
     return RefreshIndicator(
       onRefresh: () async => onChanged(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero,
         children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                session.title,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-            if (session.statusLabel != null)
-              Chip(
-                label: Text(session.statusLabel!),
-                backgroundColor: switch (session.status) {
-                  'completed' => scheme.primaryContainer,
-                  'skipped' => scheme.surfaceContainerHighest,
-                  _ => scheme.tertiaryContainer,
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 16,
-          runSpacing: 4,
-          children: [
-            if (session.scheduledDateLabel.isNotEmpty)
-              _Meta(icon: Icons.event, text: session.scheduledDateLabel),
-            if (session.sport?.name != null)
-              _Meta(icon: Icons.sports, text: session.sport!.name),
-            if (session.estimatedDuration != null)
-              _Meta(
-                  icon: Icons.timer_outlined,
-                  text: formatDuration(session.estimatedDuration!)),
-            if (session.distance != null)
-              _Meta(
-                  icon: Icons.straighten,
-                  text: formatDistance(session.distance!)),
-            if (session.intensity != null)
-              _Meta(icon: Icons.bolt, text: session.intensity!),
-            if (session.targetPace != null)
-              _Meta(icon: Icons.speed, text: 'Ritmo ${session.targetPace}'),
-          ],
-        ),
-        if (session.description != null &&
-            session.description!.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Text(session.description!,
-              style: Theme.of(context).textTheme.bodyMedium),
-        ],
-        if (session.coachNotes != null &&
-            session.coachNotes!.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Card(
-            color: scheme.secondaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Observação do treinador',
-                      style: Theme.of(context).textTheme.labelLarge),
-                  const SizedBox(height: 4),
-                  Text(session.coachNotes!),
+          _Hero(session: session),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (session.description != null &&
+                    session.description!.isNotEmpty) ...[
+                  const SectionHeader(title: 'Sobre o treino'),
+                  AppCard(
+                    child: Text(
+                      session.description!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                 ],
-              ),
-            ),
-          ),
-        ],
-
-        // Ações do treino.
-        const SizedBox(height: 16),
-        if (planned) ...[
-          FilledButton.icon(
-            onPressed: () => _start(context, ref),
-            icon: const Icon(Icons.play_arrow),
-            label: Text(inProgress ? 'Continuar treino' : 'Iniciar treino'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _complete(context, ref),
-            icon: const Icon(Icons.check),
-            label: const Text('Concluir treino'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => _skip(context, ref),
-            icon: const Icon(Icons.skip_next),
-            label: const Text('Pular treino'),
-          ),
-        ] else if (session.isCompleted) ...[
-          OutlinedButton.icon(
-            onPressed: () => _complete(context, ref),
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('Editar registro'),
-          ),
-        ],
-
-        // Métricas registradas.
-        if (execution != null && _hasMetrics(execution)) ...[
-          const SizedBox(height: 24),
-          Text('Registro',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  if (execution.duration != null)
-                    _MetricRow(
-                        label: 'Duração',
-                        value: formatDuration(execution.duration!)),
-                  if (execution.distance != null)
-                    _MetricRow(
-                        label: 'Distância',
-                        value: formatDistance(execution.distance!)),
-                  if (execution.averageHeartRate != null)
-                    _MetricRow(
-                        label: 'FC média',
-                        value: '${execution.averageHeartRate} bpm'),
-                  if (execution.maxHeartRate != null)
-                    _MetricRow(
-                        label: 'FC máx',
-                        value: '${execution.maxHeartRate} bpm'),
-                  if (execution.averagePace != null)
-                    _MetricRow(
-                        label: 'Ritmo médio',
-                        value: execution.averagePace!),
-                  if (execution.perceivedEffort != null)
-                    _MetricRow(
-                        label: 'Esforço percebido',
-                        value: '${execution.perceivedEffort}/10'),
-                  if (execution.feeling != null)
-                    _MetricRow(
-                        label: 'Sensação', value: execution.feeling!),
-                  if (execution.notes != null &&
-                      execution.notes!.isNotEmpty)
-                    _MetricRow(
-                        label: 'Observações', value: execution.notes!),
+                if (session.coachNotes != null &&
+                    session.coachNotes!.isNotEmpty) ...[
+                  AlertCard(
+                    icon: Icons.chat_bubble_outline_rounded,
+                    tone: AppTone.info,
+                    title: 'Recado do seu treinador',
+                    message: session.coachNotes,
+                  ),
+                  const SizedBox(height: 18),
                 ],
-              ),
+                if (planned) ...[
+                  FilledButton.icon(
+                    onPressed: () => _start(context, ref),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: Text(
+                      inProgress ? 'Continuar treino' : 'Iniciar treino',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: () => _complete(context, ref),
+                    icon: const Icon(Icons.check_rounded),
+                    label: const Text('Concluir treino'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => _skip(context, ref),
+                    icon: const Icon(Icons.skip_next_rounded),
+                    label: const Text('Pular treino'),
+                  ),
+                ] else if (session.isCompleted) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => _complete(context, ref),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Editar registro'),
+                  ),
+                ],
+                if (temRegistro) ...[
+                  const SizedBox(height: 18),
+                  const SectionHeader(title: 'Seu registro'),
+                  AppCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    child: Column(
+                      children: [
+                        if (execution.duration != null)
+                          _MetricRow(
+                            icon: Icons.timer_outlined,
+                            label: 'Duração',
+                            value: formatDuration(execution.duration!),
+                          ),
+                        if (execution.distance != null)
+                          _MetricRow(
+                            icon: Icons.straighten_rounded,
+                            label: 'Distância',
+                            value: formatDistance(execution.distance!),
+                          ),
+                        if (execution.averageHeartRate != null)
+                          _MetricRow(
+                            icon: Icons.favorite_border_rounded,
+                            label: 'FC média',
+                            value: '${execution.averageHeartRate} bpm',
+                          ),
+                        if (execution.maxHeartRate != null)
+                          _MetricRow(
+                            icon: Icons.monitor_heart_outlined,
+                            label: 'FC máxima',
+                            value: '${execution.maxHeartRate} bpm',
+                          ),
+                        if (execution.averagePace != null)
+                          _MetricRow(
+                            icon: Icons.speed_rounded,
+                            label: 'Ritmo médio',
+                            value: execution.averagePace!,
+                          ),
+                        if (execution.perceivedEffort != null)
+                          _MetricRow(
+                            icon: Icons.bolt_rounded,
+                            label: 'Esforço percebido',
+                            value: '${execution.perceivedEffort}/10',
+                          ),
+                        if (execution.feeling != null)
+                          _MetricRow(
+                            icon: Icons.mood_rounded,
+                            label: 'Sensação',
+                            value: execution.feeling!,
+                          ),
+                        if (execution.notes != null &&
+                            execution.notes!.isNotEmpty)
+                          _MetricRow(
+                            icon: Icons.notes_rounded,
+                            label: 'Observações',
+                            value: execution.notes!,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (session.items.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  SectionHeader(
+                    title: 'Composição do treino',
+                    subtitle: session.items.length == 1
+                        ? '1 item'
+                        : '${session.items.length} itens',
+                  ),
+                  for (final item in session.items)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _ItemCard(item: item),
+                    ),
+                ],
+                if (session.instructions != null &&
+                    session.instructions!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const SectionHeader(title: 'Instruções'),
+                  AppCard(
+                    child: Text(
+                      session.instructions!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
-
-        // Composição do treino.
-        if (session.items.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          Text('Composição', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ...session.items.map(
-            (item) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                dense: true,
-                leading: CircleAvatar(
-                  radius: 14,
-                  child: Text('${item.sortOrder}',
-                      style: Theme.of(context).textTheme.labelSmall),
-                ),
-                title: Text(item.title),
-                subtitle: Text(
-                  [
-                    if (item.typeLabel != null) item.typeLabel!,
-                    if (item.repetitions != null)
-                      '${item.repetitions} reps',
-                    if (item.sets != null) '${item.sets} séries',
-                    if (item.duration != null)
-                      formatDuration(item.duration!),
-                    if (item.distance != null)
-                      formatDistance(item.distance!),
-                    if (item.target != null) item.target!,
-                  ].join(' · '),
-                ),
-              ),
-            ),
-          ),
-        ],
-        if (session.instructions != null &&
-            session.instructions!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text('Instruções',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(session.instructions!),
-        ],
-        const SizedBox(height: 32),
-      ],
       ),
     );
   }
@@ -328,6 +302,192 @@ class _DetailBody extends ConsumerWidget {
       execution.maxHeartRate != null ||
       execution.perceivedEffort != null ||
       (execution.notes?.isNotEmpty ?? false);
+}
+
+/// Topo em gradiente: modalidade, título, status e dados do treino.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.session});
+
+  final TrainingSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final visual = sportVisual(session.sport?.name);
+
+    return AppHeader(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(17),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                ),
+                child: Icon(visual.icon, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (session.scheduledDateLabel.isNotEmpty)
+                      Text(
+                        session.scheduledDateLabel,
+                        style: theme.textTheme.labelSmall!.copyWith(
+                          color: Colors.white.withValues(alpha: 0.72),
+                        ),
+                      ),
+                    const SizedBox(height: 2),
+                    Text(
+                      session.title,
+                      style: theme.textTheme.titleLarge!
+                          .copyWith(color: Colors.white, letterSpacing: -0.3),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (session.statusLabel != null) ...[
+            const SizedBox(height: 14),
+            StatusChip(
+              label: session.statusLabel!,
+              status: session.status,
+            ),
+          ],
+          if (_pills.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [for (final pill in _pills) _HeroPill(pill: pill)],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<({IconData icon, String text})> get _pills => [
+        if (session.sport?.name != null)
+          (icon: Icons.sports_rounded, text: session.sport!.name),
+        if (session.estimatedDuration != null &&
+            session.estimatedDuration! > 0)
+          (
+            icon: Icons.timer_outlined,
+            text: formatDuration(session.estimatedDuration!),
+          ),
+        if (session.distance != null && session.distance! > 0)
+          (
+            icon: Icons.straighten_rounded,
+            text: formatDistance(session.distance!),
+          ),
+        if (session.intensity != null)
+          (icon: Icons.bolt_rounded, text: session.intensity!),
+        if (session.targetPace != null)
+          (icon: Icons.speed_rounded, text: 'Ritmo ${session.targetPace}'),
+      ];
+}
+
+/// Pílula translúcida do cabeçalho (modalidade, duração...).
+class _HeroPill extends StatelessWidget {
+  const _HeroPill({required this.pill});
+
+  final ({IconData icon, String text}) pill;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(pill.icon, size: 14, color: Colors.white.withValues(alpha: 0.85)),
+          const SizedBox(width: 5),
+          Text(
+            pill.text,
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Um item da composição do treino (com o número da ordem).
+class _ItemCard extends StatelessWidget {
+  const _ItemCard({required this.item});
+
+  final SessionItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final meta = _metaParts.join(' · ');
+
+    return AppCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.brand100,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '${item.sortOrder}',
+              style: theme.textTheme.labelSmall!.copyWith(
+                color: AppColors.brand800,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title, style: theme.textTheme.titleSmall),
+                if (meta.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(meta, style: theme.textTheme.bodySmall),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<String> get _metaParts => [
+        ?item.typeLabel,
+        if (item.repetitions != null) '${item.repetitions} reps',
+        if (item.sets != null) '${item.sets} séries',
+        if (item.duration != null) formatDuration(item.duration!),
+        if (item.distance != null) formatDistance(item.distance!),
+        ?item.target,
+      ];
 }
 
 /// Formulário de métricas da execução (duração, distância, FC, esforço).
@@ -344,10 +504,11 @@ Future<ExecutionData?> showExecutionSheet(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        top: 4,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      child: _ExecutionForm(session: session),
+      // Em tela pequena com o teclado aberto o formulário precisa rolar.
+      child: SingleChildScrollView(child: _ExecutionForm(session: session)),
     ),
   );
 }
@@ -460,22 +621,32 @@ class _ExecutionFormState extends State<_ExecutionForm> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Registrar treino',
-            style: Theme.of(context).textTheme.titleLarge,
+          Row(
+            children: [
+              const Icon(Icons.insights_rounded, color: AppColors.brand600),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Registrar treino',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
-            'Todos os campos são opcionais.',
-            style: Theme.of(context).textTheme.bodySmall,
+            'Todos os campos são opcionais — preencha o que você tem.',
+            style: theme.textTheme.bodySmall,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
@@ -483,8 +654,8 @@ class _ExecutionFormState extends State<_ExecutionForm> {
                   controller: _duration,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Duração (min)',
-                    border: OutlineInputBorder(),
+                    labelText: 'Duração',
+                    suffixText: 'min',
                   ),
                 ),
               ),
@@ -494,8 +665,8 @@ class _ExecutionFormState extends State<_ExecutionForm> {
                   controller: _distance,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Distância (m)',
-                    border: OutlineInputBorder(),
+                    labelText: 'Distância',
+                    suffixText: 'm',
                   ),
                 ),
               ),
@@ -509,8 +680,8 @@ class _ExecutionFormState extends State<_ExecutionForm> {
                   controller: _heartRate,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'FC média (bpm)',
-                    border: OutlineInputBorder(),
+                    labelText: 'FC média',
+                    suffixText: 'bpm',
                   ),
                 ),
               ),
@@ -520,8 +691,8 @@ class _ExecutionFormState extends State<_ExecutionForm> {
                   controller: _maxHeartRate,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'FC máxima (bpm)',
-                    border: OutlineInputBorder(),
+                    labelText: 'FC máxima',
+                    suffixText: 'bpm',
                   ),
                 ),
               ),
@@ -534,8 +705,8 @@ class _ExecutionFormState extends State<_ExecutionForm> {
                 child: TextFormField(
                   controller: _pace,
                   decoration: const InputDecoration(
-                    labelText: 'Ritmo (ex.: 5:00)',
-                    border: OutlineInputBorder(),
+                    labelText: 'Ritmo',
+                    hintText: 'ex.: 5:00',
                   ),
                 ),
               ),
@@ -545,41 +716,48 @@ class _ExecutionFormState extends State<_ExecutionForm> {
                   controller: _effort,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Esforço (0–10)',
-                    border: OutlineInputBorder(),
+                    labelText: 'Esforço',
+                    suffixText: '0–10',
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _feeling,
-            decoration: const InputDecoration(
-              labelText: 'Sensação',
-              border: OutlineInputBorder(),
-            ),
-            items: [
-              for (final feeling in _feelings)
-                DropdownMenuItem(value: feeling, child: Text(feeling)),
-            ],
-            onChanged: (value) => setState(() => _feeling = value),
+          Text(
+            'Como você se sentiu?',
+            style: theme.textTheme.labelMedium,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final feeling in _feelings)
+                ChoiceChip(
+                  label: Text(feeling),
+                  selected: _feeling == feeling,
+                  onSelected: (_) => setState(
+                    () => _feeling = _feeling == feeling ? null : feeling,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _notes,
-            maxLines: 2,
+            maxLines: 3,
             decoration: const InputDecoration(
               labelText: 'Observações',
-              border: OutlineInputBorder(),
+              hintText: 'Alguma dor, imprevisto, sensação do treino...',
             ),
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
+            child: FilledButton.icon(
               onPressed: _submit,
-              child: const Text('Salvar registro'),
+              icon: const Icon(Icons.check_rounded),
+              label: const Text('Salvar registro'),
             ),
           ),
         ],
@@ -588,69 +766,44 @@ class _ExecutionFormState extends State<_ExecutionForm> {
   }
 }
 
-class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.text});
+/// Linha de métrica registrada (ícone, rótulo e valor).
+class _MetricRow extends StatelessWidget {
+  const _MetricRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: Theme.of(context).colorScheme.outline),
-        const SizedBox(width: 4),
-        Text(text, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
-  }
-}
-
-class _MetricRow extends StatelessWidget {
-  const _MetricRow({required this.label, required this.value});
-
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          Text(value, style: Theme.of(context).textTheme.bodyMedium),
+          Icon(icon, size: 18, color: AppColors.textMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall!
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: theme.textTheme.titleSmall,
+            ),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.cloud_off,
-                size: 48, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(
-                onPressed: onRetry, child: const Text('Tentar novamente')),
-          ],
-        ),
       ),
     );
   }

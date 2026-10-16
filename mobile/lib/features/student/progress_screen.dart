@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/icon_tile.dart';
+import '../../core/widgets/section_header.dart';
+import '../../core/widgets/skeleton.dart';
+import 'formatters.dart';
 import 'models/progress.dart';
 import 'student_providers.dart';
 
@@ -33,6 +41,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     super.dispose();
   }
 
+  Future<void> _refresh() => ref.read(progressProvider.notifier).refresh();
+
   @override
   Widget build(BuildContext context) {
     final progress = ref.watch(progressProvider);
@@ -40,42 +50,20 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Meu progresso')),
       body: progress.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.cloud_off,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.outline),
-                const SizedBox(height: 12),
-                Text(error.toString(), textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () => ref.read(progressProvider.notifier).refresh(),
-                  child: const Text('Tentar novamente'),
-                ),
-              ],
-            ),
-          ),
+        loading: () => const SkeletonCardList(count: 5),
+        error: (error, _) => RefreshableState(
+          onRefresh: _refresh,
+          child: ErrorState(message: error.toString(), onRetry: _refresh),
         ),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.monitor_heart_outlined, size: 48),
-                  SizedBox(height: 12),
-                  Text('Nenhuma avaliação registrada.'),
-                  SizedBox(height: 4),
-                  Text(
-                    'Seu treinador ainda não registrou avaliações.',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ],
+            return RefreshableState(
+              onRefresh: _refresh,
+              child: const EmptyState(
+                icon: Icons.monitor_heart_outlined,
+                title: 'Nenhuma avaliação ainda',
+                message: 'Seu treinador registra suas avaliações aqui: peso, '
+                    'gordura, FC de repouso, FTP e ritmos.',
               ),
             );
           }
@@ -83,46 +71,37 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           final controller = ref.read(progressProvider.notifier);
 
           return RefreshIndicator(
-            onRefresh: () => ref.read(progressProvider.notifier).refresh(),
+            onRefresh: _refresh,
             child: ListView.separated(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: items.length + (controller.hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(height: 1),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+              itemCount: items.length + 1 + (controller.hasMore ? 1 : 0),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                if (index >= items.length) {
+                if (index == 0) {
+                  return SectionHeader(
+                    title: 'Suas avaliações',
+                    subtitle: items.length == 1
+                        ? '1 avaliação registrada'
+                        : '${items.length} avaliações registradas',
+                  );
+                }
+
+                final item = index - 1;
+
+                if (item >= items.length) {
                   return const Padding(
-                    padding: EdgeInsets.all(16),
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
-                final entry = items[index];
-                final metrics = <String>[
-                  if (entry.weight != null)
-                    'Peso ${entry.weight!.toStringAsFixed(1)} kg',
-                  if (entry.bodyFat != null)
-                    'Gordura ${entry.bodyFat!.toStringAsFixed(1)}%',
-                  if (entry.restingHeartRate != null)
-                    'FC rep. ${entry.restingHeartRate} bpm',
-                  if (entry.ftp != null) 'FTP ${entry.ftp} W',
-                  if (entry.runningPace != null) entry.runningPace!,
-                ];
 
-                return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(entry.recordedAtLabel.isEmpty
-                        ? '?'
-                        : entry.recordedAtLabel.substring(0, 5)),
-                  ),
-                  title: Text(entry.recordedAtLabel),
-                  subtitle: Text(
-                    metrics.isEmpty ? 'Sem métricas' : metrics.join(' · '),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showDetails(context, entry),
+                final entry = items[item];
+
+                return _ProgressCard(
+                  entry: entry,
+                  onTap: () => showProgressDetails(context, entry),
                 );
               },
             ),
@@ -131,49 +110,239 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       ),
     );
   }
+}
 
-  void _showDetails(BuildContext context, StudentProgress entry) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Avaliação de ${entry.recordedAtLabel}',
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-            if (entry.weight != null)
-              _row('Peso', '${entry.weight!.toStringAsFixed(1)} kg'),
-            if (entry.bodyFat != null)
-              _row('Gordura corporal',
-                  '${entry.bodyFat!.toStringAsFixed(1)}%'),
-            if (entry.restingHeartRate != null)
-              _row('FC repouso', '${entry.restingHeartRate} bpm'),
-            if (entry.maxHeartRate != null)
-              _row('FC máxima', '${entry.maxHeartRate} bpm'),
-            if (entry.ftp != null) _row('FTP', '${entry.ftp} W'),
-            if (entry.runningPace != null)
-              _row('Ritmo corrida', entry.runningPace!),
-            if (entry.swimmingPace != null)
-              _row('Ritmo natação', entry.swimmingPace!),
-            if (entry.notes != null && entry.notes!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(entry.notes!),
-            ],
-            const SizedBox(height: 24),
-          ],
-        ),
+/// Card de uma avaliação (data + métricas em pílulas).
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({required this.entry, required this.onTap});
+
+  final StudentProgress entry;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final metricas = metricPills(entry);
+
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const IconTile(icon: Icons.insights_rounded, size: 44),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.recordedAtLabel.isEmpty
+                      ? 'Avaliação'
+                      : entry.recordedAtLabel,
+                  style: theme.textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                if (metricas.isEmpty)
+                  Text('Sem métricas registradas.', style: theme.textTheme.bodySmall)
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final metrica in metricas) _MetricPill(label: metrica),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textMuted,
+            size: 22,
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [Text(label), Text(value)],
+/// Pílula com uma métrica (`78,5 kg`, `12,0%`, `58 bpm`).
+class _MetricPill extends StatelessWidget {
+  const _MetricPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+      ),
+    );
+  }
+}
+
+/// Métricas da avaliação no formato das pílulas (`Peso 78,5 kg`...).
+List<String> metricPills(StudentProgress entry) => [
+      if (entry.weight != null)
+        'Peso ${formatDecimal(entry.weight!)} kg',
+      if (entry.bodyFat != null)
+        'Gordura ${formatDecimal(entry.bodyFat!)}%',
+      if (entry.restingHeartRate != null)
+        'FC rep. ${entry.restingHeartRate} bpm',
+      if (entry.ftp != null) 'FTP ${entry.ftp} W',
+      if (entry.runningPace != null) entry.runningPace!,
+    ];
+
+/// Detalhes completos de uma avaliação (bottom sheet).
+Future<void> showProgressDetails(BuildContext context, StudentProgress entry) {
+  final theme = Theme.of(context);
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const IconTile(icon: Icons.insights_rounded, size: 46),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Avaliação', style: theme.textTheme.titleLarge),
+                        const SizedBox(height: 2),
+                        Text(
+                          entry.recordedAtLabel.isEmpty
+                              ? 'Sem data'
+                              : entry.recordedAtLabel,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              AppCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                child: Column(
+                  children: [
+                    if (entry.weight != null)
+                      _DetailRow(
+                        icon: Icons.monitor_weight_outlined,
+                        label: 'Peso',
+                        value: '${formatDecimal(entry.weight!)} kg',
+                      ),
+                    if (entry.bodyFat != null)
+                      _DetailRow(
+                        icon: Icons.pie_chart_outline_rounded,
+                        label: 'Gordura corporal',
+                        value: '${formatDecimal(entry.bodyFat!)}%',
+                      ),
+                    if (entry.restingHeartRate != null)
+                      _DetailRow(
+                        icon: Icons.favorite_border_rounded,
+                        label: 'FC repouso',
+                        value: '${entry.restingHeartRate} bpm',
+                      ),
+                    if (entry.maxHeartRate != null)
+                      _DetailRow(
+                        icon: Icons.monitor_heart_outlined,
+                        label: 'FC máxima',
+                        value: '${entry.maxHeartRate} bpm',
+                      ),
+                    if (entry.ftp != null)
+                      _DetailRow(
+                        icon: Icons.bolt_rounded,
+                        label: 'FTP',
+                        value: '${entry.ftp} W',
+                      ),
+                    if (entry.runningPace != null)
+                      _DetailRow(
+                        icon: Icons.directions_run_rounded,
+                        label: 'Ritmo de corrida',
+                        value: entry.runningPace!,
+                      ),
+                    if (entry.swimmingPace != null)
+                      _DetailRow(
+                        icon: Icons.pool_rounded,
+                        label: 'Ritmo de natação',
+                        value: entry.swimmingPace!,
+                      ),
+                  ],
+                ),
+              ),
+              if (entry.notes != null && entry.notes!.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                AlertCard(
+                  icon: Icons.notes_rounded,
+                  tone: AppTone.neutral,
+                  title: 'Observações',
+                  message: entry.notes,
+                ),
+              ],
+            ],
+          ),
         ),
-      );
+      ),
+    ),
+  );
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.textMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall!
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(value, style: theme.textTheme.titleSmall),
+        ],
+      ),
+    );
+  }
 }

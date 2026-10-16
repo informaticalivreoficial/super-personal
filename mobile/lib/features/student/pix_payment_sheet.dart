@@ -4,6 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/icon_tile.dart';
+import '../../core/widgets/skeleton.dart';
 import 'cpf_input_formatter.dart';
 import 'models/payment.dart';
 import 'student_providers.dart';
@@ -93,7 +98,7 @@ class _PixPaymentSheetState extends ConsumerState<PixPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final checkout = _checkout;
 
     return SafeArea(
@@ -106,79 +111,90 @@ class _PixPaymentSheetState extends ConsumerState<PixPaymentSheet> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.qr_code_2, color: scheme.primary),
-                  const SizedBox(width: 8),
+                  const IconTile(icon: Icons.qr_code_2_rounded, size: 46),
+                  const SizedBox(width: 14),
                   Expanded(
-                    child: Text(
-                      'Pagar com Pix',
-                      style: Theme.of(context).textTheme.titleLarge,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pagar com Pix', style: theme.textTheme.titleLarge),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.payment.description,
+                          style: theme.textTheme.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${widget.payment.description} · ${widget.payment.amountLabel}',
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               if (_loading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
-                  child: Center(child: CircularProgressIndicator()),
-                )
+                const _LoadingState()
               else if (checkout != null) ...[
                 Center(
+                  child: Text(
+                    widget.payment.amountLabel,
+                    style: theme.textTheme.headlineMedium,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: QrImageView(
                       data: checkout.qrCode,
                       version: QrVersions.auto,
-                      size: 220,
+                      size: 216,
                       backgroundColor: Colors.white,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(
                   'Abra o aplicativo do seu banco, escolha pagar com Pix e '
                   'aponte a câmera para o QR Code.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                  style: theme.textTheme.bodySmall,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed: _copyCode,
-                  icon: const Icon(Icons.copy, size: 18),
+                  icon: const Icon(Icons.copy_rounded, size: 18),
                   label: const Text('Copiar código Pix'),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).pop(true),
-                  icon: const Icon(Icons.check, size: 18),
+                  icon: const Icon(Icons.check_rounded, size: 20),
                   label: const Text('Já efetuei o pagamento'),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   'A confirmação é automática: o status muda assim que o '
                   'pagamento for identificado.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                  style: theme.textTheme.labelSmall!
+                      .copyWith(color: AppColors.textMuted),
                 ),
               ] else ...[
-                Text(
-                  _error ?? 'Não foi possível gerar o QR Code.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: scheme.error),
+                AlertCard(
+                  icon: Icons.error_outline_rounded,
+                  tone: AppTone.danger,
+                  title: 'Não foi possível gerar o QR Code',
+                  message: _error ??
+                      'Confira sua conexão e tente novamente em instantes.',
                 ),
-                const SizedBox(height: 16),
               ],
               if (_cpfError != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _cpfController,
                   keyboardType: TextInputType.number,
@@ -194,21 +210,53 @@ class _PixPaymentSheetState extends ConsumerState<PixPaymentSheet> {
                     prefixIcon: const Icon(Icons.badge_outlined),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 FilledButton(
                   onPressed: _generate,
                   child: const Text('Gerar QR Code'),
                 ),
-              ] else if (!_loading && checkout == null)
+              ] else if (!_loading && checkout == null) ...[
+                const SizedBox(height: 14),
                 OutlinedButton.icon(
                   onPressed: _generate,
-                  icon: const Icon(Icons.refresh, size: 18),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Tentar novamente'),
                 ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Placeholder enquanto o pedido é criado no gateway.
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SkeletonBox(width: 120, height: 26, radius: 10),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: const SkeletonBox(width: 216, height: 216, radius: 16),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Gerando seu QR Code...',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
     );
   }
 }

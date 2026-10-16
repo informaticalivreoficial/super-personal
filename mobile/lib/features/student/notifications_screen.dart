@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/polling/live_refresh.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/icon_tile.dart';
+import '../../core/widgets/skeleton.dart';
+import 'models/notification.dart';
 import 'student_providers.dart';
 
 /// Notificações do aluno (mensagens do treinador e avisos automáticos).
@@ -39,117 +47,194 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Notificações')),
-      body: notifications.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.cloud_off,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.outline),
-                const SizedBox(height: 12),
-                Text(error.toString(), textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () =>
-                      ref.read(notificationsProvider.notifier).refresh(),
-                  child: const Text('Tentar novamente'),
+      // Com a tela aberta, o que chegar entra no topo da lista sozinho (o
+      // pull-to-refresh continua valendo). Com o app fechado quem avisa é o
+      // push (FCM).
+      body: LiveRefresh(
+        interval: const Duration(seconds: 20),
+        onTick: (ref) =>
+            ref.read(notificationsProvider.notifier).refreshSilently(),
+        child: notifications.when(
+          loading: () => const SkeletonCardList(count: 6),
+          error: (error, _) => RefreshableState(
+            onRefresh: () =>
+                ref.read(notificationsProvider.notifier).refresh(),
+            child: ErrorState(
+              message: error.toString(),
+              onRetry: () =>
+                  ref.read(notificationsProvider.notifier).refresh(),
+            ),
+          ),
+          data: (items) {
+            if (items.isEmpty) {
+              return RefreshableState(
+                onRefresh: () =>
+                    ref.read(notificationsProvider.notifier).refresh(),
+                child: const EmptyState(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'Nenhum aviso por aqui',
+                  message: 'Mensagens do seu treinador e lembretes de treino e '
+                      'de cobrança aparecem nesta tela.',
                 ),
+              );
+            }
+
+            final controller = ref.read(notificationsProvider.notifier);
+
+            return RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(notificationsProvider.notifier).refresh(),
+              child: ListView.separated(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                itemCount: items.length + (controller.hasMore ? 1 : 0),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  if (index >= items.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  return _NotificationCard(notification: items[index]);
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Card de uma notificação (não lida ganha destaque da marca).
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.notification});
+
+  final AppNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final unread = !notification.isRead;
+    final visual = _visual(notification.type);
+
+    return AppCard(
+      color: unread ? AppColors.brand50 : null,
+      borderColor: unread ? AppColors.brand200 : null,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconTile(
+            icon: visual.icon,
+            tone: unread ? visual.tone : AppTone.neutral,
+            size: 44,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        notification.title,
+                        style: theme.textTheme.titleSmall!.copyWith(
+                          fontWeight:
+                              unread ? FontWeight.w700 : FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (unread) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 9,
+                        height: 9,
+                        margin: const EdgeInsets.only(top: 5),
+                        decoration: const BoxDecoration(
+                          color: AppColors.brand500,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (notification.message.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.message,
+                    style: theme.textTheme.bodySmall!.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+                if (notification.createdAt != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.schedule_rounded,
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _when(notification.createdAt!),
+                        style: theme.textTheme.labelSmall!.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
-        ),
-        data: (items) {
-          if (items.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_none, size: 48),
-                  SizedBox(height: 12),
-                  Text('Nenhuma notificação.'),
-                ],
-              ),
-            );
-          }
-
-          final controller = ref.read(notificationsProvider.notifier);
-
-          return RefreshIndicator(
-            onRefresh: () =>
-                ref.read(notificationsProvider.notifier).refresh(),
-            child: ListView.separated(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: items.length + (controller.hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                if (index >= items.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final notification = items[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: notification.isRead
-                        ? Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                        : Theme.of(context)
-                            .colorScheme
-                            .primaryContainer,
-                    child: Icon(
-                      notification.isRead
-                          ? Icons.notifications_none
-                          : Icons.notifications,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    notification.title,
-                    style: TextStyle(
-                      fontWeight: notification.isRead
-                          ? FontWeight.normal
-                          : FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (notification.message.isNotEmpty)
-                        Text(
-                          notification.message,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      if (notification.createdAt != null)
-                        Text(
-                          _formatDate(notification.createdAt!),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
-        },
+        ],
       ),
     );
   }
 
-  static String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    final day = local.day.toString().padLeft(2, '0');
-    final month = local.month.toString().padLeft(2, '0');
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return '$day/$month/${local.year} $hour:$minute';
+  /// Ícone/tom pelo tipo cru da notificação (`App\Notifications\...`).
+  static ({IconData icon, AppTone tone}) _visual(String type) {
+    final tipo = type.toLowerCase();
+
+    if (tipo.contains('message')) {
+      return (icon: Icons.chat_bubble_outline_rounded, tone: AppTone.info);
+    }
+    if (tipo.contains('payment')) {
+      return (icon: Icons.attach_money_rounded, tone: AppTone.warning);
+    }
+    if (tipo.contains('progress')) {
+      return (icon: Icons.insights_rounded, tone: AppTone.success);
+    }
+    if (tipo.contains('training')) {
+      return (icon: Icons.directions_run_rounded, tone: AppTone.brand);
+    }
+
+    return (icon: Icons.notifications_none_rounded, tone: AppTone.brand);
   }
+
+  /// Data amigável: `Hoje 14:30`, `Ontem 09:05` ou `12/10/2026 08:00`.
+  static String _when(DateTime date) {
+    final local = date.toLocal();
+    final hora =
+        '${_two(local.hour)}:${_two(local.minute)}';
+    final hoje = DateTime.now();
+    final dia = DateTime(local.year, local.month, local.day);
+    final base = DateTime(hoje.year, hoje.month, hoje.day);
+    final diff = dia.difference(base).inDays;
+
+    if (diff == 0) return 'Hoje $hora';
+    if (diff == -1) return 'Ontem $hora';
+
+    return '${_two(local.day)}/${_two(local.month)}/${local.year} $hora';
+  }
+
+  static String _two(int value) => value.toString().padLeft(2, '0');
 }

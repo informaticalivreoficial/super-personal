@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/icon_tile.dart';
 import '../auth/auth_controller.dart';
 import 'email_change_sheet.dart';
 import 'student_providers.dart';
@@ -96,7 +101,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Conta e acesso')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
           _EmailCard(
             email: user?.email ?? '',
@@ -107,11 +112,13 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           const SizedBox(height: 16),
           _PasswordCard(onSubmit: _changePassword),
           const SizedBox(height: 16),
-          Text(
-            'O e-mail daqui é o seu login no app. Trocar a senha encerra as '
-            'outras sessões abertas.',
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(color: Theme.of(context).colorScheme.outline),
+          AlertCard(
+            icon: Icons.info_outline_rounded,
+            tone: AppTone.neutral,
+            title: 'Sobre seus dados de acesso',
+            message: 'O e-mail daqui é o seu login no app e a troca dele '
+                'sempre passa por um código de confirmação. Trocar a senha '
+                'encerra as outras sessões abertas.',
           ),
         ],
       ),
@@ -135,89 +142,62 @@ class _EmailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.alternate_email, size: 18, color: scheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'E-mail de acesso',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(email, style: Theme.of(context).textTheme.bodyMedium),
-            if (pendingEmail != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.shade200),
-                ),
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const IconTile(icon: Icons.alternate_email_rounded, size: 44),
+              const SizedBox(width: 14),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.mark_email_unread_outlined,
-                          size: 16,
-                          color: Colors.amber.shade800,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Aguardando confirmação de $pendingEmail',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.amber.shade900),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
+                    Text('E-mail de acesso', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 2),
                     Text(
-                      'O endereço novo só passa a valer depois do código.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: onChangeEmail,
-                          child: const Text('Digitar código'),
-                        ),
-                        TextButton(
-                          onPressed: onCancelEmailChange,
-                          child: const Text('Cancelar troca'),
-                        ),
-                      ],
+                      email.isEmpty ? '—' : email,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
-            ] else
-              TextButton.icon(
-                onPressed: onChangeEmail,
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Alterar e-mail'),
-              ),
-            Text(
-              'A troca precisa ser confirmada por um código enviado ao novo '
-              'e-mail.',
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: scheme.outline),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (pendingEmail != null) ...[
+            AlertCard(
+              icon: Icons.mark_email_unread_outlined,
+              tone: AppTone.warning,
+              title: 'Aguardando confirmação de $pendingEmail',
+              message: 'O endereço novo só passa a valer depois do código.',
+              actionLabel: 'Digitar código',
+              onAction: onChangeEmail,
             ),
-          ],
-        ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: onCancelEmailChange,
+                child: const Text('Cancelar troca'),
+              ),
+            ),
+          ] else
+            OutlinedButton.icon(
+              onPressed: onChangeEmail,
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Alterar e-mail'),
+            ),
+          const SizedBox(height: 6),
+          Text(
+            'A troca precisa ser confirmada por um código enviado ao novo '
+            'e-mail.',
+            style: theme.textTheme.bodySmall!
+                .copyWith(color: AppColors.textMuted),
+          ),
+        ],
       ),
     );
   }
@@ -281,117 +261,126 @@ class _PasswordCardState extends State<_PasswordCard> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.lock_outline, size: 18, color: scheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Alterar senha',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _current,
-                obscureText: !_showCurrent,
-                decoration: InputDecoration(
-                  labelText: 'Senha atual',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    tooltip: _showCurrent ? 'Ocultar senha' : 'Mostrar senha',
-                    icon: Icon(
-                      _showCurrent
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                    ),
-                    onPressed: () =>
-                        setState(() => _showCurrent = !_showCurrent),
+    return AppCard(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const IconTile(icon: Icons.lock_outline_rounded, size: 44),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Alterar senha', style: theme.textTheme.titleSmall),
+                      const SizedBox(height: 2),
+                      Text(
+                        'As outras sessões abertas serão encerradas.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
                   ),
                 ),
-                validator: (value) => (value == null || value.isEmpty)
-                    ? 'Informe sua senha atual.'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _password,
-                obscureText: !_showPassword,
-                decoration: InputDecoration(
-                  labelText: 'Nova senha',
-                  helperText: 'Pelo menos 8 caracteres.',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    tooltip: _showPassword ? 'Ocultar senha' : 'Mostrar senha',
-                    icon: Icon(
-                      _showPassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                    ),
-                    onPressed: () =>
-                        setState(() => _showPassword = !_showPassword),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _current,
+              obscureText: !_showCurrent,
+              decoration: InputDecoration(
+                labelText: 'Senha atual',
+                suffixIcon: IconButton(
+                  tooltip: _showCurrent ? 'Ocultar senha' : 'Mostrar senha',
+                  icon: Icon(
+                    _showCurrent
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                   ),
+                  onPressed: () =>
+                      setState(() => _showCurrent = !_showCurrent),
                 ),
-                validator: (value) {
-                  final text = value ?? '';
-                  if (text.length < 8) {
-                    return 'A nova senha precisa ter pelo menos 8 caracteres.';
-                  }
-                  if (text == _current.text) {
-                    return 'A nova senha precisa ser diferente da atual.';
-                  }
+              ),
+              validator: (value) => (value == null || value.isEmpty)
+                  ? 'Informe sua senha atual.'
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _password,
+              obscureText: !_showPassword,
+              decoration: InputDecoration(
+                labelText: 'Nova senha',
+                helperText: 'Pelo menos 8 caracteres.',
+                suffixIcon: IconButton(
+                  tooltip: _showPassword ? 'Ocultar senha' : 'Mostrar senha',
+                  icon: Icon(
+                    _showPassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                  onPressed: () =>
+                      setState(() => _showPassword = !_showPassword),
+                ),
+              ),
+              validator: (value) {
+                final text = value ?? '';
+                if (text.length < 8) {
+                  return 'A nova senha precisa ter pelo menos 8 caracteres.';
+                }
+                if (text == _current.text) {
+                  return 'A nova senha precisa ser diferente da atual.';
+                }
 
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _confirmation,
-                obscureText: !_showConfirmation,
-                decoration: InputDecoration(
-                  labelText: 'Confirmar nova senha',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    tooltip: _showConfirmation
-                        ? 'Ocultar senha'
-                        : 'Mostrar senha',
-                    icon: Icon(
-                      _showConfirmation
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                    ),
-                    onPressed: () =>
-                        setState(() => _showConfirmation = !_showConfirmation),
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _confirmation,
+              obscureText: !_showConfirmation,
+              decoration: InputDecoration(
+                labelText: 'Confirmar nova senha',
+                suffixIcon: IconButton(
+                  tooltip: _showConfirmation
+                      ? 'Ocultar senha'
+                      : 'Mostrar senha',
+                  icon: Icon(
+                    _showConfirmation
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                   ),
+                  onPressed: () =>
+                      setState(() => _showConfirmation = !_showConfirmation),
                 ),
-                validator: (value) => value == _password.text
-                    ? null
-                    : 'A confirmação não confere com a nova senha.',
               ),
-              const SizedBox(height: 16),
-              FilledButton.tonalIcon(
+              validator: (value) => value == _password.text
+                  ? null
+                  : 'A confirmação não confere com a nova senha.',
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
                 onPressed: _saving ? null : _submit,
                 icon: _saving
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Icon(Icons.password_outlined),
+                    : const Icon(Icons.password_rounded),
                 label: Text(_saving ? 'Alterando…' : 'Salvar nova senha'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

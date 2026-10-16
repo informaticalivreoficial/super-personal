@@ -27,6 +27,20 @@ void main() {
     });
   });
 
+  group('números em pt-BR', () {
+    test('formatDecimal usa vírgula', () {
+      expect(formatDecimal(78.5), '78,5');
+      expect(formatDecimal(12), '12,0');
+      expect(formatDecimal(78.54, decimals: 2), '78,54');
+    });
+
+    test('formatDistance alterna metro e quilômetro', () {
+      expect(formatDistance(800), '800 m');
+      expect(formatDistance(8000), '8,0 km');
+      expect(formatDistance(12345), '12,3 km');
+    });
+  });
+
   group('CPF', () {
     test('formatCpf aplica a máscara e corta em 11 dígitos', () {
       expect(formatCpf('12345678900'), '123.456.789-00');

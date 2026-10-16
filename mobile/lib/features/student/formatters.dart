@@ -22,6 +22,10 @@ String formatDistance(int meters) {
   return '$meters m';
 }
 
+/// Número decimal no padrão brasileiro (`78,5`).
+String formatDecimal(double value, {int decimals = 1}) =>
+    value.toStringAsFixed(decimals).replaceAll('.', ',');
+
 /// Data → `10/05/1990`.
 String formatDate(DateTime date) {
   final day = date.day.toString().padLeft(2, '0');

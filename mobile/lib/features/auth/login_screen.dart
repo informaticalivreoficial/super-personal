@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/empty_state.dart';
 import '../auth/auth_controller.dart';
 
 /// Login do aluno (e-mail + senha) — `POST /auth/login`.
@@ -64,47 +68,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
+      body: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: [
+          const _LoginHeader(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 26, 20, 32),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.fitness_center, size: 64, color: scheme.primary),
-                const SizedBox(height: 12),
-                Text(
-                  'Super Personal',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
+                Text('Entrar na sua conta', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(
-                  'Treinos do seu treinador no seu bolso',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                  'Use o e-mail e a senha que você cadastrou no app.',
+                  style: theme.textTheme.bodySmall,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
                   decoration: const InputDecoration(
                     labelText: 'E-mail',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.mail_outline),
+                    hintText: 'voce@email.com',
+                    prefixIcon: Icon(Icons.mail_outline_rounded),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 TextField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -112,8 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onSubmitted: (_) => _submit(),
                   decoration: InputDecoration(
                     labelText: 'Senha',
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
                       tooltip: _obscurePassword
                           ? 'Mostrar senha'
@@ -131,27 +125,123 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 16),
-                  Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: scheme.error),
+                  AlertCard(
+                    icon: Icons.error_outline_rounded,
+                    tone: AppTone.danger,
+                    title: 'Não foi possível entrar',
+                    message: _error,
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 22),
                 FilledButton(
                   onPressed: _loading ? null : _submit,
                   child: _loading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Entrar'),
+                ),
+                const SizedBox(height: 26),
+                const _InviteHint(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Topo do login: marca, nome e promessa do produto.
+class _LoginHeader extends StatelessWidget {
+  const _LoginHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AppHeader(
+      padding: const EdgeInsets.fromLTRB(20, 36, 20, 34),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+            ),
+            child: const Icon(
+              Icons.fitness_center_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Super Personal',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall!.copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Treinos do seu treinador no seu bolso',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall!.copyWith(
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lembrete de que a conta do aluno nasce de um convite do treinador.
+class _InviteHint extends StatelessWidget {
+  const _InviteHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Ainda não tem acesso?', style: theme.textTheme.titleSmall),
+                const SizedBox(height: 2),
+                Text(
+                  'Peça o código de convite ao seu treinador e crie sua conta '
+                  'no primeiro acesso do app.',
+                  style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

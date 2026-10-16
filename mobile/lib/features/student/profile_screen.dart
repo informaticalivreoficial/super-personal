@@ -5,6 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/icon_tile.dart';
+import '../../core/widgets/section_header.dart';
+import '../../core/widgets/skeleton.dart';
 import 'cpf_input_formatter.dart';
 import 'formatters.dart';
 import 'models/student_profile.dart';
@@ -194,9 +201,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                'Foto de perfil',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: const IconTile(icon: Icons.photo_camera_outlined),
               title: const Text('Tirar foto'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -204,7 +219,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const IconTile(icon: Icons.photo_library_outlined),
               title: const Text('Escolher da galeria'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -213,13 +228,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             if (photoUrl != null)
               ListTile(
-                leading: const Icon(Icons.delete_outline),
+                leading: const IconTile(
+                  icon: Icons.delete_outline_rounded,
+                  tone: AppTone.danger,
+                ),
                 title: const Text('Remover foto'),
                 onTap: () {
                   Navigator.of(context).pop();
                   _removePhoto();
                 },
               ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -233,23 +252,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Meu perfil')),
       body: profile.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.cloud_off, size: 48),
-                const SizedBox(height: 12),
-                Text(error.toString(), textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () => ref.invalidate(profileProvider),
-                  child: const Text('Tentar novamente'),
-                ),
-              ],
-            ),
+        loading: () => const SkeletonCardList(count: 4),
+        error: (error, _) => RefreshableState(
+          onRefresh: () async => ref.invalidate(profileProvider),
+          child: ErrorState(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(profileProvider),
           ),
         ),
         data: (data) {
@@ -325,249 +333,301 @@ class _ProfileForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final initials = name.text.trim().isEmpty
         ? '?'
         : name.text.trim()[0].toUpperCase();
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundImage: photoUrl != null
-                          ? NetworkImage(photoUrl!)
-                          : null,
-                      child: photoUrl == null ? Text(initials) : null,
-                    ),
-                    Positioned(
-                      right: -4,
-                      bottom: -4,
-                      child: Material(
-                        color: scheme.primary,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: uploadingPhoto ? null : onChangePhoto,
-                          child: uploadingPhoto
-                              ? const Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Padding(
-                                  padding: EdgeInsets.all(6),
-                                  child: Icon(
-                                    Icons.camera_alt,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        email,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Foto e dados do seu cadastro no treino',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: scheme.outline),
-                      ),
-                      TextButton.icon(
-                        onPressed: uploadingPhoto ? null : onChangePhoto,
-                        icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: Text(
-                          photoUrl == null ? 'Adicionar foto' : 'Alterar foto',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+        _PhotoCard(
+          initials: initials,
+          name: name.text.trim(),
+          email: email,
+          photoUrl: photoUrl,
+          uploading: uploadingPhoto,
+          onChange: onChangePhoto,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Form(
           key: formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: name,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Informe seu nome.'
-                    : null,
+              const SectionHeader(
+                title: 'Dados pessoais',
+                subtitle: 'Usados nos seus treinos e no Pix das cobranças.',
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Telefone',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: cpf,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  const CpfInputFormatter(),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'CPF',
-                  helperText: 'Usado para gerar o Pix das cobranças online.',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  final digits = cpfDigits(value);
-                  if (digits.isEmpty) return null;
-                  return digits.length == 11
-                      ? null
-                      : 'Informe um CPF válido (11 dígitos).';
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                readOnly: true,
-                onTap: onPickBirthDate,
-                decoration: InputDecoration(
-                  labelText: 'Data de nascimento',
-                  helperText: 'É preciso ter 18 anos ou mais para usar o app.',
-                  hintText: 'dd/mm/aaaa',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: const Icon(Icons.calendar_today_outlined),
-                ),
-                controller: birthDateText,
-                validator: (_) {
-                  if (birthDate == null) {
-                    return 'Informe sua data de nascimento.';
-                  }
-                  return ageInYears(birthDate!) >= 18
-                      ? null
-                      : 'É preciso ter 18 anos ou mais para usar o aplicativo.';
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: gender,
-                decoration: const InputDecoration(
-                  labelText: 'Gênero',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  for (final option in _genders)
-                    DropdownMenuItem(
-                      value: option.value,
-                      child: Text(option.label),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: name,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(labelText: 'Nome'),
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
+                          ? 'Informe seu nome.'
+                          : null,
                     ),
-                ],
-                onChanged: onGenderChanged,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: height,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Altura (cm)',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  final text = value?.trim() ?? '';
-                  if (text.isEmpty) return null;
-                  final parsed = int.tryParse(text);
-                  if (parsed == null || parsed < 50 || parsed > 260) {
-                    return 'Altura deve ser entre 50 e 260 cm.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Dias disponíveis',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Toque nos dias em que você costuma treinar.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final day in _weekdays)
-                    FilterChip(
-                      label: Text(day.label),
-                      selected: days.contains(day.value),
-                      onSelected: (_) => onToggleDay(day.value),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Telefone',
+                      ),
                     ),
-                ],
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: cpf,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        const CpfInputFormatter(),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'CPF',
+                        helperText:
+                            'Usado para gerar o Pix das cobranças online.',
+                      ),
+                      validator: (value) {
+                        final digits = cpfDigits(value);
+                        if (digits.isEmpty) return null;
+                        return digits.length == 11
+                            ? null
+                            : 'Informe um CPF válido (11 dígitos).';
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      readOnly: true,
+                      onTap: onPickBirthDate,
+                      decoration: const InputDecoration(
+                        labelText: 'Data de nascimento',
+                        helperText:
+                            'É preciso ter 18 anos ou mais para usar o app.',
+                        hintText: 'dd/mm/aaaa',
+                        suffixIcon: Icon(Icons.calendar_today_outlined),
+                      ),
+                      controller: birthDateText,
+                      validator: (_) {
+                        if (birthDate == null) {
+                          return 'Informe sua data de nascimento.';
+                        }
+                        return ageInYears(birthDate!) >= 18
+                            ? null
+                            : 'É preciso ter 18 anos ou mais para usar o '
+                                  'aplicativo.';
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: gender,
+                      decoration: const InputDecoration(labelText: 'Gênero'),
+                      items: [
+                        for (final option in _genders)
+                          DropdownMenuItem(
+                            value: option.value,
+                            child: Text(option.label),
+                          ),
+                      ],
+                      onChanged: onGenderChanged,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: height,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Altura (cm)',
+                      ),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return null;
+                        final parsed = int.tryParse(text);
+                        if (parsed == null || parsed < 50 || parsed > 260) {
+                          return 'Altura deve ser entre 50 e 260 cm.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              const SectionHeader(
+                title: 'Rotina de treino',
+                subtitle: 'Toque nos dias em que você costuma treinar.',
+              ),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Dias disponíveis', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final day in _weekdays)
+                          FilterChip(
+                            label: Text(day.label),
+                            selected: days.contains(day.value),
+                            onSelected: (_) => onToggleDay(day.value),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: saving ? null : onSave,
+                  icon: saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: Text(saving ? 'Salvando…' : 'Salvar perfil'),
+                ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        FilledButton.icon(
-          onPressed: saving ? null : onSave,
-          icon: saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.save_outlined),
-          label: Text(saving ? 'Salvando…' : 'Salvar perfil'),
+        const SizedBox(height: 20),
+        const AlertCard(
+          icon: Icons.info_outline_rounded,
+          tone: AppTone.neutral,
+          title: 'Dados de treino',
+          message: 'Pesos, avaliações e treinos são gerenciados pelo seu '
+              'treinador.',
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Dados de treino e avaliação são gerenciados pelo seu treinador.',
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: scheme.outline),
-        ),
-        const SizedBox(height: 16),
-        Card(
+        const SizedBox(height: 12),
+        AppCard(
+          padding: EdgeInsets.zero,
+          onTap: () => context.push('/conta'),
           child: ListTile(
-            leading: Icon(Icons.lock_outline, color: scheme.primary),
+            leading: const IconTile(icon: Icons.lock_outline_rounded),
             title: const Text('E-mail e senha'),
             subtitle: const Text('Dados de acesso ao aplicativo'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/conta'),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Cartão do topo: avatar (com botão de câmera) e a identificação do aluno.
+class _PhotoCard extends StatelessWidget {
+  const _PhotoCard({
+    required this.initials,
+    required this.name,
+    required this.email,
+    required this.photoUrl,
+    required this.uploading,
+    required this.onChange,
+  });
+
+  final String initials;
+  final String name;
+  final String email;
+  final String? photoUrl;
+  final bool uploading;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AppCard(
+      child: Row(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                radius: 34,
+                backgroundColor: AppColors.brand100,
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl!)
+                    : null,
+                child: photoUrl == null
+                    ? Text(
+                        initials,
+                        style: theme.textTheme.titleLarge!
+                            .copyWith(color: AppColors.brand700),
+                      )
+                    : null,
+              ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Material(
+                  color: theme.colorScheme.primary,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: uploading ? null : onChange,
+                    child: uploading
+                        ? const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Padding(
+                            padding: EdgeInsets.all(7),
+                            child: Icon(
+                              Icons.photo_camera_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.isEmpty ? 'Seu nome' : name,
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  email.isEmpty ? 'Sem e-mail cadastrado' : email,
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(height: 6),
+                OutlinedButton.icon(
+                  onPressed: uploading ? null : onChange,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: Text(photoUrl == null ? 'Adicionar foto' : 'Trocar foto'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
