@@ -148,7 +148,7 @@
             </div>
         </div>
     @else
-    {{-- KPIs --}}
+    {{-- KPIs do dia --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <a href="{{ route('students.index') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
             <div class="flex items-center gap-4">
@@ -200,18 +200,256 @@
                     <x-icon name="currency-dollar" class="h-6 w-6" />
                 </span>
                 <div class="min-w-0">
-                    <p class="text-sm font-medium text-gray-500">Pagamentos pendentes</p>
+                    <p class="text-sm font-medium text-gray-500">A receber</p>
                     <p class="text-2xl font-semibold tracking-tight text-gray-900">
-                        R$ {{ number_format($stats['payments']['pending_amount'], 2, ',', '.') }}
+                        R$ {{ number_format($stats['money']['open_amount'], 2, ',', '.') }}
                     </p>
                     @if ($stats['payments']['overdue_count'] > 0)
                         <p class="text-xs font-medium text-red-600">
                             {{ $stats['payments']['overdue_count'] }} em atraso
+                            (R$ {{ number_format($stats['money']['overdue_amount'], 2, ',', '.') }})
                         </p>
+                    @else
+                        <p class="text-xs text-gray-400">Nenhuma cobrança em atraso</p>
                     @endif
                 </div>
             </div>
         </a>
+    </div>
+
+    {{-- Dinheiro: o que entrou, o que a plataforma vai repassar e a cota manual --}}
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <a href="{{ route('payments.index') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
+            <div class="flex items-center gap-4">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <x-icon name="chart-bar" class="h-6 w-6" />
+                </span>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-500">Recebido no mês</p>
+                    <p class="text-2xl font-semibold tracking-tight text-gray-900">
+                        R$ {{ number_format($stats['money']['received_this_month_amount'], 2, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-400">Cobranças pagas</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ route('payouts.index') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
+            <div class="flex items-center gap-4">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                    <x-icon name="banknotes" class="h-6 w-6" />
+                </span>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-500">Saldo para repasse</p>
+                    <p class="text-2xl font-semibold tracking-tight text-gray-900">
+                        R$ {{ number_format($stats['money']['awaiting_payout_amount'], 2, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-400">
+                        Já repassado: R$ {{ number_format($stats['money']['paid_out_total'], 2, ',', '.') }}
+                    </p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ route('payments.create') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
+            <div class="flex items-center gap-4">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                    <x-icon name="document-currency-dollar" class="h-6 w-6" />
+                </span>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-500">Cobranças manuais este mês</p>
+                    {{-- Números na mesma linha de texto: a cota aparece inteira ("2 / 10"). --}}
+                    <p class="text-2xl font-semibold tracking-tight text-gray-900">{{ $stats['money']['manual_this_month'] }} <span class="text-base font-normal text-gray-400">/ {{ $stats['money']['manual_limit'] }}</span></p>
+                    <div class="mt-2 h-1.5 w-32 overflow-hidden rounded-full bg-gray-100">
+                        <div class="h-full rounded-full {{ $stats['money']['manual_this_month'] >= $stats['money']['manual_limit'] ? 'bg-red-500' : 'bg-brand-500' }}"
+                             style="width: {{ min(100, (int) round($stats['money']['manual_this_month'] / max(1, $stats['money']['manual_limit']) * 100)) }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    {{-- Assinatura do treinador na plataforma --}}
+    @php($subscription = $stats['subscription'])
+    <div class="card mt-4">
+        <div class="card-body flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl {{ $subscription && $subscription['awaiting_payment'] ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600' }}">
+                    <x-icon name="shield-check" class="h-6 w-6" />
+                </span>
+                <div class="min-w-0">
+                    <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-500">
+                        Minha assinatura
+                        @if ($subscription)
+                            <span class="badge {{ $subscription['awaiting_payment'] ? 'badge-warning' : ($subscription['active'] ? 'badge-success' : 'badge-secondary') }}">
+                                {{ $subscription['status_label'] }}
+                            </span>
+                        @endif
+                    </p>
+                    @if ($subscription)
+                        <p class="text-lg font-semibold tracking-tight text-gray-900">
+                            {{ $subscription['plan'] ?? 'Sem plano' }}
+                            @if ($subscription['period_label'])
+                                <span class="text-sm font-normal text-gray-400">· {{ $subscription['period_label'] }}</span>
+                            @endif
+                        </p>
+                        <p class="text-xs text-gray-400">
+                            R$ {{ number_format($subscription['amount'], 2, ',', '.') }} por período
+                            @if ($subscription['ends_at'])
+                                · vigente até {{ \Illuminate\Support\Carbon::parse($subscription['ends_at'])->format('d/m/Y') }}
+                            @endif
+                        </p>
+                    @else
+                        <p class="text-lg font-semibold tracking-tight text-gray-900">Sem assinatura</p>
+                        <p class="text-xs text-gray-400">Escolha um plano para liberar todos os recursos.</p>
+                    @endif
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                @if ($subscription && $subscription['awaiting_payment'])
+                    <span class="flex items-center gap-1 text-xs font-medium text-amber-600">
+                        <x-icon name="exclamation-triangle" class="h-4 w-4" />
+                        Aguardando confirmação do pagamento
+                    </span>
+                @endif
+                <a wire:navigate href="{{ route('subscription.show') }}" class="btn btn-primary">
+                    <x-icon name="banknotes" class="h-4 w-4" />
+                    @if ($subscription && $subscription['awaiting_payment'])
+                        Concluir pagamento
+                    @elseif ($subscription)
+                        Gerenciar assinatura
+                    @else
+                        Escolher plano
+                    @endif
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- Listas acionáveis --}}
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {{-- Cobranças em atraso --}}
+        <div class="card">
+            <div class="card-header flex items-center justify-between">
+                <h3 class="card-title flex items-center gap-2">
+                    <x-icon name="clock" class="h-5 w-5 text-red-600" />
+                    Cobranças em atraso
+                </h3>
+                <a wire:navigate href="{{ route('payments.index') }}" class="text-sm font-medium text-brand-600 hover:text-brand-700">
+                    Ver todas
+                </a>
+            </div>
+            <div class="card-body">
+                @if ($stats['overdue_payments']->isNotEmpty())
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>Vencimento</th>
+                                    <th class="text-right">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($stats['overdue_payments'] as $payment)
+                                    <tr wire:key="overdue-{{ $payment->id }}">
+                                        <td>
+                                            <a wire:navigate href="{{ route('students.show', $payment->student_id) }}"
+                                               class="font-medium text-gray-900 hover:text-brand-600">
+                                                {{ $payment->student?->name ?? '—' }}
+                                            </a>
+                                            <p class="text-xs text-gray-400">{{ $payment->description }}</p>
+                                        </td>
+                                        <td class="whitespace-nowrap">
+                                            {{ $payment->due_date?->format('d/m/Y') ?? '—' }}
+                                            @if ($payment->due_date)
+                                                <span class="badge badge-danger">
+                                                    {{ (int) $payment->due_date->startOfDay()->diffInDays(now()->startOfDay(), false) }} dia(s)
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="whitespace-nowrap text-right font-medium text-gray-900">
+                                            R$ {{ number_format((float) $payment->amount, 2, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="flex items-center gap-2 py-6 text-sm text-gray-500">
+                        <x-icon name="check-badge" class="h-5 w-5 text-green-600" />
+                        Nenhuma cobrança em atraso. Tudo em dia!
+                    </p>
+                @endif
+            </div>
+        </div>
+
+        {{-- Treinos de hoje --}}
+        <div class="card">
+            <div class="card-header flex items-center justify-between">
+                <h3 class="card-title flex items-center gap-2">
+                    <x-icon name="calendar" class="h-5 w-5 text-brand-600" />
+                    Treinos de hoje
+                </h3>
+                <a wire:navigate href="{{ route('plans.index') }}" class="text-sm font-medium text-brand-600 hover:text-brand-700">
+                    Ver planos
+                </a>
+            </div>
+            <div class="card-body">
+                @if ($stats['today_sessions']->isNotEmpty())
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>Treino</th>
+                                    <th class="text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($stats['today_sessions'] as $session)
+                                    <tr wire:key="today-{{ $session->id }}">
+                                        <td>
+                                            <a wire:navigate href="{{ route('students.show', $session->student_id) }}"
+                                               class="font-medium text-gray-900 hover:text-brand-600">
+                                                {{ $session->student?->name ?? '—' }}
+                                            </a>
+                                            <p class="text-xs text-gray-400">{{ $session->sport?->name }}</p>
+                                        </td>
+                                        <td>
+                                            {{ $session->title }}
+                                            @if ($session->estimated_duration)
+                                                @php($minutes = intdiv((int) $session->estimated_duration, 60))
+                                                <p class="text-xs text-gray-400">
+                                                    {{ $minutes >= 60 ? sprintf('%dh%02d', intdiv($minutes, 60), $minutes % 60) : $minutes.' min' }}
+                                                </p>
+                                            @endif
+                                        </td>
+                                        <td class="text-right">
+                                            <span class="badge {{ match ($session->status?->value) {
+                                                'completed' => 'badge-success',
+                                                'skipped' => 'badge-secondary',
+                                                'cancelled' => 'badge-danger',
+                                                default => 'badge-warning',
+                                            } }}">
+                                                {{ $sessionStatuses[$session->status?->value] ?? '—' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="flex items-center gap-2 py-6 text-sm text-gray-500">
+                        <x-icon name="bell" class="h-5 w-5 text-gray-400" />
+                        Nenhum treino agendado para hoje.
+                    </p>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- Acesso rápido --}}

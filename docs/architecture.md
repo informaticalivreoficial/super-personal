@@ -120,14 +120,33 @@ sports ──1:N── training_sessions (restrict)
 - Assets Vite: `vendor/bin/sail npm install && vendor/bin/sail npm run build`
   (sem `public/build` as views 500 com "Vite manifest not found").
 - **Dashboard** — `/admin` (`App\Livewire\Dashboard\Dashboard`) bifurca por
-  perfil: treinador vê os KPIs do próprio tenant (`teacherDashboard()`);
-  **admin vê a visão da plataforma** (`isPlatformAdmin()` →
-  `DashboardService::platformDashboard()`): treinadores (total/ativos/novos
+  perfil: treinador vê a **central de trabalho do próprio tenant**
+  (`teacherDashboard()`); **admin vê a visão da plataforma** (`isPlatformAdmin()`
+  → `DashboardService::platformDashboard()`): treinadores (total/ativos/novos
   no mês), alunos (total/ativos), assinaturas (ativas/trial/em atraso/sem
   assinatura + receita mensal = soma dos planos ativos), treinos hoje,
   pagamentos/assinaturas em atraso e acesso rápido (Treinadores, Novo
-  treinador, Modalidades, Configurações). A API `GET /teacher/dashboard`
-  continua em `teacherDashboard()` (inalterada).
+  treinador, Modalidades, Configurações).
+  - **Painel do treinador** (`teacherDashboard(?Teacher $teacher = null)`,
+    teacher do usuário autenticado por padrão; consultas sob o global scope
+    `tenant`): linha 1 = KPIs do dia (alunos ativos, treinos hoje/semana,
+    planos ativos/pendentes, **A receber** com o valor em atraso);
+    linha 2 = **dinheiro** (`money`): a receber (`open_amount` = pendentes +
+    vencidas), em atraso (`overdue_amount`), recebido no mês, **saldo para
+    repasse** (`PayoutService::balance`), já repassado e a **cota de cobranças
+    manuais** (`PaymentService::manualCountThisMonth` / `MANUAL_MONTHLY_LIMIT`
+    = 10) com barra de progresso; card da **assinatura do treinador na
+    plataforma** (`subscription`: plano, status/label, valor, período,
+    vigência, `awaiting_payment` → aviso âmbar + "Concluir pagamento", ou
+    "Sem assinatura" → "Escolher plano"); e as **listas acionáveis**
+    (`overdue_payments`: até 5, aluno/vencimento/valor/dias em atraso;
+    `today_sessions`: até 8, aluno/modalidade/duração/status).
+  - `overdue` (vencidas do painel) = status `overdue` **ou** pendente com
+    `due_date` no passado — mesma definição do dashboard da plataforma e usada
+    também em `payments.overdue_count` (contrato da API do professor).
+  - A API `GET /teacher/dashboard` devolve `teacherDashboard()` inteiro: as
+    chaves novas (`money`, `subscription`, listas) são **aditivas** — o
+    contrato antigo (`students`/`plans`/`trainings`/`payments`) não mudou.
 - **CRUD de Alunos** — componentes full-page em `app/Livewire/Dashboard/Students/`:
   - `StudentIndex` (busca/paginação/toggle ativo/exclusão lógica), `StudentForm`
     (create+edit), `StudentShow` (dados + plano ativo + pagamentos).
@@ -662,6 +681,13 @@ sports ──1:N── training_sessions (restrict)
     `cancelled_at` automático, 403 para treinador).
   - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
     receita, agregação cross-tenant via service, treinador vê o próprio).
+  - `TeacherDashboardTest` (7) — painel do treinador: dinheiro (a receber incl.
+    vencidas, atraso pela definição status `overdue`/pendente vencida, recebido
+    no mês excluindo o mês anterior, saldo de repasse pela soma do `net_amount`
+    das online pagas, cota manual n/10), assinatura (ativa/pendente/sem) e
+    listas (limite de 5 cobranças em atraso / 8 treinos de hoje, vazios
+    amigáveis), sem vazamento de outro tenant e com o admin ainda na visão da
+    plataforma.
   - `LandingFormTest` (32) — página "Minha página pública" (prefill, salvar,
     slug gerado/reservado/duplicado/inválido, próprio slug não é tratado como
     duplicado, desligar opt-in esconde a landing, admin edita qualquer tenant,
@@ -736,7 +762,7 @@ sports ──1:N── training_sessions (restrict)
     cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
     admin no treinador), form cria cobrança online (payable), quota manual
     erra no form e o índice mostra canal + KPIs.
-  - **Total: 414 testes / 1481 assertions** (78 API + 245 painel + 11 console
+  - **Total: 421 testes / 1541 assertions** (78 API + 252 painel + 11 console
     + 8 notificações + 46 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
     ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Enums\TrainingSessionStatus;
 use App\Services\DashboardService;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -23,6 +24,8 @@ class Dashboard extends Component
             'stats' => $isAdmin
                 ? $dashboard->platformDashboard()
                 : $dashboard->teacherDashboard(),
+            // Labels pt-BR dos status usados nas listas do painel do treinador.
+            'sessionStatuses' => TrainingSessionStatus::labels(),
         ]);
     }
 }

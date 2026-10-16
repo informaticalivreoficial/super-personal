@@ -204,23 +204,32 @@ class PaymentService
         return PaymentChannel::tryFrom((string) ($data['channel'] ?? '')) ?? PaymentChannel::MANUAL;
     }
 
-    /** Bloqueia a criação da 11ª cobrança manual no mês. */
-    private function ensureManualQuota(int $teacherId): void
+    /**
+     * Quantas cobranças **manuais** o treinador já lançou no mês corrente.
+     * Usado no bloqueio da criação (limite mensal) e nos indicadores do painel.
+     */
+    public function manualCountThisMonth(int $teacherId): int
     {
-        $count = Payment::withoutGlobalScope('tenant')
+        return Payment::withoutGlobalScope('tenant')
             ->where('teacher_id', $teacherId)
             ->where('channel', PaymentChannel::MANUAL)
             ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->count();
+    }
 
-        if ($count >= self::MANUAL_MONTHLY_LIMIT) {
-            throw ValidationException::withMessages([
-                'channel' => sprintf(
-                    'Limite de %d cobranças manuais por mês atingido. Use a cobrança online para as próximas.',
-                    self::MANUAL_MONTHLY_LIMIT,
-                ),
-            ]);
+    /** Bloqueia a criação da 11ª cobrança manual no mês. */
+    private function ensureManualQuota(int $teacherId): void
+    {
+        if ($this->manualCountThisMonth($teacherId) < self::MANUAL_MONTHLY_LIMIT) {
+            return;
         }
+
+        throw ValidationException::withMessages([
+            'channel' => sprintf(
+                'Limite de %d cobranças manuais por mês atingido. Use a cobrança online para as próximas.',
+                self::MANUAL_MONTHLY_LIMIT,
+            ),
+        ]);
     }
 
     /** Marca paga, aplica a taxa da plataforma e o líquido do treinador. */

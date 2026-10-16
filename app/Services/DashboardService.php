@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\BillingPeriod;
 use App\Enums\PaymentStatus;
 use App\Enums\SubscriptionStatus;
 use App\Enums\TrainingSessionStatus;
@@ -14,14 +15,38 @@ use App\Models\TrainingSession;
 
 class DashboardService
 {
+    public function __construct(
+        private PaymentService $payments,
+        private PayoutService $payouts,
+    ) {}
+
     /**
      * Visão geral do treinador (tenant autenticado).
      *
+     * O treinador é o do usuário autenticado; as consultas de domínio saem
+     * filtradas pelo global scope `tenant` (isolamento). As chaves `money`,
+     * `subscription` e as listas alimentam o painel; `payments` é mantido
+     * como contrato da API (app/API do professor).
+     *
      * @return array<string, mixed>
      */
-    public function teacherDashboard(): array
+    public function teacherDashboard(?Teacher $teacher = null): array
     {
+        $teacher ??= auth()->user()?->teacher;
         $today = now()->toDateString();
+
+        // "Em atraso" = marcada como vencida OU pendente com vencimento no
+        // passado (mesma definição do dashboard da plataforma).
+        $overdue = fn () => Payment::query()->where(fn ($query) => $query
+            ->where('status', PaymentStatus::OVERDUE)
+            ->orWhere(fn ($pending) => $pending
+                ->where('status', PaymentStatus::PENDING)
+                ->whereDate('due_date', '<', $today)));
+
+        $paidThisMonth = (float) Payment::where('status', PaymentStatus::PAID)
+            ->whereMonth('paid_at', now()->month)
+            ->whereYear('paid_at', now()->year)
+            ->sum('amount');
 
         return [
             'students' => [
@@ -42,12 +67,68 @@ class DashboardService
             ],
             'payments' => [
                 'pending_amount' => (float) Payment::where('status', PaymentStatus::PENDING)->sum('amount'),
-                'overdue_count' => Payment::where('status', PaymentStatus::OVERDUE)->count(),
-                'paid_this_month_amount' => (float) Payment::where('status', PaymentStatus::PAID)
-                    ->whereMonth('paid_at', now()->month)
-                    ->whereYear('paid_at', now()->year)
-                    ->sum('amount'),
+                'overdue_count' => (int) $overdue()->count(),
+                'paid_this_month_amount' => $paidThisMonth,
             ],
+            // Dinheiro do mês: o que o treinador tem a receber, o que recebeu e
+            // o que a plataforma ainda vai repassar (líquido das cobranças
+            // online pagas), além do consumo da cota de cobranças manuais.
+            'money' => [
+                'open_amount' => (float) Payment::whereIn('status', [
+                    PaymentStatus::PENDING,
+                    PaymentStatus::OVERDUE,
+                ])->sum('amount'),
+                'overdue_amount' => (float) $overdue()->sum('amount'),
+                'received_this_month_amount' => $paidThisMonth,
+                'awaiting_payout_amount' => $teacher ? $this->payouts->balance($teacher) : 0.0,
+                'paid_out_total' => $teacher ? $this->payouts->paidTotal($teacher) : 0.0,
+                'manual_this_month' => $teacher ? $this->payments->manualCountThisMonth($teacher->id) : 0,
+                'manual_limit' => PaymentService::MANUAL_MONTHLY_LIMIT,
+            ],
+            // Assinatura do treinador COM a plataforma (pode não existir).
+            'subscription' => $this->subscriptionSummary($teacher),
+            // Listas acionáveis do dia.
+            'overdue_payments' => $overdue()
+                ->with('student')
+                ->orderBy('due_date')
+                ->limit(5)
+                ->get(),
+            'today_sessions' => TrainingSession::with(['student', 'sport'])
+                ->whereDate('scheduled_date', $today)
+                ->orderBy('sport_id')
+                ->orderBy('id')
+                ->limit(8)
+                ->get(),
+        ];
+    }
+
+    /**
+     * Resumo da assinatura do treinador para o painel (null = sem assinatura).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function subscriptionSummary(?Teacher $teacher): ?array
+    {
+        $subscription = $teacher?->subscription;
+
+        if (! $subscription) {
+            return null;
+        }
+
+        return [
+            'id' => $subscription->id,
+            'plan' => $subscription->plan?->name,
+            'status' => $subscription->status?->value,
+            'status_label' => $subscription->status !== null
+                ? SubscriptionStatus::labels()[$subscription->status->value]
+                : null,
+            'amount' => (float) $subscription->amount,
+            'period_label' => $subscription->period !== null
+                ? BillingPeriod::labels()[$subscription->period->value]
+                : null,
+            'ends_at' => $subscription->ends_at?->toDateString(),
+            'active' => $subscription->isCurrentlyActive(),
+            'awaiting_payment' => $subscription->status === SubscriptionStatus::PENDING,
         ];
     }
 
