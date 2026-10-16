@@ -5,6 +5,7 @@ import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_tone.dart';
+import '../../core/widgets/brand_mark.dart';
 import '../../core/widgets/empty_state.dart';
 import '../auth/auth_controller.dart';
 
@@ -157,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-/// Topo do login: marca, nome e promessa do produto.
+/// Topo do login: logomarca (ou nome, sem logomarca) e promessa do produto.
 class _LoginHeader extends StatelessWidget {
   const _LoginHeader();
 
@@ -169,29 +170,11 @@ class _LoginHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 36, 20, 34),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: const Icon(
-              Icons.fitness_center_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 14),
+          // Com a logomarca no bundle o nome não aparece: a marca fala por si.
+          const BrandMark(),
+          const SizedBox(height: 18),
           Text(
-            'Super Personal',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall!.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Treinos do seu treinador no seu bolso',
+            'Seus treinos na palma da mão',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall!.copyWith(
               color: Colors.white.withValues(alpha: 0.75),

@@ -894,11 +894,11 @@ sports ──1:N── training_sessions (restrict)
     (recarrega a sessão sem passar por `loading`) fazem a home refletir o nome
     e o e-mail novos logo após salvar — o nome do aluno vive em `students` e em
     `users.name` (`StudentService::update` sincroniza os dois).
-- **Qualidade**: `dart analyze` limpo; `flutter test` = **57/57**
+- **Qualidade**: `dart analyze` limpo; `flutter test` = **59/59**
   (`auth_repository_test` 6, `student_repository_test` 15, `formatters_test` 8,
-  `live_refresh_test` 10, `screens_render_test` 16, `screens_layout_test` 2 —
-  helpers/fakes compartilhados em `test/support/`: `api_test_helpers.dart`,
-  `fake_auth.dart`, `fake_student_repository.dart`).
+  `live_refresh_test` 10, `screens_render_test` 16, `screens_layout_test` 2,
+  `brand_mark_test` 2 — helpers/fakes compartilhados em `test/support/`:
+  `api_test_helpers.dart`, `fake_auth.dart`, `fake_student_repository.dart`).
 
 ### Ícone e abertura do app (2026-10-16)
 
@@ -952,7 +952,11 @@ sports ──1:N── training_sessions (restrict)
     permite o "puxar para atualizar") / `AlertCard` (pendências e avisos);
   - `SkeletonBox` / `SkeletonCardList` (carregamento em blocos pulsantes, no
     lugar do spinner central);
-  - `SportIcon` (ícone e tom por modalidade, normalizando acentos do nome que vem
+  - `BrandMark` (logomarca: a arte de `assets/icon/app_icon.png` — o mesmo
+    arquivo do ícone do app — sobre uma placa clara, porque o cabeçalho é
+    escuro; **sem** a arte no bundle o widget cai no ícone + nome
+    "Super Personal", ou seja o nome só aparece quando não há logomarca) e
+    `SportIcon` (ícone e tom por modalidade, normalizando acentos do nome que vem
     da API) e `AppHeader` (gradiente da marca com cantos inferiores arredondados).
 - **Telas redesenhadas** (todas as telas do aluno já usam o vocabulário):
   - **Home** (cabeçalho em gradiente com avatar/notificações/atualização, três
@@ -976,7 +980,8 @@ sports ──1:N── training_sessions (restrict)
     abrindo o detalhe do treino), **Calendário** (agrupado por dia com
     "Hoje/Amanhã/Ontem" e contagem) e **Meu progresso** (cards com as métricas em
     pílulas e bottom sheet com os detalhes/observações);
-  - **Login** (marca + formulário em card), **Meu perfil** (cartão de avatar com
+  - **Login** (logomarca sobre placa clara + "Seus treinos na palma da mão" e o
+    formulário em card), **Meu perfil** (cartão de avatar com
     câmera, "Dados pessoais" e "Rotina de treino" em cards separados) e
     **Conta e acesso** (e-mail com troca por código e troca de senha).
   - **Números em pt-BR**: use `formatDecimal()` (`78,5`) e `formatDistance()`

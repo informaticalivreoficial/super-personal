@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_personal/core/theme/app_theme.dart';
+import 'package:super_personal/core/widgets/brand_mark.dart';
 import 'package:super_personal/features/auth/auth_controller.dart';
 import 'package:super_personal/features/auth/login_screen.dart';
 import 'package:super_personal/features/student/account_screen.dart';
@@ -41,8 +42,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Super Personal'), findsOneWidget);
-      expect(find.text('Treinos do seu treinador no seu bolso'), findsOneWidget);
+      expect(find.byType(BrandMark), findsOneWidget);
+      expect(find.text('Seus treinos na palma da mão'), findsOneWidget);
+      // Com a logomarca no bundle, o nome não aparece.
+      expect(find.text(BrandMark.productName), findsNothing);
       expect(find.text('E-mail'), findsOneWidget);
       expect(find.text('Senha'), findsOneWidget);
       expect(find.text('Entrar'), findsOneWidget);
