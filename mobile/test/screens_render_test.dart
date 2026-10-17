@@ -68,8 +68,8 @@ void main() {
     testWidgets('lista os avisos com título e mensagem', (tester) async {
       final repository = FakeStudentRepository(
         notifications: [
-          notificationFixture(2, title: 'Novo treino disponível'),
-          notificationFixture(1, title: 'Cobrança perto do vencimento'),
+          notificationFixture('2', title: 'Novo treino disponível'),
+          notificationFixture('1', title: 'Cobrança perto do vencimento'),
         ],
       );
 

@@ -175,45 +175,45 @@ void main() {
   });
 
   group('NotificationsController.refreshSilently', () {
-    Future<List<int>> idsOf(ProviderContainer container) async =>
+    Future<List<String>> idsOf(ProviderContainer container) async =>
         (await container.read(notificationsProvider.future))
             .map((item) => item.id)
             .toList();
 
     test('acrescenta no topo só o que chegou depois', () async {
       final repository = FakeStudentRepository(
-        notifications: [notificationFixture(2), notificationFixture(1)],
+        notifications: [notificationFixture('2'), notificationFixture('1')],
       );
       final container = containerWith(repository);
 
-      expect(await idsOf(container), [2, 1]);
+      expect(await idsOf(container), ['2', '1']);
 
       repository.nextNotifications = [
-        notificationFixture(3),
-        notificationFixture(2),
-        notificationFixture(1),
+        notificationFixture('3'),
+        notificationFixture('2'),
+        notificationFixture('1'),
       ];
 
       await container.read(notificationsProvider.notifier).refreshSilently();
 
-      expect(await idsOf(container), [3, 2, 1]);
+      expect(await idsOf(container), ['3', '2', '1']);
     });
 
     test('não duplica quando nada é novo', () async {
       final repository = FakeStudentRepository(
-        notifications: [notificationFixture(2), notificationFixture(1)],
+        notifications: [notificationFixture('2'), notificationFixture('1')],
       );
       final container = containerWith(repository);
 
       await idsOf(container);
       await container.read(notificationsProvider.notifier).refreshSilently();
 
-      expect(await idsOf(container), [2, 1]);
+      expect(await idsOf(container), ['2', '1']);
     });
 
     test('sem rede mantém a lista que está na tela', () async {
       final repository = FakeStudentRepository(
-        notifications: [notificationFixture(1)],
+        notifications: [notificationFixture('1')],
       );
       final container = containerWith(repository);
 
@@ -224,7 +224,78 @@ void main() {
 
       final state = container.read(notificationsProvider);
       expect(state.hasError, isFalse);
-      expect(await idsOf(container), [1]);
+      expect(await idsOf(container), ['1']);
+    });
+  });
+
+  group('NotificationsController.marcar como lida', () {
+    test('marca na API, tira o destaque e revalida o resumo', () async {
+      final repository = FakeStudentRepository(
+        notifications: [notificationFixture('2'), notificationFixture('1')],
+      );
+      final container = containerWith(repository);
+
+      await container.read(notificationsProvider.future);
+      final antes = repository.dashboardCalls;
+
+      await container
+          .read(notificationsProvider.notifier)
+          .markAsRead(notificationFixture('2'));
+
+      final items = await container.read(notificationsProvider.future);
+
+      expect(repository.markedReadCalls, 1);
+      expect(items.firstWhere((item) => item.id == '2').isRead, isTrue);
+      expect(items.firstWhere((item) => item.id == '1').isRead, isFalse);
+      expect(repository.dashboardCalls, greaterThan(antes),
+          reason: 'o contador do sininho vive no resumo');
+    });
+
+    test('não chama a API quando a notificação já está lida', () async {
+      final read = notificationFixture('1', readAt: DateTime(2026, 10, 16));
+      final repository = FakeStudentRepository(notifications: [read]);
+      final container = containerWith(repository);
+
+      await container.read(notificationsProvider.future);
+      await container.read(notificationsProvider.notifier).markAsRead(read);
+
+      expect(repository.markedReadCalls, 0);
+    });
+
+    test('marcar todas lê só as não lidas e atualiza o sininho', () async {
+      final repository = FakeStudentRepository(
+        notifications: [
+          notificationFixture('3'),
+          notificationFixture('2', readAt: DateTime(2026, 10, 16)),
+          notificationFixture('1'),
+        ],
+      );
+      final container = containerWith(repository);
+
+      await container.read(notificationsProvider.future);
+      final antes = repository.dashboardCalls;
+
+      await container.read(notificationsProvider.notifier).markAllAsRead();
+
+      final items = await container.read(notificationsProvider.future);
+
+      expect(repository.markedReadCalls, 2);
+      expect(items.every((item) => item.isRead), isTrue);
+      expect(repository.dashboardCalls, greaterThan(antes));
+    });
+
+    test('sem não lidas não chama a API', () async {
+      final repository = FakeStudentRepository(
+        notifications: [
+          notificationFixture('1', readAt: DateTime(2026, 10, 16)),
+        ],
+      );
+      final container = containerWith(repository);
+
+      await container.read(notificationsProvider.future);
+      await container.read(notificationsProvider.notifier).markAllAsRead();
+
+      expect(repository.markedReadCalls, 0);
     });
   });
 }

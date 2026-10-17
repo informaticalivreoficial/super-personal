@@ -145,11 +145,18 @@ Payment paymentFixture({
       payable: payable,
     );
 
-/// Notificação de exemplo ([id] define a ordem da lista).
-AppNotification notificationFixture(int id, {String title = 'Novo treino'}) =>
+/// Notificação de exemplo ([id] define a ordem da lista; é UUID na API).
+///
+/// [readAt] preenchido = já lida (perde o destaque no app).
+AppNotification notificationFixture(
+  String id, {
+  String title = 'Novo treino',
+  DateTime? readAt,
+}) =>
     AppNotification(
       id: id,
       data: {'title': title, 'message': 'Mensagem da notificação.'},
+      readAt: readAt,
     );
 
 /// Repositório fake (sem rede) com contadores e controles de falha.
@@ -191,6 +198,9 @@ class FakeStudentRepository extends StudentRepository {
   int dashboardCalls = 0;
   int notificationsCalls = 0;
 
+  /// Quantas notificações foram marcadas como lidas neste fake.
+  int markedReadCalls = 0;
+
   @override
   Future<StudentDashboard> dashboard() async {
     dashboardCalls++;
@@ -221,6 +231,33 @@ class FakeStudentRepository extends StudentRepository {
       currentPage: page,
       lastPage: 1,
     );
+  }
+
+  @override
+  Future<AppNotification> markNotificationRead(String id) async {
+    markedReadCalls++;
+
+    final now = DateTime.now();
+    nextNotifications = [
+      for (final item in nextNotifications)
+        item.id == id ? item.copyWith(readAt: now) : item,
+    ];
+
+    return nextNotifications.firstWhere((item) => item.id == id);
+  }
+
+  @override
+  Future<int> markAllNotificationsRead() async {
+    final unread = nextNotifications.where((item) => !item.isRead).toList();
+    markedReadCalls += unread.length;
+
+    final now = DateTime.now();
+    nextNotifications = [
+      for (final item in nextNotifications)
+        item.isRead ? item : item.copyWith(readAt: now),
+    ];
+
+    return unread.length;
   }
 
   @override

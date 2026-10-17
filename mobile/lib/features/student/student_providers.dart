@@ -158,6 +158,46 @@ class NotificationsController extends PagedController<AppNotification> {
       // Sem rede: o próximo ciclo tenta de novo.
     }
   }
+
+  /// Marca a notificação como lida na API e reflete na lista e no sininho.
+  Future<void> markAsRead(AppNotification notification) async {
+    if (notification.isRead) {
+      return;
+    }
+
+    final updated = await ref
+        .read(studentRepositoryProvider)
+        .markNotificationRead(notification.id);
+
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data([
+        for (final item in current) item.id == updated.id ? updated : item,
+      ]);
+    }
+
+    // O contador de não lidas vive no resumo (badge do sininho).
+    await ref.read(dashboardProvider.notifier).refreshSilently();
+  }
+
+  /// Marca todas as notificações como lidas (só se houver alguma não lida).
+  Future<void> markAllAsRead() async {
+    final current = state.value;
+
+    if (current == null || current.every((item) => item.isRead)) {
+      return;
+    }
+
+    await ref.read(studentRepositoryProvider).markAllNotificationsRead();
+
+    final now = DateTime.now();
+    state = AsyncValue.data([
+      for (final item in current)
+        item.isRead ? item : item.copyWith(readAt: now),
+    ]);
+
+    await ref.read(dashboardProvider.notifier).refreshSilently();
+  }
 }
 
 final notificationsProvider =

@@ -329,4 +329,50 @@ void main() {
       );
     });
   });
+
+  group('StudentRepository.marcar como lida', () {
+    test('marca uma notificação no caminho da API', () async {
+      late RequestOptions captured;
+      final client = clientWith((options) async {
+        captured = options;
+        return jsonResponse({
+          'data': {
+            'id': '74fbb64a-154b-4607-b9fe-5e3000b7b3a6',
+            'type': 'App\\Notifications\\TeacherMessage',
+            'data': {'title': 'teste', 'message': 'teste'},
+            'read_at': '2026-10-17T09:30:55-03:00',
+            'created_at': '2026-10-17T09:30:00-03:00',
+          },
+        }, 200);
+      });
+
+      final notification = await StudentRepository(client)
+          .markNotificationRead('74fbb64a-154b-4607-b9fe-5e3000b7b3a6');
+
+      expect(captured.method, 'POST');
+      expect(
+        captured.uri.path,
+        '/api/v1/student/notifications/74fbb64a-154b-4607-b9fe-5e3000b7b3a6/read',
+      );
+      expect(notification.id, '74fbb64a-154b-4607-b9fe-5e3000b7b3a6');
+      expect(notification.isRead, isTrue);
+      expect(notification.title, 'teste');
+    });
+
+    test('marca todas e devolve quantas foram lidas', () async {
+      late RequestOptions captured;
+      final client = clientWith((options) async {
+        captured = options;
+        return jsonResponse({
+          'data': {'marked': 3},
+        }, 200);
+      });
+
+      final marked = await StudentRepository(client).markAllNotificationsRead();
+
+      expect(captured.method, 'POST');
+      expect(captured.uri.path, '/api/v1/student/notifications/read-all');
+      expect(marked, 3);
+    });
+  });
 }

@@ -66,6 +66,9 @@ Route::prefix('v1')->group(function () {
             Route::get('payments', [StudentPayments::class, 'index']);
             Route::post('payments/{payment}/checkout', [StudentPayments::class, 'checkout'])->whereNumber('payment');
             Route::get('notifications', [StudentNotifications::class, 'index']);
+            // Leitura das notificações: individual (ao tocar) e em lote.
+            Route::post('notifications/read-all', [StudentNotifications::class, 'markAllAsRead']);
+            Route::post('notifications/{notification}/read', [StudentNotifications::class, 'markAsRead'])->whereUuid('notification');
         });
 
         /** Treinador (gestão de alunos, treinos e pagamentos) */

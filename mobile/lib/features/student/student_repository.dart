@@ -280,6 +280,25 @@ class StudentRepository {
     );
   }
 
+  /// Marca uma notificação como lida
+  /// (`POST /student/notifications/{id}/read`).
+  Future<AppNotification> markNotificationRead(String id) async {
+    final json = await _post('student/notifications/$id/read');
+
+    return AppNotification.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  /// Marca todas as notificações como lidas
+  /// (`POST /student/notifications/read-all`). Devolve quantas foram marcadas.
+  Future<int> markAllNotificationsRead() async {
+    final json = await _post('student/notifications/read-all');
+    final data = json['data'];
+
+    return data is Map<String, dynamic>
+        ? (data['marked'] as num?)?.toInt() ?? 0
+        : 0;
+  }
+
   /// Gera o Pix da cobrança online em
   /// `POST /student/payments/{id}/checkout`.
   ///

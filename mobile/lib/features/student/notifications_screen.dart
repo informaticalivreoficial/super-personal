@@ -41,12 +41,51 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     super.dispose();
   }
 
+  /// Tocar na notificação marca ela como lida (some o destaque e o ponto).
+  Future<void> _markAsRead(AppNotification notification) async {
+    try {
+      await ref.read(notificationsProvider.notifier).markAsRead(notification);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  /// Marca todas como lidas (ação do topo, só aparece com não lidas).
+  Future<void> _markAllAsRead() async {
+    try {
+      await ref.read(notificationsProvider.notifier).markAllAsRead();
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  void _showError(Object error) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.toString())),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(notificationsProvider);
+    final hasUnread = (notifications.value ?? const <AppNotification>[])
+        .any((item) => !item.isRead);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notificações')),
+      appBar: AppBar(
+        title: const Text('Notificações'),
+        actions: [
+          // Só aparece quando há algo para marcar.
+          if (hasUnread)
+            IconButton(
+              onPressed: _markAllAsRead,
+              icon: const Icon(Icons.done_all_rounded),
+              tooltip: 'Marcar todas como lidas',
+            ),
+        ],
+      ),
       // Com a tela aberta, o que chegar entra no topo da lista sozinho (o
       // pull-to-refresh continua valendo). Com o app fechado quem avisa é o
       // push (FCM).
@@ -98,7 +137,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     );
                   }
 
-                  return _NotificationCard(notification: items[index]);
+                  return _NotificationCard(
+                    notification: items[index],
+                    onTap: () => _markAsRead(items[index]),
+                  );
                 },
               ),
             );
@@ -111,9 +153,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
 /// Card de uma notificação (não lida ganha destaque da marca).
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.notification});
+  const _NotificationCard({required this.notification, this.onTap});
 
   final AppNotification notification;
+
+  /// Marca como lida ao tocar (não lidas guardam o toque).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +167,7 @@ class _NotificationCard extends StatelessWidget {
     final visual = _visual(notification.type);
 
     return AppCard(
+      onTap: onTap,
       color: unread ? AppColors.brand50 : null,
       borderColor: unread ? AppColors.brand200 : null,
       padding: const EdgeInsets.all(14),

@@ -99,6 +99,16 @@ possui conta, aluno inativo ou e-mail já em uso por outra conta.
 | GET | `/student/payments` | pagamentos do aluno (paginado; `payable` indica a cobrança online em aberto) |
 | POST | `/student/payments/{payment}/checkout` | gera o Pix da cobrança **online** (`{cpf?}` opcional; retorna `qr_code` copia e cola + `qr_image`) |
 | GET | `/student/notifications` | notificações (database) |
+| POST | `/student/notifications/{notification}/read` | marca **uma** notificação do aluno como lida (retorna o recurso com `read_at`; id de outro usuário → `404`) |
+| POST | `/student/notifications/read-all` | marca **todas** as não lidas como lidas (`{"data":{"marked": N}}`) |
+
+##### Notificações: marcar como lida
+
+O app marca como lida **ao tocar no aviso** (individual) e pelo botão "marcar
+todas como lidas" (lote). A busca parte de `auth()->user()->notifications()`,
+então o aluno só alcança as próprias notificações — a de outro usuário (ou um id
+que não seja UUID) responde `404`. Com a leitura, o contador de não lidas do
+`GET /student/dashboard` cai.
 
 ##### Erros do checkout Pix
 
