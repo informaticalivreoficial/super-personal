@@ -452,6 +452,15 @@ sports ──1:N── training_sessions (restrict)
   - **FCM (próximo passo)**: precisa de um projeto Firebase (do usuário) —
     `google-services.json` no Android, service account no backend, tabela de
     tokens por dispositivo e um canal de notification no `via()`.
+  - **Marcar como lida** (2026-10-17): a API ganhou
+    `POST /student/notifications/{notification}/read` (individual) e
+    `POST /student/notifications/read-all` (lote) — antes `read_at` nunca era
+    preenchido e o badge do sininho só crescia. No app, **tocar no aviso** marca
+    aquela notificação e o botão no topo da tela marca todas; os dois atualizam a
+    lista na hora (sem recarregar) e revalidam o resumo (`refreshSilently()`), o
+    que faz o contador de não lidas cair. A consulta é feita sobre
+    `auth()->user()->notifications()` → notificação de outro usuário responde
+    `404` (isolamento por usuário, não por tenant).
 - **`NewTrainingAvailable` por evento** (gatilho de publicação de plano):
   - `App\Events\TrainingPlanPublished` (payload: plano) + listener
     `App\Listeners\SendNewTrainingAvailableNotification` registrado no
@@ -642,7 +651,7 @@ sports ──1:N── training_sessions (restrict)
     cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
     admin no treinador), form cria cobrança online (payable), quota manual
     erra no form e o índice mostra canal + KPIs.
-  - **Total: 371 testes / 1308 assertions** (78 API + 203 painel + 11 console
+  - **Total: 379 testes / 1329 assertions** (86 API + 203 painel + 11 console
     + 8 notificações + 45 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`
@@ -809,9 +818,9 @@ sports ──1:N── training_sessions (restrict)
   retorna tela a tela em vez de **sair do app** (bug de rota plana + `context.go`,
   que substituía a pilha). Regressão em `test/router_navigation_test.dart`
   (home → Meu painel → Ver cobranças e o `popRoute` do sistema).
-- **Qualidade**: `dart analyze` limpo; `flutter test` = **62/62**
-  (`auth_repository_test` 6, `student_repository_test` 15, `formatters_test` 8,
-  `live_refresh_test` 10, `screens_render_test` 16, `screens_layout_test` 2,
+- **Qualidade**: `dart analyze` limpo; `flutter test` = **69/69**
+  (`auth_repository_test` 6, `student_repository_test` 17, `formatters_test` 8,
+  `live_refresh_test` 14, `screens_render_test` 17, `screens_layout_test` 2,
   `brand_mark_test` 2, `router_navigation_test` 3 — helpers/fakes compartilhados
   em `test/support/`: `api_test_helpers.dart`, `fake_auth.dart`,
   `fake_student_repository.dart`).
@@ -868,10 +877,12 @@ sports ──1:N── training_sessions (restrict)
     permite o "puxar para atualizar") / `AlertCard` (pendências e avisos);
   - `SkeletonBox` / `SkeletonCardList` (carregamento em blocos pulsantes, no
     lugar do spinner central);
-  - `BrandMark` (logomarca: a arte de `assets/icon/app_icon.png` — o mesmo
-    arquivo do ícone do app — sobre uma placa clara, porque o cabeçalho é
-    escuro; **sem** a arte no bundle o widget cai no ícone + nome
-    "Super Personal", ou seja o nome só aparece quando não há logomarca) e
+  - `BrandMark` (logomarca: a arte de `assets/images/logo.png` — a imagem
+    horizontal da marca — sobre uma placa branca arredondada, porque o cabeçalho
+    é escuro e o fundo da arte é branco; a **altura** é o parâmetro (`height`,
+    padrão 62) e a largura acompanha a proporção da imagem; **sem** a arte no
+    bundle o widget cai no ícone + nome "Super Personal", ou seja o nome só
+    aparece quando não há logomarca) e
     `SportIcon` (ícone e tom por modalidade, normalizando acentos do nome que vem
     da API) e `AppHeader` (gradiente da marca com cantos inferiores arredondados).
 - **Telas redesenhadas** (todas as telas do aluno já usam o vocabulário):
@@ -896,9 +907,11 @@ sports ──1:N── training_sessions (restrict)
     abrindo o detalhe do treino), **Calendário** (agrupado por dia com
     "Hoje/Amanhã/Ontem" e contagem) e **Meu progresso** (cards com as métricas em
     pílulas e bottom sheet com os detalhes/observações);
-  - **Login** (logomarca sobre placa clara + "Seus treinos na palma da mão" e o
-    formulário em card), **Meu perfil** (cartão de avatar com
-    câmera, "Dados pessoais" e "Rotina de treino" em cards separados) e
+  - **Login** (logomarca — `assets/images/logo.png` — sobre placa branca,
+    "Seus treinos na palma da mão", o formulário em card e a **versão do app** no
+    rodapé, lida do bundle nativo com `package_info_plus`; o plugin é opcional em
+    runtime: sem ele a linha simplesmente não aparece), **Meu perfil** (cartão de
+    avatar com câmera, "Dados pessoais" e "Rotina de treino" em cards separados) e
     **Conta e acesso** (e-mail com troca por código e troca de senha).
   - **Números em pt-BR**: use `formatDecimal()` (`78,5`) e `formatDistance()`
     (`12,3 km`) em `formatters.dart` — `toStringAsFixed` sozinho imprime com

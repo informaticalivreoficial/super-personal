@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:super_personal/core/theme/app_theme.dart';
 import 'package:super_personal/core/widgets/brand_mark.dart';
 import 'package:super_personal/features/auth/auth_controller.dart';
@@ -61,6 +62,21 @@ void main() {
 
       expect(find.text('Não foi possível entrar'), findsOneWidget);
       expect(find.text('Informe e-mail e senha.'), findsOneWidget);
+    });
+
+    testWidgets('mostra a versão do app no rodapé', (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'Super Personal',
+        packageName: 'br.com.superpersonal.super_personal',
+        version: '1.0.0',
+        buildNumber: '1',
+        buildSignature: '',
+      );
+
+      await tester.pumpWidget(_boot(const LoginScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('versão 1.0.0 (1)'), findsOneWidget);
     });
   });
 

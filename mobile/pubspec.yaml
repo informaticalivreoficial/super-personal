@@ -42,6 +42,7 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   image_picker: ^1.2.4
   qr_flutter: ^4.1.0
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:
@@ -69,9 +70,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Arte do app (ícone do launcher e logo usada na splash).
+  # Arte do app: ícone do launcher/splash e logomarca da tela de login.
   assets:
     - assets/icon/
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

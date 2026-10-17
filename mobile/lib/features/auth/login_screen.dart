@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/api/api_exception.dart';
 import '../../core/theme/app_colors.dart';
@@ -149,6 +150,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 26),
                 const _InviteHint(),
+                const SizedBox(height: 28),
+                const Center(child: _AppVersionLabel()),
               ],
             ),
           ),
@@ -182,6 +185,57 @@ class _LoginHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Versão do app no rodapé (lida do bundle nativo).
+///
+/// Sem o plugin disponível (testes de widget sem mock/desktop), nada aparece.
+class _AppVersionLabel extends StatefulWidget {
+  const _AppVersionLabel();
+
+  @override
+  State<_AppVersionLabel> createState() => _AppVersionLabelState();
+}
+
+class _AppVersionLabelState extends State<_AppVersionLabel> {
+  String? _version;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+
+      setState(() {
+        _version = info.buildNumber.isEmpty
+            ? 'versão ${info.version}'
+            : 'versão ${info.version} (${info.buildNumber})';
+      });
+    } catch (_) {
+      // Sem o plugin (teste/desktop): o rodapé simplesmente não aparece.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final version = _version;
+
+    if (version == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Text(
+      version,
+      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+            color: AppColors.textMuted,
+          ),
     );
   }
 }
