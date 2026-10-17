@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use App\Enums\BillingPeriod;
+use App\Enums\PaymentChannel;
 use App\Enums\PaymentStatus;
-use App\Enums\SubscriptionStatus;
+use App\Enums\PayoutStatus;
 use App\Enums\TrainingSessionStatus;
 use App\Models\Payment;
+use App\Models\Payout;
 use App\Models\Student;
-use App\Models\Subscription;
 use App\Models\Teacher;
 use App\Models\TrainingPlan;
 use App\Models\TrainingSession;
@@ -24,9 +24,9 @@ class DashboardService
      * Visão geral do treinador (tenant autenticado).
      *
      * O treinador é o do usuário autenticado; as consultas de domínio saem
-     * filtradas pelo global scope `tenant` (isolamento). As chaves `money`,
-     * `subscription` e as listas alimentam o painel; `payments` é mantido
-     * como contrato da API (app/API do professor).
+     * filtradas pelo global scope `tenant` (isolamento). As chaves `money` e
+     * as listas alimentam o painel; `payments` é mantido como contrato da API
+     * (app/API do professor).
      *
      * @return array<string, mixed>
      */
@@ -85,8 +85,6 @@ class DashboardService
                 'manual_this_month' => $teacher ? $this->payments->manualCountThisMonth($teacher->id) : 0,
                 'manual_limit' => PaymentService::MANUAL_MONTHLY_LIMIT,
             ],
-            // Assinatura do treinador COM a plataforma (pode não existir).
-            'subscription' => $this->subscriptionSummary($teacher),
             // Listas acionáveis do dia.
             'overdue_payments' => $overdue()
                 ->with('student')
@@ -103,37 +101,7 @@ class DashboardService
     }
 
     /**
-     * Resumo da assinatura do treinador para o painel (null = sem assinatura).
-     *
-     * @return array<string, mixed>|null
-     */
-    private function subscriptionSummary(?Teacher $teacher): ?array
-    {
-        $subscription = $teacher?->subscription;
-
-        if (! $subscription) {
-            return null;
-        }
-
-        return [
-            'id' => $subscription->id,
-            'plan' => $subscription->plan?->name,
-            'status' => $subscription->status?->value,
-            'status_label' => $subscription->status !== null
-                ? SubscriptionStatus::labels()[$subscription->status->value]
-                : null,
-            'amount' => (float) $subscription->amount,
-            'period_label' => $subscription->period !== null
-                ? BillingPeriod::labels()[$subscription->period->value]
-                : null,
-            'ends_at' => $subscription->ends_at?->toDateString(),
-            'active' => $subscription->isCurrentlyActive(),
-            'awaiting_payment' => $subscription->status === SubscriptionStatus::PENDING,
-        ];
-    }
-
-    /**
-     * Visão geral da plataforma (admin) — tenants, alunos e assinaturas.
+     * Visão geral da plataforma (admin) — tenants, alunos e comissões.
      * Só é chamada para isPlatformAdmin(); os modelos com escopo `tenant`
      * não filtram para admin (acesso global).
      *
@@ -154,12 +122,26 @@ class DashboardService
                 'total' => Student::count(),
                 'active' => Student::where('active', true)->count(),
             ],
-            'subscriptions' => [
-                'active' => Subscription::where('status', SubscriptionStatus::ACTIVE)->count(),
-                'trial' => Subscription::where('status', SubscriptionStatus::TRIAL)->count(),
-                'past_due' => Subscription::where('status', SubscriptionStatus::PAST_DUE)->count(),
-                'without' => Teacher::whereDoesntHave('subscription')->count(),
-                'monthly_amount' => (float) Subscription::where('status', SubscriptionStatus::ACTIVE)->sum('amount'),
+            // Receita da plataforma = comissão retida em cada cobrança ONLINE
+            // paga pelo aluno (não existe assinatura/mensalidade do treinador).
+            'commissions' => [
+                'month_amount' => (float) Payment::where('channel', PaymentChannel::ONLINE)
+                    ->where('status', PaymentStatus::PAID)
+                    ->whereMonth('paid_at', now()->month)
+                    ->whereYear('paid_at', now()->year)
+                    ->sum('fee_amount'),
+                'total_amount' => (float) Payment::where('channel', PaymentChannel::ONLINE)
+                    ->where('status', PaymentStatus::PAID)
+                    ->sum('fee_amount'),
+                'paid_count' => Payment::where('channel', PaymentChannel::ONLINE)
+                    ->where('status', PaymentStatus::PAID)
+                    ->count(),
+            ],
+            // Repasses devidos aos treinadores (solicitado = a pagar).
+            'payouts' => [
+                'requested_amount' => (float) Payout::where('status', PayoutStatus::REQUESTED)->sum('net_amount'),
+                'requested_count' => Payout::where('status', PayoutStatus::REQUESTED)->count(),
+                'paid_amount' => (float) Payout::where('status', PayoutStatus::PAID)->sum('net_amount'),
             ],
             'trainings' => [
                 'today' => TrainingSession::whereDate('scheduled_date', now()->toDateString())->count(),

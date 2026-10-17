@@ -46,7 +46,7 @@ class ProfileCompletionGateTest extends TestCase
 
         $this->actingAs($teacher->user);
 
-        foreach (['admin', 'students.index', 'plans.index', 'payments.index', 'profile.show', 'subscription.show'] as $route) {
+        foreach (['admin', 'students.index', 'plans.index', 'payments.index', 'profile.show'] as $route) {
             $this->get(route($route))->assertRedirect(route('profile.complete'));
         }
     }

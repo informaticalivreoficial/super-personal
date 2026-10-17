@@ -3,11 +3,9 @@
 namespace Tests\Feature\Panel;
 
 use App\Enums\PaymentStatus;
-use App\Enums\SubscriptionStatus;
 use App\Models\Payment;
 use App\Models\Sport;
 use App\Models\Student;
-use App\Models\Subscription;
 use App\Models\Teacher;
 use App\Models\TrainingPlan;
 use App\Models\TrainingSession;
@@ -19,8 +17,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Painel do treinador: dinheiro do mês, assinatura na plataforma e as
- * listas acionáveis (cobranças em atraso e treinos de hoje).
+ * Painel do treinador: dinheiro do mês e as listas acionáveis
+ * (cobranças em atraso e treinos de hoje) — não existe assinatura.
  */
 class TeacherDashboardTest extends TestCase
 {
@@ -60,7 +58,7 @@ class TeacherDashboardTest extends TestCase
         ]);
     }
 
-    public function test_teacher_dashboard_shows_money_subscription_and_lists(): void
+    public function test_teacher_dashboard_shows_money_and_lists(): void
     {
         $teacher = Teacher::factory()->create();
         $student = Student::factory()->forTeacher($teacher)->create(['name' => 'Ana Corredora']);
@@ -74,10 +72,6 @@ class TeacherDashboardTest extends TestCase
         ]);
         $this->paidOnline($student, 150, 142.50);
         Payment::factory()->forStudent($student)->count(2)->create(['amount' => 200]);
-        Subscription::factory()->forTeacher($teacher)->create([
-            'status' => SubscriptionStatus::ACTIVE,
-            'amount' => 99.90,
-        ]);
 
         $this->actingAs($teacher->user);
 
@@ -93,9 +87,6 @@ class TeacherDashboardTest extends TestCase
             ->assertSee('R$ 142,50')
             ->assertSee('Cobranças manuais este mês')
             ->assertSeeText('3 / 10')
-            ->assertSee('Minha assinatura')
-            ->assertSee('Ativa')
-            ->assertSee('R$ 99,90')
             ->assertSee('Cobranças em atraso')
             ->assertSee('Ana Corredora')
             ->assertSee('Mensalidade de setembro')
@@ -141,7 +132,6 @@ class TeacherDashboardTest extends TestCase
         // `paid_at` no mês passado: a regra olha `created_at`).
         $this->assertSame(4, $stats['money']['manual_this_month']);
         $this->assertSame(PaymentService::MANUAL_MONTHLY_LIMIT, $stats['money']['manual_limit']);
-        $this->assertNull($stats['subscription']);
     }
 
     public function test_teacher_dashboard_service_lists_are_scoped_and_limited(): void
@@ -203,7 +193,7 @@ class TeacherDashboardTest extends TestCase
             ->assertDontSee('Treino do professor B');
     }
 
-    public function test_teacher_dashboard_shows_empty_states_and_plan_quota(): void
+    public function test_teacher_dashboard_shows_empty_states_and_manual_quota(): void
     {
         $teacher = Teacher::factory()->create();
         $student = Student::factory()->forTeacher($teacher)->create();
@@ -215,29 +205,10 @@ class TeacherDashboardTest extends TestCase
 
         $this->get(route('admin'))
             ->assertOk()
-            ->assertSee('Sem assinatura')
             ->assertSee('Nenhuma cobrança em atraso')
             ->assertSee('Nenhum treino agendado para hoje')
             ->assertSeeText('10 / 10')
-            ->assertSee('Escolher plano')
-            ->assertDontSee('Gerenciar assinatura');
-    }
-
-    public function test_teacher_dashboard_warns_about_pending_subscription(): void
-    {
-        $teacher = Teacher::factory()->create();
-        Subscription::factory()->forTeacher($teacher)->create([
-            'status' => SubscriptionStatus::PENDING,
-            'amount' => 49.90,
-        ]);
-
-        $this->actingAs($teacher->user);
-
-        $this->get(route('admin'))
-            ->assertOk()
-            ->assertSee('Aguardando pagamento')
-            ->assertSee('Aguardando confirmação do pagamento')
-            ->assertSee('Concluir pagamento');
+            ->assertSee('Cota do mês atingida');
     }
 
     public function test_admin_dashboard_keeps_platform_view_without_teacher_money_block(): void
@@ -249,9 +220,8 @@ class TeacherDashboardTest extends TestCase
         $this->get(route('admin'))
             ->assertOk()
             ->assertSee('Visão geral da plataforma')
-            ->assertSee('Receita mensal')
+            ->assertSee('Comissões no mês')
             ->assertDontSee('Cobranças manuais este mês')
-            ->assertDontSee('Saldo para repasse')
-            ->assertDontSee('Minha assinatura');
+            ->assertDontSee('Saldo para repasse');
     }
 }

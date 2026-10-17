@@ -16,7 +16,7 @@
 O **tenant é o treinador** (`teachers.id`). Todo dado de domínio carrega `teacher_id`.
 
 1. **Coluna `teacher_id`** em Students, TrainingPlans, TrainingWeeks, TrainingSessions,
-   TrainingExecutions, StudentProgress, StudentNotes, Payments, Subscriptions.
+   TrainingExecutions, StudentProgress, StudentNotes, Payments, Payouts.
 2. **Global scope** — trait `App\Traits\BelongsToTeacher` (scope nomeado `tenant`)
    aplicado aos models de domínio. Filtra automaticamente toda query Eloquent quando
    há usuário autenticado; seeders/console rodam sem filtro.
@@ -76,7 +76,7 @@ users ──1:1── teachers ──┬──1:N── students ──┬──
                          │                   ├──1:N── payments
                          │                   └──1:1── (user.aluno)
                          ├──1:N── exercises (por teacher)
-                         └──1:N── subscriptions
+                         └──1:N── payouts (repasse do líquido das cobranças online)
 sports ──1:N── training_sessions (restrict)
 ```
 
@@ -123,10 +123,11 @@ sports ──1:N── training_sessions (restrict)
   perfil: treinador vê a **central de trabalho do próprio tenant**
   (`teacherDashboard()`); **admin vê a visão da plataforma** (`isPlatformAdmin()`
   → `DashboardService::platformDashboard()`): treinadores (total/ativos/novos
-  no mês), alunos (total/ativos), assinaturas (ativas/trial/em atraso/sem
-  assinatura + receita mensal = soma dos planos ativos), treinos hoje,
-  pagamentos/assinaturas em atraso e acesso rápido (Treinadores, Novo
-  treinador, Modalidades, Configurações).
+  no mês), alunos (total/ativos), **comissões** (`commissions`: retido no mês,
+  total e nº de cobranças online pagas — a receita do SaaS), **repasses**
+  (`payouts`: solicitado a pagar, nº de solicitações e já repassado), treinos
+  hoje, pagamentos em atraso e acesso rápido (Treinadores, Novo treinador,
+  Modalidades, Repasses, Configurações).
   - **Painel do treinador** (`teacherDashboard(?Teacher $teacher = null)`,
     teacher do usuário autenticado por padrão; consultas sob o global scope
     `tenant`): linha 1 = KPIs do dia (alunos ativos, treinos hoje/semana,
@@ -135,18 +136,15 @@ sports ──1:N── training_sessions (restrict)
     vencidas), em atraso (`overdue_amount`), recebido no mês, **saldo para
     repasse** (`PayoutService::balance`), já repassado e a **cota de cobranças
     manuais** (`PaymentService::manualCountThisMonth` / `MANUAL_MONTHLY_LIMIT`
-    = 10) com barra de progresso; card da **assinatura do treinador na
-    plataforma** (`subscription`: plano, status/label, valor, período,
-    vigência, `awaiting_payment` → aviso âmbar + "Concluir pagamento", ou
-    "Sem assinatura" → "Escolher plano"); e as **listas acionáveis**
+    = 10) com barra de progresso e aviso de cota cheia; e as **listas acionáveis**
     (`overdue_payments`: até 5, aluno/vencimento/valor/dias em atraso;
     `today_sessions`: até 8, aluno/modalidade/duração/status).
   - `overdue` (vencidas do painel) = status `overdue` **ou** pendente com
     `due_date` no passado — mesma definição do dashboard da plataforma e usada
     também em `payments.overdue_count` (contrato da API do professor).
   - A API `GET /teacher/dashboard` devolve `teacherDashboard()` inteiro: as
-    chaves novas (`money`, `subscription`, listas) são **aditivas** — o
-    contrato antigo (`students`/`plans`/`trainings`/`payments`) não mudou.
+    chaves novas (`money` e as listas) são **aditivas** — o contrato antigo
+    (`students`/`plans`/`trainings`/`payments`) não mudou.
 - **CRUD de Alunos** — componentes full-page em `app/Livewire/Dashboard/Students/`:
   - `StudentIndex` (busca/paginação/toggle ativo/exclusão lógica), `StudentForm`
     (create+edit), `StudentShow` (dados + plano ativo + pagamentos).
@@ -247,141 +245,48 @@ sports ──1:N── training_sessions (restrict)
   - **Fix**: a tela legada de usuários (`Users\Form::create/update`) chama
     `ensureProfile` quando o papel é `teacher` — antes o treinador criado
     ali ficava sem tenant e o painel dele ficava vazio.
-- **Assinaturas do treinador (billing da plataforma) — checkout transparente
-  PagBank** (evolução de 2026-10-13; gateway trocado de Mercado Pago para
-  **PagBank** em 2026-10-15; antes disso era só billing manual):
-  - **Catálogo `saas_plans`** (global, admin-only): `name/slug/description`,
-    `max_students` (**null = ilimitado**), preços por período
-    (`price_monthly/quarterly/annual`), `active`, `sort_order`.
-    Seeder `SaasPlanSeeder` com o catálogo inicial — **Gratuito** (10
-    alunos, R$ 0), **Intermediário** (30 alunos, R$ 49,90/134,70/478,80) e
-    **Ilimitado** (R$ 99,90/269,70/958,80); valores editáveis no painel;
-    enum `BillingPeriod` (monthly/quarterly/annual, `labels()` + `months()`);
-    CRUD admin em `/admin/assinaturas/planos`
-    (`SaasPlans\{SaasPlanIndex,SaasPlanForm}`, `SaasPlanService` com
-    auto-slug em colisão — `gratuito-2` — e exclusão bloqueada com
-    assinaturas vinculadas, `SaasPlanPolicy`, `SaasPlanRequest`).
-  - **`subscriptions` expandida**: `plan_id` (FK `saas_plans`,
-    nullOnDelete — coluna legada `plan` string removida), `period`
-    (`BillingPeriod`), `gateway` (`manual|pagbank`), `payment_id`
-    (id do pedido no gateway; a coluna `preference_id` do gateway anterior
-    foi **removida** na migration `2026_10_15_100001`); novo status
-    **`PENDING`** ("Aguardando pagamento") no enum `SubscriptionStatus`;
-    helper `externalReference()` = `sub-{id}` (usado no `reference_id` do
-    pedido), `isCurrentlyActive()` e `maxStudents()`.
-  - **`PagBankService`** (config `services.pagbank` ←
-    `PAGBANK_TOKEN/PAGBANK_PUBLIC_KEY/PAGBANK_SANDBOX/PAGBANK_WEBHOOK_URL`):
-    cliente HTTP (`Http::baseUrl` + `withToken`, timeout 20) contra
-    `https://sandbox.api.pagseguro.com` ou `https://api.pagseguro.com`;
-    **valores em centavos**; `isConfigured()`, `publicKey()` (usa a env quando
-    definida, senão busca em `GET /public-keys/card` e guarda em cache por
-    12 h), `createCardOrder()`, `createPixOrder()`, `fetchOrder()`,
-    `rejectionMessage()` e `normalizeOrder()` (id, `reference_id`, status do
-    gateway, `charge_id`, `code`/`message`, `qr_code_text`/`qr_code_image`).
-    Erros do gateway são logados com o detalhe técnico e re-lançados como
-    `RuntimeException` **neutra** (nada de marca do parceiro no texto que o
-    cliente vê).
-  - **Fluxo checkout transparente — cartão** (o usuário **nunca sai do
-    painel**): a página `/admin/assinatura` renderiza um modal com o form de
-    cartão (`resources/js/payment-card.js`, componente Alpine
-    `x-data="cardPayment({ publicKey, amount, cpfId })"`) — o SDK de
-    criptografia é carregado sob demanda (`ensureSdk()` com dedupe, timeout
-    de 15 s) e `PagSeguro.encryptCard()` gera o `encryptedCard` **no
-    navegador** (número/validade/CVV nunca são enviados em claro). O CPF do
-    titular fica num campo próprio (fora do `wire:ignore`, com `x-mask`);
-    o submit chama `$wire.call('payWithCard', { encrypted, holder,
-    installments, cpf })`.
-  - **Pagamento flui** por `SubscriptionService` (caminho único de escrita):
-    `payWithCard(Teacher, SaasPlan, BillingPeriod, array $card)` aplica
-    plano/período/PENDING **antes** da chamada ao gateway guardando um
-    **snapshot** (`getAttributes()`) — `PAID` → ativa; `WAITING`/
-    `IN_ANALYSIS` → grava `payment_id` e espera o webhook; recusa/erro →
-    `restoreSnapshot()` (quem tinha plano vigente não perde nada) e mensagem
-    pt-BR de `rejectionMessage()` (mapa por código: saldo, antifraude, razão
-    do emissor, cartão inválido, + fallback por texto). Validado por
-    `PayWithCardRequest` (`encrypted`, `holder`, `installments` 1–12, `cpf`
-    com 11 dígitos).
-  - **Fluxo checkout transparente — Pix**: `payWithPix()` cria o pedido com o
-    array **`qr_codes[]`** no topo (`amount.value` em centavos +
-    `expiration_date`); a resposta (201) traz `qr_codes[].text` (copia e cola) e
-    os links `QRCODE.PNG`/`QRCODE.BASE64`. O caminho
-    `charges[].payment_method.pix` **não** é usado: ele exige chave Pix
-    cadastrada na conta e responde `40010 PIX_KEY_NOT_FOUND` (confirmado no
-    sandbox). O modal desenha o QR **localmente em SVG** com `simple-qrcode` a
-    partir do copia e cola (nada do parceiro é carregado na página), mostra o
-    textarea e o botão "Copiar código Pix". A assinatura fica PENDING até a
-    confirmação.
-    - **O Pix exige o CPF do pagador** (`customer.tax_id`; sem ele o gateway
-      responde `40001 "must not be null"`). O `payer()` monta a identificação
-      podando o CPF para dígitos (preferindo o CPF digitado no cartão e, no
-      Pix, o `users.cpf` do cadastro) e `payWithPix()` **aborta antes de gerar
-      o pedido** (com mensagem pedindo o CPF em "Meu perfil") quando ele não
-      existe — nada é gravado. É o que motivou o cadastro obrigatório do
-      treinador (ver "Cadastro obrigatório do treinador").
-    - **As duas abas do modal ficam SEMPRE no DOM** (`id="pay-panel-card"` /
-      `id="pay-panel-pix"`, alternando só a classe `hidden` via
-      `@class(['hidden' => ...])`). Trocar os blocos por `@if` fazia o morph do
-      Livewire reaproveitar o `<div>` do cartão (mesma posição na árvore) e o
-      `wire:ignore` preservar o DOM antigo — clicar em "Pix" continuava mostrando
-      o formulário do cartão. Bônus: o cartão digitado não se perde ao alternar.
-      O `x-data="{ copied: false }"` do copia e cola fica num wrapper que contém
-      o `<textarea x-ref="pixCode">` **e** o botão (irmão): com o `x-data` no
-      próprio textarea o `$refs` ficava fora do alcance do botão.
-  - **Webhook** público `GET|POST /webhooks/pagbank`
-    (`Webhooks\PagBankWebhookController`, isento de CSRF): o corpo da
-    notificação **não é fonte de verdade** — o controller extrai o id do
-    pedido (ou o `reference_id`) e **reconsulta** `GET /orders/{id}` via
-    `SubscriptionService::syncFromOrder()`. Sem id/referência identificável a
-    notificação é apenas ignorada (200). A validação por assinatura de
-    payload foi descartada de propósito (o PagBank não envia o corpo
-    assinado de forma documentada para este fluxo) — documento em
-    `docs/architecture.md`/controller.
-  - **`applyOrder()`** (aplicação de estado, idempotente e conservadora):
-    `PAID` → ativa (`ends_at` = hoje + meses do período via
-    `addMonthsNoOverflow`); `DECLINED` só marca PAST_DUE se a assinatura
-    estiver **PENDING**; `REFUNDED`/`IN_DISPUTE`/`CANCELED` só marcam
-    PAST_DUE se a assinatura estiver ACTIVE **e** o `payment_id` for o do
-    pedido do evento (evita falso past_due em assinatura restaurada).
-  - **`SubscriptionService`** também tem: `assignFreePlan(Teacher)`
-    (idempotente, sem downgrades — chamado no `TeacherService::store` e no
-    `Register`: **todo novo treinador nasce no plano gratuito**) e
-    `activateFreePlan()/subscribe()` (plano gratuito ativa na hora, sem
-    gateway).
-  - **Enforcement de alunos**: `StudentService::store` bloqueia com
-    `ValidationException` quando a assinatura **vigente**
-    (`isCurrentlyActive()`) tem limite definido e o tenant já atingiu
-    (conta alunos não-softdeleted; sem assinatura não há bloqueio);
-    upgrade é sugerido na própria mensagem ("Minha assinatura").
-  - **Admin**: índice `/admin/assinaturas`
-    (`Subscriptions\SubscriptionIndex`: busca por treinador/e-mail, filtro
-    de status, badges, gateway — "Manual"/"Online" (sem expor a marca do
-    parceiro) —, vigência, link "Gerenciar" → `professors.edit`); card
-    `ProfessorSubscription` com **dropdown do catálogo** + período +
-    auto-preço do plano ao trocar plano/período; sidebar "Plataforma" com
-    "Assinaturas" e "Planos do SaaS".
-  - **Treinador — self-service** (`/admin/assinatura`, `role:teacher`):
-    card da assinatura atual (plano, período, valor, vigência, nota
-    "Aguardando pagamento" quando PENDING) + **catálogo de planos ativos**
-    em cards com botões Mensal/Trimestral/Anual (gratuito = "Usar plano
-    gratuito", ativa na hora) — plano pago abre o **modal de checkout**
-    (`MySubscription::subscribe` → `openPaymentForm` → abas Cartão/Pix) e
-    `payWithCard`/`payWithPix` finalizam; o botão "Já efetuei o pagamento"
-    (`checkPayment`) reconsulta o pedido quando o webhook não chega
-    (ambiente local sem URL pública). O cliente **nunca** sai do painel.
-  - **Ambiente**: em dev (`PAGBANK_SANDBOX=true`, `APP_URL` HTTP) o pedido é
-    criado sem `notification_urls` (o gateway exige HTTPS) — por isso o
-    botão de conferência manual; `PAGBANK_WEBHOOK_URL` define a URL de
-    produção. O Pix **não** exige chave Pix cadastrada na conta (o pedido com
-    `qr_codes[]` é criado normalmente no sandbox; validado com o token de
-    teste).
-  - **Refino anterior mantido**: link "Minha assinatura" no sidebar só
-    para `isTeacher()`; admin continua ajustando manualmente no
-    `ProfessorForm` (inclusive voltando para trial/cancelada).
+### Modelo de receita: comissão por cobrança (sem assinatura) — 2026-10-16
+
+> **Mudança de modelo de negócio**: o SaaS **não cobra assinatura/mensalidade**
+> do treinador. A receita é a **comissão** retida em cada cobrança que o
+> treinador cria e recebe **online** (paga pelo aluno no app) — ver
+> "Cobrança do aluno (manual x online)".
+
+- **Removido por completo** (tabelas dropadas na migration
+  `2026_10_16_100006_drop_subscriptions_and_saas_plans_tables`, que também
+  apagou as migrations de origem):
+  - catálogo **`saas_plans`** (e `SaasPlanSeeder`/factory), enum
+    `BillingPeriod`, model `SaasPlan`, `SaasPlanService`, `SaasPlanPolicy`,
+    `SaasPlanRequest` e as telas `SaasPlans\{SaasPlanIndex,SaasPlanForm}`;
+  - **`subscriptions`** (e factory), enum `SubscriptionStatus`,
+    `SubscriptionService`, `StoreSubscriptionRequest`,
+    `Professores\ProfessorSubscription` (card do admin), índice
+    `Subscriptions\SubscriptionIndex` em `/admin/assinaturas` e a tela
+    self-service `/admin/assinatura` (`MySubscription`, `subscription.show`);
+  - o **plano gratuito automático** (`SubscriptionService::assignFreePlan` em
+    `TeacherService::store` e no auto-cadastro) e o **limite de alunos por
+    plano** (`StudentService::ensureStudentQuota`) — o treinador pode ter
+    quantos alunos quiser;
+  - a **coluna "Assinatura"** do índice de treinadores virou **"A repassar"**
+    (saldo de repasse do tenant, `withSum` de `net_amount` das cobranças
+    online pagas sem `payout_id`), clicável para `/admin/plataforma/repasses`.
+- **Dependências ajustadas**: `Teacher` perdeu a relação `subscription()`;
+  `DashboardService` perdeu `subscriptionSummary()` e trocou os KPIs de
+  assinatura do admin por `commissions`/`payouts`; `PagBank`/webhook só
+  tratam `pay-{id}` (o roteamento por prefixo deixou de existir);
+  `SiteController::home()` não passa mais catálogo de planos e a landing
+  (`web/default/home.blade.php`) ganhou a seção **`#precos`** estática
+  ("Sem mensalidade. Você paga só quando recebe." — 5% por cobrança online,
+  sem taxa no registro manual, repasse do líquido via Pix).
+- **Rota do admin renomeada**: `/admin/assinaturas/repasses` →
+  **`/admin/plataforma/repasses`** (nome `payouts.admin` inalterado; o
+  `/admin/repasses` continua sendo o saldo do treinador).
+
 
 ### Cobrança do aluno (manual x online) — 2026-10-16
 
-> Não confundir com a **assinatura do treinador** (seção acima): aqui é o
-> aluno pagando o treinador.
+> Aqui é o aluno pagando o treinador (o SaaS não cobra assinatura — ver
+> "Modelo de receita").
 
 - **Modelo decidido**: receber na conta PagBank **da plataforma** e repassar
   ao treinador (sem split). A plataforma retém uma **taxa configurável**
@@ -405,8 +310,9 @@ sports ──1:N── training_sessions (restrict)
   (o corpo nunca é fonte de verdade): `approved` → paga + taxa + líquido;
   `REFUNDED/IN_DISPUTE/CANCELED` de uma paga → `cancelled` e limpa
   taxa/líquido. CPF do pagador: do request ou `students.document`.
-- **`PagBankWebhookController`** roteia por prefixo da referência: `pay-` →
-  `PaymentService`, senão `SubscriptionService`.
+- **`PagBankWebhookController`** trata **somente** a cobrança do aluno
+  (`pay-{id}` → `PaymentService::syncFromOrder`); sem identificação na
+  notificação, responde 200 e ignora.
 - **API**: `POST /student/payments/{payment}/checkout` (aluno, cobrança online)
   → `{status, order_id, qr_code, qr_image}`; `payment.channel` no
   `StorePaymentRequest`; `PaymentResource` expõe `channel`, `channel_label`,
@@ -429,7 +335,7 @@ sports ──1:N── training_sessions (restrict)
   das cobranças aguardando (com taxa e líquido), campo de observação e
   **"Solicitar repasse"**; histórico com bruto/taxas/líquido/status. Link
   "Repasses" no sidebar (só `isTeacher()`).
-- **Painel — admin**: `GET /admin/assinaturas/repasses`
+- **Painel — admin**: `GET /admin/plataforma/repasses`
   (`Payouts\AdminPayoutIndex`, `role:admin`, `payouts.admin`): KPIs (a repassar
   / já repassado), filtro de status, repasses de todos os treinadores com
   **"Marcar como pago"** e **cancelar** (`wire:confirm`).
@@ -441,10 +347,10 @@ sports ──1:N── training_sessions (restrict)
   `pix_key_type`, enum `PixKeyType`) — `ProfileService` persiste no `teachers`.
 - **Taxa da plataforma**: campo "Taxa das cobranças online (%)" em
   Configurações (admin) → `config.fee_percent` (validado 0–100).
-- **Ainda pendente**: a descontinuação do modelo antigo de quota por
-  `SaasPlan`/`Subscription` (`StudentService::ensureStudentQuota`) — mantido por
-  ora. A tela "Pagar" (Pix) do app foi concluída em 2026-10-16 (ver
-  "Telas do aluno no app").
+- **Quota antiga descontinuada**: o limite de alunos por plano
+  (`SaasPlan`/`Subscription`) foi removido em 2026-10-16 junto com o modelo de
+  assinatura (ver "Modelo de receita: comissão por cobrança"). A tela "Pagar"
+  (Pix) do app está concluída (ver "Telas do aluno no app").
 
 ### Meu perfil (conta do usuário logado)
 
@@ -490,7 +396,7 @@ sports ──1:N── training_sessions (restrict)
 - **Problema**: o parceiro de pagamentos recusa a cobrança sem a
   identificação do pagador (`customer.tax_id` = CPF) — era o `400` `40001
   "must not be null"` ao gerar o **Pix** (o cartão já coletava o CPF no
-  formulário). Treinador sem CPF no cadastro = assinatura impossível.
+  formulário). Treinador sem CPF no cadastro = cobrança online (Pix) impossível.
 - **Gate**: middleware **`App\Http\Middleware\EnsureProfileIsCompleted`**
   (alias `profile.complete`, aplicado ao grupo `/admin` depois de `role`):
   se o usuário é **treinador** e `User::missingProfileFields()` não está
@@ -676,18 +582,15 @@ sports ──1:N── training_sessions (restrict)
   - **Notificações**: `NewTrainingAvailableTest` (8) — plano publicado por
     evento (criar ativo, publicar rascunho, editar sem reaviso, reativar
     avisa de novo, aluno sem conta, fim a fim via API e painel).
-  - `SubscriptionManagementTest` (7) — assinaturas do treinador no admin
-    (badge no index, card na edição, criação/atualização, validação,
-    `cancelled_at` automático, 403 para treinador).
-  - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs,
-    receita, agregação cross-tenant via service, treinador vê o próprio).
-  - `TeacherDashboardTest` (7) — painel do treinador: dinheiro (a receber incl.
+  - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs de
+    comissão e repasses, agregação cross-tenant via service — manual paga não
+    gera comissão, treinador vê o próprio painel).
+  - `TeacherDashboardTest` (6) — painel do treinador: dinheiro (a receber incl.
     vencidas, atraso pela definição status `overdue`/pendente vencida, recebido
     no mês excluindo o mês anterior, saldo de repasse pela soma do `net_amount`
-    das online pagas, cota manual n/10), assinatura (ativa/pendente/sem) e
-    listas (limite de 5 cobranças em atraso / 8 treinos de hoje, vazios
-    amigáveis), sem vazamento de outro tenant e com o admin ainda na visão da
-    plataforma.
+    das online pagas, cota manual n/10 com aviso quando cheia) e listas (limite
+    de 5 cobranças em atraso / 8 treinos de hoje, vazios amigáveis), sem
+    vazamento de outro tenant e com o admin ainda na visão da plataforma.
   - `LandingFormTest` (32) — página "Minha página pública" (prefill, salvar,
     slug gerado/reservado/duplicado/inválido, próprio slug não é tratado como
     duplicado, desligar opt-in esconde a landing, admin edita qualquer tenant,
@@ -709,13 +612,6 @@ sports ──1:N── training_sessions (restrict)
     completos (birthday d/m/Y→Y-m-d, CEP limpo, UF maiúscula), formato de
     data/UF, upload/remoção de avatar, avatar não-imagem rejeitado, validações,
     admin sem perfil de treinador, link no sidebar).
-  - `SaasPlanCrudTest` (9) — CRUD do catálogo (admin-only/403 teacher),
-    auto-slug e sufixo em colisão (`gratuito-2`), exclusão bloqueada com
-    assinaturas, seeder idempotente, plano gratuito automático e sem
-    downgrade.
-  - `StudentLimitTest` (7) — enforcement por plano (gratuito bloqueia o 11º
-    aluno, ilimitado/liberado sem assinatura/cancelada não bloqueia, soft
-    delete libera vaga, erro no `StudentForm`).
   - `ProfileCompletionGateTest` (11) — treinador sem CPF/celular é
     redirecionado de qualquer rota do painel para `/admin/completar-cadastro`,
     banner com a lista do que falta, só celular faltando também bloqueia,
@@ -723,19 +619,6 @@ sports ──1:N── training_sessions (restrict)
     painel (CPF gravado só com dígitos) e sem CPF/celular não grava nada,
     CPF inválido é rejeitado com mensagem, marcação obrigatória do treinador e
     guest → login.
-  - `MySubscriptionTest` (24) — catálogo do treinador, assinar gratuito
-    ativa na hora, plano pago abre o modal sem gravar nada (sem PENDING
-    órfão), campos de cartão + aba Pix no modal, `payWithCard`
-    aprovado/recusado/em análise (payload criptografado conferido),
-    validação de token/parcelas/CPF, isolamento entre treinadores, Pix com
-    QR Code (payload do Pix com `customer.tax_id` = CPF do cadastro, só
-    dígitos), **sem CPF o Pix falha antes do gateway** com mensagem útil e sem
-    gravar PENDING (regressão do `40001 must not be null`), **os dois painéis
-    sempre no DOM** (regressão do `wire:ignore` +
-    morph) e **escopo Alpine do copia e cola** (regressão do `$refs`),
-    `checkPayment` confirmando/aguardando, gateway indisponível
-    (nada é gravado, erro amigável), `cancelPayment`, assinatura cancelada,
-    admin bloqueado (403), guest, sidebar.
   - **Services** (`tests/Feature/Services`): `PagBankServiceTest` (13) —
     `isConfigured`, chave pública (env, `GET /public-keys/card` + cache,
     `null` em falha), payload de cartão (centavos, parcelas, `tax_id`,
@@ -752,9 +635,6 @@ sports ──1:N── training_sessions (restrict)
     `config.fee_percent` customizado, líquido, reversão de estorno limpa
     taxa/líquido, referência desconhecida ignorada) e `syncFromOrder` usando
     o `gateway_order_id`.
-  - `SubscriptionManagementTest` (8) — card do admin com catálogo/Período,
-    auto-preço ao trocar plano, validações (plan_id/status/amount),
-    cancelamento com rastro.
   - `PayoutFlowTest` (11) — repasses e canal de cobrança no painel: saldo
     (só online paga), manuais/pendentes e de outro tenant fora do saldo,
     solicitar repasse (agrupa as cobranças, bruto/taxas/líquido, observação),
@@ -762,15 +642,15 @@ sports ──1:N── training_sessions (restrict)
     cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
     admin no treinador), form cria cobrança online (payable), quota manual
     erra no form e o índice mostra canal + KPIs.
-  - **Total: 421 testes / 1541 assertions** (78 API + 252 painel + 11 console
-    + 8 notificações + 46 web + 26 services).
-  - **Webhooks**: `PagBankWebhookTest` (11) — notificação com id do pedido
-    ativa a assinatura, anual +12 meses, `WAITING` mantém PENDING,
-    `DECLINED` com PENDING → past_due, `DECLINED` não derruba assinatura
-    vigente, `REFUNDED` de pedido pago → past_due, notificação só com
-    `reference_id` usa o `payment_id` guardado, referência desconhecida é
-    ignorada, sem identificação não consulta o gateway (200), GET aceito e
-    rota isenta de CSRF.
+  - **Total: 371 testes / 1308 assertions** (78 API + 203 painel + 11 console
+    + 8 notificações + 45 web + 26 services).
+  - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
+    aluno como paga com a taxa da plataforma (5% e `config.fee_percent`
+    customizado), `WAITING` só registra o status do gateway, `REFUNDED` de
+    cobrança paga reverte (cancelled + taxa/líquido nulos) e de pendente é
+    ignorado, notificação só com `reference_id` usa o `gateway_order_id`
+    guardado, referência desconhecida é ignorada, sem identificação não
+    consulta o gateway (200), GET aceito e rota isenta de CSRF.
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter
@@ -1050,24 +930,26 @@ sports ──1:N── training_sessions (restrict)
   standalone `web/default/home.blade.php`, server-rendered, mesmo DNA
   visual da landing dos treinadores — dark `brand-950`, títulos Barlow
   Condensed, laranja `brand-*`; SEO via `Seo` com título/descrição de
-  conversão). Passa `plans` = catálogo `saas_plans` ativos (ordenados).
+  conversão). **Não** passa catálogo de planos (o modelo de assinatura foi
+  removido em 2026-10-16 — ver "Modelo de receita: comissão por cobrança").
 - **Seções** (uma página, sem enrolação): header sticky (logo, âncoras
-  Por que/Como funciona/Planos/Dúvidas, Entrar + "Criar conta grátis") →
+  Por que/Como funciona/Preço/Dúvidas, Entrar + "Criar conta grátis") →
   hero "Menos planilha. Mais treino." com **mockup do app em CSS puro**
   (sem fotos de banco: card de sessão, aderência, notificação) → chips de
   modalidades → grade de 6 diferenciais → "Como funciona" (3 passos
-  numerados) → **planos com toggle Mensal/Trimestral/Anual** (Alpine via
-  CDN — página standalone; `x-cloak` + preços do banco com
-  `priceFor(period)`; card do meio destacado "Mais popular") → seção do
-  app do aluno → FAQ (`<details>` nativo, 6 perguntas) → CTA final →
-  rodapé. CTAs apontam para `route('register')` (auto-cadastro de
-  treinador) e `route('login')`.
-- **Robustez**: seção de planos só renderiza se houver catálogo ativo
-  (banco sem `saas_plans` → página sem a seção, nunca 500);
+  numerados) → seção **`#precos`** estática ("Sem mensalidade. Você paga só
+  quando recebe."): 3 cards (Cadastro grátis com alunos ilimitados / Cobrança
+  online com **5% por cobrança paga** e "Você recebe 95%" / Fora do app sem
+  taxa no registro manual) → seção do app do aluno → FAQ (`<details>` nativo,
+  6 perguntas) → CTA final → rodapé. CTAs apontam para `route('register')`
+  (auto-cadastro de treinador) e `route('login')`. Sem Alpine/JS na página
+  (o toggle de período saiu junto com o catálogo de planos).
+- **Robustez**: a seção de preço é estática (não depende de banco);
   `$config->app_name` em todos os títulos.
 - **Testes**: `tests/Feature/Web/HomeLandingTest` (5) — guest 200 com
-  CTAs/seções, links de registro/login, planos do catálogo (nomes,
-  preço, "Mais popular"), seção oculta sem catálogo, head SEO + ano.
+  CTAs/seções, links de registro/login, preço por comissão (`5%`,
+  "Você recebe 95%", `#precos`), ausência de qualquer menção ao modelo antigo
+  ("Mais popular", "Assinar", "troque de plano"), head SEO + ano.
 
 ## Páginas legais — Termos de Uso e Política de Privacidade (2026-10-15)
 
@@ -1198,9 +1080,9 @@ sports ──1:N── training_sessions (restrict)
 - **Permissão**: `TeacherPolicy::updateLanding()` — admin (qualquer tenant) ou
   o próprio treinador; professor A nunca edita a página do B (middleware de
   rota + Gate + testes). Slug vazio → gerado do nome.
-- **Fix da sidebar**: "Minha assinatura" estava aninhada dentro do submenu
-  "Biblioteca" (só aparecia naquela página) — saiu para item de topo junto
-  com "Minha página pública".
+- **Fix da sidebar**: o item "Minha assinatura" (que ficava aninhado no
+  submenu "Biblioteca") virou item de topo junto com "Minha página pública" —
+  depois **removido** com o fim do modelo de assinatura (2026-10-16).
 - **Loop de crescimento**: rodapé da landing traz
   "Quero minha página assim → criar conta de treinador" (`/auth/register`).
 
@@ -1213,11 +1095,11 @@ sports ──1:N── training_sessions (restrict)
   telas do aluno (dashboard, planos, treinos com start/complete, progresso)
   sobre a API já existente.
 - Swagger (docs manuais), refresh token, integrações Strava/Garmin.
-- **Cobrança do aluno — próximos passos**: a tela "Pagar" (Pix) no app do aluno
-  e, depois disto, descontinuar o modelo antigo de quota por
-  `SaasPlan`/`Subscription` (`StudentService::ensureStudentQuota`). As telas do
-  painel (lançar online/manual com a quota, taxa/líquido, saldo e repasses do
-  treinador, confirmação pelo admin) foram concluídas em 2026-10-16.
-- Cartão de crédito na cobrança **do aluno** (hoje só Pix) — o cartão do
-  checkout transparente já existe, mas para a assinatura **do treinador**.
+- **Cobrança do aluno — concluído**: telas do painel (lançar online/manual com
+  a quota, taxa/líquido, saldo e repasses do treinador, confirmação pelo
+  admin), tela "Pagar" (Pix) no app e **fim do modelo de assinatura** (a quota
+  antiga por `SaasPlan`/`Subscription` foi removida em 2026-10-16 — ver
+  "Modelo de receita: comissão por cobrança").
+- Cartão de crédito na cobrança **do aluno** (hoje só Pix) — a cobrança online
+  ainda não aceita cartão.
 - Push FCM (notificações hoje são canal `database`; entra na etapa mobile).

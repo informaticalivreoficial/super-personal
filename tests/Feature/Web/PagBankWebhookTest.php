@@ -2,48 +2,47 @@
 
 namespace Tests\Feature\Web;
 
-use App\Enums\BillingPeriod;
-use App\Enums\SubscriptionStatus;
-use App\Models\SaasPlan;
-use App\Models\Subscription;
+use App\Enums\PaymentStatus;
+use App\Models\Config;
+use App\Models\Payment;
+use App\Models\Student;
 use App\Models\Teacher;
 use App\Services\PagBankService;
-use Database\Seeders\SaasPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 /**
  * Webhook do gateway: o corpo da notificação nunca é fonte de verdade —
- * o controller reconsulta o pedido e aplica o estado real.
+ * o controller reconsulta o pedido e aplica o estado real. Hoje o único
+ * alvo é a cobrança do aluno (`pay-{id}`): a plataforma não cobra
+ * assinatura do treinador.
  */
 class PagBankWebhookTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function pendingSubscription(BillingPeriod $period = BillingPeriod::MONTHLY): Subscription
+    /** Cobrança online pendente (referência `pay-{id}`). */
+    private function pendingCharge(float $amount = 200): Payment
     {
-        (new SaasPlanSeeder)->run();
-        $plan = SaasPlan::where('slug', 'intermediario')->firstOrFail();
         $teacher = Teacher::factory()->create();
+        $student = Student::factory()->forTeacher($teacher)->create();
 
-        return Subscription::factory()->forTeacher($teacher)->create([
-            'plan_id' => $plan->id,
-            'period' => $period,
-            'gateway' => Subscription::GATEWAY_PAGBANK,
-            'status' => SubscriptionStatus::PENDING,
-            'amount' => 49.90,
-            'payment_id' => 'ORDE_PIX',
+        return Payment::factory()->forStudent($student)->online()->create([
+            'amount' => $amount,
+            'gateway' => Payment::GATEWAY_PAGBANK,
+            'gateway_order_id' => 'ORDE_PIX',
+            'status' => PaymentStatus::PENDING,
         ]);
     }
 
-    /** @param array<string, mixed> $order */
-    private function fakeOrder(Subscription $subscription, string $gatewayStatus, array $overrides = []): void
+    /** @param array<string, mixed> $overrides */
+    private function fakeOrder(Payment $payment, string $gatewayStatus, array $overrides = []): void
     {
-        $this->mock(PagBankService::class, function (MockInterface $mock) use ($subscription, $gatewayStatus, $overrides) {
+        $this->mock(PagBankService::class, function (MockInterface $mock) use ($payment, $gatewayStatus, $overrides) {
             $mock->shouldReceive('fetchOrder')->andReturn(array_merge([
                 'id' => 'ORDE_PIX',
-                'reference_id' => $subscription->externalReference(),
+                'reference_id' => $payment->externalReference(),
                 'status' => match ($gatewayStatus) {
                     'PAID' => 'approved',
                     'DECLINED' => 'rejected',
@@ -59,108 +58,105 @@ class PagBankWebhookTest extends TestCase
         });
     }
 
-    public function test_paid_order_activates_subscription(): void
+    public function test_paid_order_marks_the_charge_as_paid_with_the_platform_fee(): void
     {
-        $subscription = $this->pendingSubscription();
-        $this->fakeOrder($subscription, 'PAID');
+        $payment = $this->pendingCharge(200);
+        $this->fakeOrder($payment, 'PAID');
 
         $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
 
-        $subscription->refresh();
+        $payment->refresh();
 
-        $this->assertSame(SubscriptionStatus::ACTIVE, $subscription->status);
-        $this->assertSame('ORDE_PIX', $subscription->payment_id);
-        $this->assertNotNull($subscription->ends_at);
-        $this->assertTrue($subscription->ends_at->isFuture());
+        $this->assertSame(PaymentStatus::PAID, $payment->status);
+        $this->assertNotNull($payment->paid_at);
+        $this->assertSame('PAID', $payment->gateway_status);
+        // Comissão de 5% (padrão): taxa 10 e líquido 190 para o treinador.
+        $this->assertSame(10.0, (float) $payment->fee_amount);
+        $this->assertSame(190.0, (float) $payment->net_amount);
+        $this->assertNull($payment->payout_id);
     }
 
-    public function test_annual_subscription_gets_twelve_months(): void
+    public function test_fee_follows_the_configured_percentage(): void
     {
-        $subscription = $this->pendingSubscription(BillingPeriod::ANNUAL);
-        $this->fakeOrder($subscription, 'PAID');
+        Config::query()->create(['app_name' => 'Teste', 'fee_percent' => 8]);
+
+        $payment = $this->pendingCharge(300);
+        $this->fakeOrder($payment, 'PAID');
 
         $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
 
-        $this->assertSame(
-            now()->addMonthsNoOverflow(12)->toDateString(),
-            $subscription->refresh()->ends_at->toDateString()
-        );
+        $payment->refresh();
+
+        $this->assertSame(24.0, (float) $payment->fee_amount);
+        $this->assertSame(276.0, (float) $payment->net_amount);
     }
 
-    public function test_waiting_order_keeps_subscription_pending(): void
+    public function test_waiting_order_only_records_the_gateway_status(): void
     {
-        $subscription = $this->pendingSubscription();
-        $this->fakeOrder($subscription, 'WAITING');
+        $payment = $this->pendingCharge();
+        $this->fakeOrder($payment, 'WAITING');
 
         $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
 
-        $this->assertSame(SubscriptionStatus::PENDING, $subscription->refresh()->status);
+        $payment->refresh();
+
+        $this->assertSame(PaymentStatus::PENDING, $payment->status);
+        $this->assertSame('WAITING', $payment->gateway_status);
+        $this->assertNull($payment->fee_amount);
     }
 
-    public function test_declined_card_marks_pending_subscription_as_past_due(): void
+    public function test_refund_of_a_paid_charge_reverses_it(): void
     {
-        $subscription = $this->pendingSubscription();
-        $this->fakeOrder($subscription, 'DECLINED');
-
-        $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
-
-        $this->assertSame(SubscriptionStatus::PAST_DUE, $subscription->refresh()->status);
-    }
-
-    public function test_declined_order_does_not_touch_a_vigent_subscription(): void
-    {
-        // Cartão recusado: o checkout já restaurou o plano anterior (ativo).
-        // A notificação de recusa não pode derrubar quem já estava em dia.
-        $subscription = $this->pendingSubscription();
-        $subscription->update([
-            'status' => SubscriptionStatus::ACTIVE,
-            'payment_id' => null,
-            'ends_at' => now()->addMonth()->toDateString(),
+        $payment = $this->pendingCharge(200);
+        $payment->update([
+            'status' => PaymentStatus::PAID,
+            'paid_at' => now()->subDay(),
+            'fee_amount' => 10,
+            'net_amount' => 190,
         ]);
 
-        $this->fakeOrder($subscription, 'DECLINED');
+        $this->fakeOrder($payment, 'REFUNDED');
 
         $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
 
-        $this->assertSame(SubscriptionStatus::ACTIVE, $subscription->refresh()->status);
+        $payment->refresh();
+
+        $this->assertSame(PaymentStatus::CANCELLED, $payment->status);
+        $this->assertNull($payment->paid_at);
+        $this->assertNull($payment->fee_amount);
+        $this->assertNull($payment->net_amount);
     }
 
-    public function test_refund_of_paid_order_marks_past_due(): void
+    public function test_refund_of_a_charge_that_was_never_paid_is_ignored(): void
     {
-        $subscription = $this->pendingSubscription();
-        $subscription->update([
-            'status' => SubscriptionStatus::ACTIVE,
-            'payment_id' => 'ORDE_PIX',
-            'ends_at' => now()->addMonth()->toDateString(),
-        ]);
-
-        $this->fakeOrder($subscription, 'REFUNDED');
+        $payment = $this->pendingCharge();
+        $this->fakeOrder($payment, 'REFUNDED');
 
         $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
 
-        $this->assertSame(SubscriptionStatus::PAST_DUE, $subscription->refresh()->status);
+        $this->assertSame(PaymentStatus::PENDING, $payment->refresh()->status);
     }
 
     public function test_notification_without_order_id_uses_stored_link(): void
     {
-        $subscription = $this->pendingSubscription();
-        $this->fakeOrder($subscription, 'PAID');
+        $payment = $this->pendingCharge();
+        $this->fakeOrder($payment, 'PAID');
 
-        // Alguns eventos trazem só a referência (`sub-{id}`).
-        $this->postJson(route('webhooks.pagbank'), ['reference_id' => $subscription->externalReference()])
+        // Alguns eventos trazem só a referência (`pay-{id}`).
+        $this->postJson(route('webhooks.pagbank'), ['reference_id' => $payment->externalReference()])
             ->assertOk();
 
-        $this->assertSame(SubscriptionStatus::ACTIVE, $subscription->refresh()->status);
+        $this->assertSame(PaymentStatus::PAID, $payment->refresh()->status);
     }
 
     public function test_unknown_reference_is_ignored(): void
     {
-        $this->pendingSubscription();
+        $payment = $this->pendingCharge();
 
         $this->mock(PagBankService::class, function (MockInterface $mock) {
             $mock->shouldReceive('fetchOrder')->andReturn([
                 'id' => 'ORDE_FOREIGN',
-                'reference_id' => 'sub-999999',
+                'reference_id' => 'pay-999999',
                 'status' => 'approved',
                 'gateway_status' => 'PAID',
                 'charge_id' => 'CHAR',
@@ -173,7 +169,7 @@ class PagBankWebhookTest extends TestCase
 
         $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_FOREIGN'])->assertOk();
 
-        $this->assertSame(SubscriptionStatus::PENDING, Subscription::firstOrFail()->status);
+        $this->assertSame(PaymentStatus::PENDING, $payment->refresh()->status);
     }
 
     public function test_notification_without_identification_is_ignored(): void
@@ -187,22 +183,22 @@ class PagBankWebhookTest extends TestCase
 
     public function test_get_notification_is_accepted(): void
     {
-        $subscription = $this->pendingSubscription();
-        $this->fakeOrder($subscription, 'PAID');
+        $payment = $this->pendingCharge();
+        $this->fakeOrder($payment, 'PAID');
 
         $this->get(route('webhooks.pagbank').'?id=ORDE_PIX')->assertOk();
 
-        $this->assertSame(SubscriptionStatus::ACTIVE, $subscription->refresh()->status);
+        $this->assertSame(PaymentStatus::PAID, $payment->refresh()->status);
     }
 
     public function test_route_is_exempt_from_csrf(): void
     {
-        $subscription = $this->pendingSubscription();
-        $this->fakeOrder($subscription, 'PAID');
+        $payment = $this->pendingCharge();
+        $this->fakeOrder($payment, 'PAID');
 
         // Sem token CSRF: chamada server-to-server do gateway.
         $this->post(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
 
-        $this->assertSame(SubscriptionStatus::ACTIVE, $subscription->refresh()->status);
+        $this->assertSame(PaymentStatus::PAID, $payment->refresh()->status);
     }
 }

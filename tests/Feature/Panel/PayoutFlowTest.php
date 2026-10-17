@@ -178,7 +178,7 @@ class PayoutFlowTest extends TestCase
         $admin = User::factory(['role' => 'admin'])->create();
 
         $this->actingAs($teacher->user);
-        $this->get('/admin/assinaturas/repasses')->assertForbidden();
+        $this->get('/admin/plataforma/repasses')->assertForbidden();
 
         // O admin não tem tenant: a página do treinador é exclusiva dele.
         $this->actingAs($admin);

@@ -2,7 +2,8 @@
 
 namespace App\Livewire\Dashboard\Professores;
 
-use App\Enums\SubscriptionStatus;
+use App\Enums\PaymentChannel;
+use App\Enums\PaymentStatus;
 use App\Models\Teacher;
 use App\Services\TeacherService;
 use App\Traits\WithToastr;
@@ -51,7 +52,13 @@ class ProfessorIndex extends Component
     {
         $teachers = Teacher::query()
             ->withCount('students')
-            ->with('subscription')
+            // Saldo a repassar: líquido das cobranças online pagas ainda sem
+            // repasse (a plataforma não cobra assinatura — a receita é a
+            // comissão retida em cada cobrança, o líquido é do treinador).
+            ->withSum(['payments as awaiting_payout_amount' => fn ($query) => $query
+                ->where('channel', PaymentChannel::ONLINE)
+                ->where('status', PaymentStatus::PAID)
+                ->whereNull('payout_id')], 'net_amount')
             ->when($this->search !== '', function ($query) {
                 $search = $this->search;
                 $query->where(function ($q) use ($search) {
@@ -64,14 +71,6 @@ class ProfessorIndex extends Component
 
         return view('livewire.dashboard.professores.index', [
             'teachers' => $teachers,
-            'statusLabels' => SubscriptionStatus::labels(),
-            'subscriptionBadgeClasses' => [
-                'trial' => 'badge-info',
-                'active' => 'badge-success',
-                'past_due' => 'badge-warning',
-                'cancelled' => 'badge-secondary',
-                'expired' => 'badge-danger',
-            ],
         ]);
     }
 }

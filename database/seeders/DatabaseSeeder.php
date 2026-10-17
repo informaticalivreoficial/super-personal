@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
             ConfigTableSeeder::class,
             // SaaS — base de dados do SportPlan
             AdminSeeder::class,
-            SaasPlanSeeder::class,
             TeacherSeeder::class,
             SportSeeder::class,
             ExerciseSeeder::class,

@@ -3,10 +3,13 @@
 namespace Tests\Feature\Web;
 
 use Database\Seeders\ConfigTableSeeder;
-use Database\Seeders\SaasPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Landing do SaaS (home pública): o preço agora é a comissão por cobrança
+ * online — não existe catálogo de planos nem mensalidade.
+ */
 class HomeLandingTest extends TestCase
 {
     use RefreshDatabase;
@@ -25,8 +28,7 @@ class HomeLandingTest extends TestCase
             ->assertSee('Menos planilha', false)
             ->assertSee('Mais treino', false)
             ->assertSee('Criar conta grátis')
-            ->assertSee('Ver planos')
-            ->assertSee('Gratuito até 10 alunos')
+            ->assertSee('Ver preço')
             ->assertSee('Como funciona')
             ->assertSee('Dúvidas frequentes');
     }
@@ -39,26 +41,28 @@ class HomeLandingTest extends TestCase
             ->assertSee(route('login'), false);
     }
 
-    public function test_home_shows_plans_from_catalog(): void
+    public function test_home_shows_the_commission_pricing(): void
     {
-        (new SaasPlanSeeder)->run();
-
         $this->get(route('web.home'))
             ->assertOk()
-            ->assertSee('Planos')
-            ->assertSee('Gratuito')
-            ->assertSee('Intermediário')
-            ->assertSee('Ilimitado')
-            ->assertSee('49,90')
-            ->assertSee('Mais popular');
+            ->assertSee('id="precos"', false)
+            ->assertSee('Sem mensalidade')
+            ->assertSee('5%')
+            ->assertSee('por cobrança paga')
+            ->assertSee('Você recebe 95%')
+            ->assertSee('Sem taxa')
+            ->assertSee('Repasse do líquido por Pix quando você solicitar');
     }
 
-    public function test_home_hides_pricing_section_without_catalog(): void
+    public function test_home_does_not_mention_the_old_subscription_model(): void
     {
         $this->get(route('web.home'))
             ->assertOk()
             ->assertDontSee('Mais popular')
-            ->assertDontSee('id="planos"', false);
+            ->assertDontSee('id="planos"', false)
+            ->assertDontSee('Assinar')
+            ->assertDontSee('Gratuito até 10 alunos')
+            ->assertDontSee('troque de plano');
     }
 
     public function test_home_has_seo_head_and_year(): void

@@ -13,8 +13,7 @@ use Tests\TestCase;
  * por Http::fake — nenhum request sai de verdade.
  *
  * O service é genérico: recebe um "subject" (referência, descrição e valor em
- * centavos) usado pela assinatura (`sub-{id}`) e pela cobrança do aluno
- * (`pay-{id}`).
+ * centavos). Hoje o único uso é a cobrança online do aluno (`pay-{id}`).
  */
 class PagBankServiceTest extends TestCase
 {
@@ -36,11 +35,11 @@ class PagBankServiceTest extends TestCase
     /**
      * @return array{reference: string, description: string, amount_cents: int}
      */
-    private function charge(float $amount = 49.90, string $reference = 'sub-1'): array
+    private function charge(float $amount = 49.90, string $reference = 'pay-1'): array
     {
         return [
             'reference' => $reference,
-            'description' => 'Assinatura Pro (monthly)',
+            'description' => 'Cobrança de treino',
             'amount_cents' => (int) round($amount * 100),
         ];
     }
@@ -95,7 +94,7 @@ class PagBankServiceTest extends TestCase
         Http::fake([
             '*/orders' => Http::response([
                 'id' => 'ORDE_1',
-                'reference_id' => 'sub-1',
+                'reference_id' => 'pay-1',
                 'charges' => [[
                     'id' => 'CHAR_1',
                     'status' => 'PAID',
@@ -119,7 +118,7 @@ class PagBankServiceTest extends TestCase
             $charge = $request['charges'][0];
 
             return $request->url() === 'https://sandbox.api.pagseguro.com/orders'
-                && $request['reference_id'] === 'sub-1'
+                && $request['reference_id'] === 'pay-1'
                 && $request['customer']['email'] === 'treinador@teste.com'
                 && $request['items'][0]['unit_amount'] === 4990 // centavos
                 && $charge['payment_method']['type'] === 'CREDIT_CARD'
@@ -136,7 +135,7 @@ class PagBankServiceTest extends TestCase
         $this->assertSame('ORDE_1', $order['id']);
         $this->assertSame('approved', $order['status']);
         $this->assertSame('PAID', $order['gateway_status']);
-        $this->assertSame('sub-1', $order['reference_id']);
+        $this->assertSame('pay-1', $order['reference_id']);
     }
 
     public function test_card_order_omits_notification_urls_on_http(): void
@@ -181,7 +180,7 @@ class PagBankServiceTest extends TestCase
         Http::fake([
             '*/orders' => Http::response([
                 'id' => 'ORDE_PIX',
-                'reference_id' => 'sub-1',
+                'reference_id' => 'pay-1',
                 'qr_codes' => [[
                     'id' => 'QRCO_1',
                     'text' => '0002010102122658...',
@@ -203,7 +202,7 @@ class PagBankServiceTest extends TestCase
             $qrCode = $request['qr_codes'][0];
 
             return $request->url() === 'https://sandbox.api.pagseguro.com/orders'
-                && $request['reference_id'] === 'sub-1'
+                && $request['reference_id'] === 'pay-1'
                 && $qrCode['amount']['value'] === 9990 // centavos
                 && isset($qrCode['expiration_date'])
                 // Regressão: `charges[].payment_method.pix` exige chave Pix na
@@ -223,7 +222,7 @@ class PagBankServiceTest extends TestCase
         Http::fake([
             '*/orders' => Http::response([
                 'id' => 'ORDE_COBRANCA',
-                'reference_id' => 'sub-1',
+                'reference_id' => 'pay-1',
                 'charges' => [[
                     'id' => 'CHAR_PIX',
                     'status' => 'WAITING',
@@ -242,8 +241,8 @@ class PagBankServiceTest extends TestCase
     public function test_pix_order_without_copy_paste_text_is_detected(): void
     {
         // Sem `text` não há QR para mostrar: o service devolve vazio e o
-        // PaymentService/SubscriptionService tratam como falha.
-        Http::fake(['*/orders' => Http::response(['id' => 'ORDE_VAZIO', 'reference_id' => 'sub-1'], 201)]);
+        // PaymentService trata como falha.
+        Http::fake(['*/orders' => Http::response(['id' => 'ORDE_VAZIO', 'reference_id' => 'pay-1'], 201)]);
 
         $order = app(PagBankService::class)->createPixOrder($this->charge(), ['email' => 'treinador@teste.com']);
 
@@ -255,7 +254,7 @@ class PagBankServiceTest extends TestCase
         Http::fake([
             '*/orders/ORDE_9' => Http::response([
                 'id' => 'ORDE_9',
-                'reference_id' => 'sub-9',
+                'reference_id' => 'pay-9',
                 'charges' => [[
                     'id' => 'CHAR_9',
                     'status' => 'DECLINED',

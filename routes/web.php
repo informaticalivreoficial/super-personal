@@ -10,7 +10,6 @@ use App\Livewire\Dashboard\Exercises\ExerciseForm;
 use App\Livewire\Dashboard\Exercises\ExerciseIndex;
 use App\Livewire\Dashboard\LandingForm;
 use App\Livewire\Dashboard\MyProfile;
-use App\Livewire\Dashboard\MySubscription;
 use App\Livewire\Dashboard\Payments\PaymentForm;
 use App\Livewire\Dashboard\Payments\PaymentIndex;
 use App\Livewire\Dashboard\Payouts\AdminPayoutIndex;
@@ -20,8 +19,6 @@ use App\Livewire\Dashboard\Plans\PlanIndex;
 use App\Livewire\Dashboard\Plans\PlanShow;
 use App\Livewire\Dashboard\Professores\ProfessorForm;
 use App\Livewire\Dashboard\Professores\ProfessorIndex;
-use App\Livewire\Dashboard\SaasPlans\SaasPlanForm;
-use App\Livewire\Dashboard\SaasPlans\SaasPlanIndex;
 use App\Livewire\Dashboard\Settings;
 use App\Livewire\Dashboard\Sports\SportForm;
 use App\Livewire\Dashboard\Sports\SportIndex;
@@ -29,7 +26,6 @@ use App\Livewire\Dashboard\Students\StudentForm;
 use App\Livewire\Dashboard\Students\StudentIndex;
 use App\Livewire\Dashboard\Students\StudentShow;
 use App\Livewire\Dashboard\Students\StudentTracking;
-use App\Livewire\Dashboard\Subscriptions\SubscriptionIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
@@ -113,19 +109,13 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
         Route::get('professores/{teacher}/pagina', LandingForm::class)->name('professors.landing');
     });
 
-    // *********************** Assinaturas do SaaS (plataforma) *******************
-    // Cobrança do treinador à plataforma: catálogo de planos + lista de
-    // assinaturas. Exclusivo do admin (o treinador vê a própria em
-    // /admin/assinatura).
-    Route::group(['middleware' => 'role:admin'], function () {
-        Route::get('assinaturas', SubscriptionIndex::class)->name('subscriptions.index');
-        Route::get('assinaturas/planos', SaasPlanIndex::class)->name('saas-plans.index');
-        Route::get('assinaturas/planos/cadastrar', SaasPlanForm::class)->name('saas-plans.create');
-        Route::get('assinaturas/planos/{plan}/editar', SaasPlanForm::class)->name('saas-plans.edit');
-        // Repasses das cobranças online (líquido do treinador): o admin confirma
-        // a transferência e marca como pago.
-        Route::get('assinaturas/repasses', AdminPayoutIndex::class)->name('payouts.admin');
-    });
+    // *********************** Repasses (plataforma) ******************************
+    // Repasses devidos aos treinadores (líquido das cobranças online): o admin
+    // confirma a transferência e marca como pago. Exclusivo do admin — o
+    // treinador vê o próprio saldo em /admin/repasses.
+    Route::get('plataforma/repasses', AdminPayoutIndex::class)
+        ->name('payouts.admin')
+        ->middleware('role:admin');
 
     // *********************** Minha página pública *******************************
     // Landing do próprio treinador em /treinador/{slug} (opt-in public_profile).
@@ -143,17 +133,9 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     // Primeiro acesso do treinador: enquanto CPF/celular não estiverem
     // preenchidos o middleware `profile.complete` manda para cá. O CPF é
     // exigido pelo parceiro de pagamentos (identificação do pagador) — sem
-    // ele o treinador não consegue assinar a plataforma (Pix/cartão).
-    // Mesmo componente do "Meu perfil", em modo obrigatório.
+    // ele o treinador não consegue emitir as cobranças online (Pix) para os
+    // alunos. Mesmo componente do "Meu perfil", em modo obrigatório.
     Route::get('completar-cadastro', MyProfile::class)->name('profile.complete');
-
-    // *********************** Minha assinatura ***********************************
-    // Visão somente leitura do treinador sobre a própria assinatura COM a
-    // plataforma (billing manual gerido pelo admin). Exclusiva do treinador:
-    // o admin não tem tenant — ele gerencia em /admin/professores/{id}/editar.
-    Route::get('assinatura', MySubscription::class)
-        ->name('subscription.show')
-        ->middleware('role:teacher');
 
     // *********************** Repasses (saldo do treinador) **********************
     // Líquido das cobranças online: saldo disponível, cobranças aguardando

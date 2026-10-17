@@ -16,9 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Dois canais:
  * - manual: registro de cobrança paga por fora (sem gateway).
  * - online: paga pelo app, cai no PagBank da plataforma; a plataforma retém
- *   `fee_amount` e o treinador recebe `net_amount` (via repasse/Payout).
- *
- * Não confundir com Subscription (assinatura do treinador na plataforma).
+ *   `fee_amount` (a receita do SaaS) e o treinador recebe `net_amount`
+ *   (repassado via Payout).
  */
 class Payment extends Model
 {

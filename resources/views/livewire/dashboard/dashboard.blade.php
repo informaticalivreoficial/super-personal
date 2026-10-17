@@ -47,38 +47,43 @@
                 </div>
             </div>
 
-            <div class="card p-5">
+            {{-- Receita da plataforma = comissão retida em cada cobrança online
+                 paga pelo aluno (não existe assinatura do treinador). --}}
+            <a href="{{ route('payments.index') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
                 <div class="flex items-center gap-4">
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                        <x-icon name="identification" class="h-6 w-6" />
-                    </span>
-                    <div class="min-w-0">
-                        <p class="text-sm font-medium text-gray-500">Assinaturas ativas</p>
-                        <p class="text-2xl font-semibold tracking-tight text-gray-900">
-                            {{ $stats['subscriptions']['active'] }}
-                        </p>
-                        <p class="text-xs text-gray-400">
-                            {{ $stats['subscriptions']['trial'] }} em teste ·
-                            {{ $stats['subscriptions']['without'] }} sem assinatura
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card p-5">
-                <div class="flex items-center gap-4">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                         <x-icon name="banknotes" class="h-6 w-6" />
                     </span>
                     <div class="min-w-0">
-                        <p class="text-sm font-medium text-gray-500">Receita mensal (assinaturas)</p>
+                        <p class="text-sm font-medium text-gray-500">Comissões no mês</p>
                         <p class="text-2xl font-semibold tracking-tight text-gray-900">
-                            R$ {{ number_format($stats['subscriptions']['monthly_amount'], 2, ',', '.') }}
+                            R$ {{ number_format($stats['commissions']['month_amount'], 2, ',', '.') }}
                         </p>
-                        <p class="text-xs text-gray-400">Soma dos planos ativos</p>
+                        <p class="text-xs text-gray-400">
+                            {{ $stats['commissions']['paid_count'] }} cobrança(s) online paga(s)
+                            · R$ {{ number_format($stats['commissions']['total_amount'], 2, ',', '.') }} no total
+                        </p>
                     </div>
                 </div>
-            </div>
+            </a>
+
+            <a href="{{ route('payouts.admin') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
+                <div class="flex items-center gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                        <x-icon name="arrow-path" class="h-6 w-6" />
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-gray-500">Repasses a pagar</p>
+                        <p class="text-2xl font-semibold tracking-tight text-gray-900">
+                            R$ {{ number_format($stats['payouts']['requested_amount'], 2, ',', '.') }}
+                        </p>
+                        <p class="text-xs text-gray-400">
+                            {{ $stats['payouts']['requested_count'] }} solicitado(s)
+                            · R$ {{ number_format($stats['payouts']['paid_amount'], 2, ',', '.') }} já repassado
+                        </p>
+                    </div>
+                </div>
+            </a>
         </div>
 
         {{-- Saúde da plataforma --}}
@@ -107,17 +112,17 @@
                 </div>
             </div>
 
-            <div class="card p-5">
+            <a href="{{ route('payouts.admin') }}" wire:navigate class="card group p-5 transition hover:shadow-md">
                 <div class="flex items-center gap-4">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl {{ $stats['subscriptions']['past_due'] > 0 ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600' }}">
-                        <x-icon name="bell" class="h-5 w-5" />
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                        <x-icon name="banknotes" class="h-5 w-5" />
                     </span>
                     <div class="min-w-0">
-                        <p class="text-sm font-medium text-gray-500">Assinaturas em atraso</p>
-                        <p class="text-xl font-semibold tracking-tight text-gray-900">{{ $stats['subscriptions']['past_due'] }}</p>
+                        <p class="text-sm font-medium text-gray-500">Cobranças online pagas</p>
+                        <p class="text-xl font-semibold tracking-tight text-gray-900">{{ $stats['commissions']['paid_count'] }}</p>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         {{-- Acesso rápido (plataforma) --}}
@@ -140,6 +145,10 @@
                 <a wire:navigate href="{{ route('sports.index') }}" class="btn btn-secondary">
                     <x-icon name="fire" class="h-4 w-4" />
                     Modalidades
+                </a>
+                <a wire:navigate href="{{ route('payouts.admin') }}" class="btn btn-secondary">
+                    <x-icon name="arrow-path" class="h-4 w-4" />
+                    Repasses
                 </a>
                 <a wire:navigate href="{{ route('settings') }}" class="btn btn-secondary">
                     <x-icon name="cog" class="h-4 w-4" />
@@ -264,67 +273,16 @@
                         <div class="h-full rounded-full {{ $stats['money']['manual_this_month'] >= $stats['money']['manual_limit'] ? 'bg-red-500' : 'bg-brand-500' }}"
                              style="width: {{ min(100, (int) round($stats['money']['manual_this_month'] / max(1, $stats['money']['manual_limit']) * 100)) }}%"></div>
                     </div>
+                    <p class="mt-1 text-xs text-gray-400">
+                        @if ($stats['money']['manual_this_month'] >= $stats['money']['manual_limit'])
+                            Cota do mês atingida — novas cobranças manuais só no próximo mês.
+                        @else
+                            Sem taxa nas cobranças manuais.
+                        @endif
+                    </p>
                 </div>
             </div>
         </a>
-    </div>
-
-    {{-- Assinatura do treinador na plataforma --}}
-    @php($subscription = $stats['subscription'])
-    <div class="card mt-4">
-        <div class="card-body flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl {{ $subscription && $subscription['awaiting_payment'] ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600' }}">
-                    <x-icon name="shield-check" class="h-6 w-6" />
-                </span>
-                <div class="min-w-0">
-                    <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-500">
-                        Minha assinatura
-                        @if ($subscription)
-                            <span class="badge {{ $subscription['awaiting_payment'] ? 'badge-warning' : ($subscription['active'] ? 'badge-success' : 'badge-secondary') }}">
-                                {{ $subscription['status_label'] }}
-                            </span>
-                        @endif
-                    </p>
-                    @if ($subscription)
-                        <p class="text-lg font-semibold tracking-tight text-gray-900">
-                            {{ $subscription['plan'] ?? 'Sem plano' }}
-                            @if ($subscription['period_label'])
-                                <span class="text-sm font-normal text-gray-400">· {{ $subscription['period_label'] }}</span>
-                            @endif
-                        </p>
-                        <p class="text-xs text-gray-400">
-                            R$ {{ number_format($subscription['amount'], 2, ',', '.') }} por período
-                            @if ($subscription['ends_at'])
-                                · vigente até {{ \Illuminate\Support\Carbon::parse($subscription['ends_at'])->format('d/m/Y') }}
-                            @endif
-                        </p>
-                    @else
-                        <p class="text-lg font-semibold tracking-tight text-gray-900">Sem assinatura</p>
-                        <p class="text-xs text-gray-400">Escolha um plano para liberar todos os recursos.</p>
-                    @endif
-                </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                @if ($subscription && $subscription['awaiting_payment'])
-                    <span class="flex items-center gap-1 text-xs font-medium text-amber-600">
-                        <x-icon name="exclamation-triangle" class="h-4 w-4" />
-                        Aguardando confirmação do pagamento
-                    </span>
-                @endif
-                <a wire:navigate href="{{ route('subscription.show') }}" class="btn btn-primary">
-                    <x-icon name="banknotes" class="h-4 w-4" />
-                    @if ($subscription && $subscription['awaiting_payment'])
-                        Concluir pagamento
-                    @elseif ($subscription)
-                        Gerenciar assinatura
-                    @else
-                        Escolher plano
-                    @endif
-                </a>
-            </div>
-        </div>
     </div>
 
     {{-- Listas acionáveis --}}

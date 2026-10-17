@@ -40,7 +40,7 @@
                             <th>Treinador</th>
                             <th>E-mail</th>
                             <th class="text-center">Alunos</th>
-                            <th class="text-center">Assinatura</th>
+                            <th class="text-right">A repassar</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">Ações</th>
                         </tr>
@@ -56,13 +56,15 @@
                                 </td>
                                 <td>{{ $teacher->user?->email }}</td>
                                 <td class="text-center">{{ $teacher->students_count }}</td>
-                                <td class="text-center">
-                                    @if ($teacher->subscription)
-                                        <span class="badge {{ $subscriptionBadgeClasses[$teacher->subscription->status->value] ?? 'badge-secondary' }}">
-                                            {{ $statusLabels[$teacher->subscription->status->value] ?? $teacher->subscription->status->value }}
-                                        </span>
+                                {{-- Saldo de repasse do treinador (líquido das cobranças online pagas). --}}
+                                <td class="text-right">
+                                    @if ((float) $teacher->awaiting_payout_amount > 0)
+                                        <a href="{{ route('payouts.admin') }}" wire:navigate
+                                            class="font-semibold text-brand-600 hover:text-brand-700">
+                                            {{ 'R$ '.number_format((float) $teacher->awaiting_payout_amount, 2, ',', '.') }}
+                                        </a>
                                     @else
-                                        <span class="text-xs text-gray-400">Sem assinatura</span>
+                                        <span class="text-xs text-gray-400">—</span>
                                     @endif
                                 </td>
                                 <td class="text-center">

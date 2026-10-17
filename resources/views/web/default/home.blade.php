@@ -85,8 +85,8 @@
                 <a href="#como-funciona" class="font-display text-sm font-semibold uppercase tracking-wide text-white/80 transition hover:text-brand-400">
                     Como funciona
                 </a>
-                <a href="#planos" class="font-display text-sm font-semibold uppercase tracking-wide text-white/80 transition hover:text-brand-400">
-                    Planos
+                <a href="#precos" class="font-display text-sm font-semibold uppercase tracking-wide text-white/80 transition hover:text-brand-400">
+                    Preço
                 </a>
                 <a href="#faq" class="font-display text-sm font-semibold uppercase tracking-wide text-white/80 transition hover:text-brand-400">
                     Dúvidas
@@ -138,15 +138,15 @@
                             <x-icon name="user-plus" class="h-5 w-5" />
                             Criar conta grátis
                         </a>
-                        <a href="#planos"
+                        <a href="#precos"
                             class="inline-flex items-center justify-center gap-2 border border-white/25 px-7 py-3.5 font-display text-sm font-semibold uppercase tracking-wide text-white transition hover:border-brand-400 hover:text-brand-400">
                             <x-icon name="banknotes" class="h-5 w-5" />
-                            Ver planos
+                            Ver preço
                         </a>
                     </div>
 
                     <p class="mt-5 text-sm text-white/60">
-                        Gratuito até 10 alunos &bull; Sem cartão de crédito &bull; Cancele quando quiser
+                        Sem mensalidade &bull; Sem cartão de crédito &bull; Comissão só quando você receber
                     </p>
                 </div>
 
@@ -275,7 +275,7 @@
                 <div class="mt-10 grid gap-8 lg:grid-cols-3">
                     @php
                         $steps = [
-                            ['n' => '01', 'title' => 'Crie sua conta', 'text' => 'Leva 2 minutos e você já entra com o plano gratuito — até 10 alunos, sem cartão de crédito.'],
+                            ['n' => '01', 'title' => 'Crie sua conta', 'text' => 'Leva 2 minutos, sem cartão de crédito e sem mensalidade — o cadastro é gratuito.'],
                             ['n' => '02', 'title' => 'Cadastre seus alunos', 'text' => 'Gere um código de convite por aluno; ele cria a conta no app e já recebe seus treinos.'],
                             ['n' => '03', 'title' => 'Monte e publique', 'text' => 'O treino chega na hora no celular do aluno. Você acompanha execuções e evolução pelo painel.'],
                         ];
@@ -297,118 +297,135 @@
             </div>
         </section>
 
-        {{-- Planos (catálogo real do banco) --}}
-        @if ($plans->isNotEmpty())
-            <section id="planos" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24"
-                x-data="pricing()">
-                <div class="text-center">
-                    <p class="font-display text-sm font-semibold uppercase tracking-widest text-brand-400">
-                        Planos
-                    </p>
-                    <h2 class="mt-2 font-display text-4xl font-bold uppercase leading-tight tracking-wide sm:text-5xl">
-                        Comece grátis. Cresça quando fizer sentido.
-                    </h2>
-                    <p class="mx-auto mt-3 max-w-xl text-white/60">
-                        Pagamento via Pix, boleto e cartão. Sem fidelidade — troque de plano a qualquer momento.
-                    </p>
-
-                    <div class="mt-8 inline-flex border border-white/15 p-1">
-                        @foreach (\App\Enums\BillingPeriod::labels() as $periodValue => $periodLabel)
-                            <button type="button" @click="set('{{ $periodValue }}')"
-                                :class="period === '{{ $periodValue }}' ? 'bg-brand-400 text-brand-950' : 'text-white/70 hover:text-white'"
-                                class="px-4 py-2 font-display text-sm font-semibold uppercase tracking-wide transition">
-                                {{ $periodLabel }}
-                            </button>
-                        @endforeach
-                    </div>
-                </div>
-
-                <div class="mt-10 grid gap-5 lg:grid-cols-3">
-                    @foreach ($plans as $index => $plan)
-                        <div @class([
-                            'flex flex-col border p-7',
-                            'border-brand-400/60 bg-brand-950/60' => $index === 1,
-                            'border-white/10 bg-brand-950/40' => $index !== 1,
-                        ])>
-                            <div class="flex items-start justify-between gap-2">
-                                <h3 class="font-display text-2xl font-bold uppercase tracking-wide">
-                                    {{ $plan->name }}
-                                </h3>
-                                @if ($index === 1)
-                                    <span class="bg-brand-400 px-2 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wide text-brand-950">
-                                        Mais popular
-                                    </span>
-                                @elseif ($plan->isFree())
-                                    <span class="border border-white/20 px-2 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                                        Pra começar
-                                    </span>
-                                @endif
-                            </div>
-
-                            @if ($plan->description)
-                                <p class="mt-2 text-sm text-white/60">{{ $plan->description }}</p>
-                            @endif
-
-                            <div class="mt-6 flex items-baseline gap-2">
-                                @foreach (\App\Enums\BillingPeriod::cases() as $periodCase)
-                                    <span x-show="period === '{{ $periodCase->value }}'" x-cloak
-                                        class="font-display text-5xl font-bold tracking-wide text-white">
-                                        @if ($plan->priceFor($periodCase) == 0)
-                                            Grátis
-                                        @else
-                                            R$ {{ number_format($plan->priceFor($periodCase), 2, ',', '.') }}
-                                        @endif
-                                    </span>
-                                @endforeach
-                                @unless ($plan->isFree())
-                                    <span class="text-sm text-white/50"
-                                        x-text="period === 'monthly' ? '/mês' : period === 'quarterly' ? '/trimestre' : '/ano'">
-                                    </span>
-                                @endunless
-                            </div>
-
-                            <p class="mt-1 font-display text-sm font-semibold uppercase tracking-wide text-brand-400">
-                                {{ $plan->maxStudentsLabel() }} aluno(s)
-                            </p>
-
-                            <ul class="mt-6 flex-1 space-y-2.5 text-sm text-white/70">
-                                <li class="flex items-start gap-2">
-                                    <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
-                                    App do aluno para treinos e execuções
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
-                                    Acompanhamento e avaliações
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
-                                    Página pública com WhatsApp
-                                </li>
-                                @if (! $plan->isFree())
-                                    <li class="flex items-start gap-2">
-                                        <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
-                                        Pagamento via Pix, boleto e cartão
-                                    </li>
-                                @endif
-                            </ul>
-
-                            <a href="{{ route('register') }}"
-                                @class([
-                                    'mt-7 inline-flex items-center justify-center px-6 py-3 font-display text-sm font-semibold uppercase tracking-wide transition',
-                                    'bg-brand-400 text-brand-950 hover:bg-brand-300' => $index === 1,
-                                    'border border-white/25 text-white hover:border-brand-400 hover:text-brand-400' => $index !== 1,
-                                ])>
-                                {{ $plan->isFree() ? 'Começar grátis' : 'Assinar ' . $plan->name }}
-                            </a>
-                        </div>
-                    @endforeach
-                </div>
-
-                <p class="mt-8 text-center text-sm text-white/50">
-                    Você cria a conta primeiro e escolhe/altera o plano pelo painel, a qualquer momento.
+        {{-- Preço: sem mensalidade — comissão por cobrança online --}}
+        <section id="precos" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
+            <div class="text-center">
+                <p class="font-display text-sm font-semibold uppercase tracking-widest text-brand-400">
+                    Preço
                 </p>
-            </section>
-        @endif
+                <h2 class="mt-2 font-display text-4xl font-bold uppercase leading-tight tracking-wide sm:text-5xl">
+                    Sem mensalidade. Você paga só quando recebe.
+                </h2>
+                <p class="mx-auto mt-3 max-w-xl text-white/60">
+                    Cadastro gratuito: alunos, treinos, app do aluno e página pública sem custo fixo.
+                    A plataforma retém <strong class="font-semibold text-white">5% de cada cobrança online</strong>
+                    paga pelo aluno — o resto é repassado para você.
+                </p>
+            </div>
+
+            <div class="mt-10 grid gap-5 lg:grid-cols-3">
+                <div class="flex flex-col border border-white/10 bg-brand-950/40 p-7">
+                    <h3 class="font-display text-2xl font-bold uppercase tracking-wide">Cadastro</h3>
+                    <p class="mt-2 text-sm text-white/60">Para começar e organizar a assessoria.</p>
+                    <div class="mt-6 flex items-baseline gap-2">
+                        <span class="font-display text-5xl font-bold tracking-wide text-white">Grátis</span>
+                        <span class="text-sm text-white/50">sem mensalidade</span>
+                    </div>
+                    <p class="mt-1 font-display text-sm font-semibold uppercase tracking-wide text-brand-400">
+                        Alunos ilimitados
+                    </p>
+                    <ul class="mt-6 flex-1 space-y-2.5 text-sm text-white/70">
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Montagem de planos e treinos
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            App do aluno para treinos e execuções
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Acompanhamento e avaliações
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Página pública com WhatsApp
+                        </li>
+                    </ul>
+                    <a href="{{ route('register') }}"
+                        class="mt-7 inline-flex items-center justify-center border border-white/25 px-6 py-3 font-display text-sm font-semibold uppercase tracking-wide text-white transition hover:border-brand-400 hover:text-brand-400">
+                        Começar grátis
+                    </a>
+                </div>
+
+                <div class="flex flex-col border border-brand-400/60 bg-brand-950/60 p-7">
+                    <div class="flex items-start justify-between gap-2">
+                        <h3 class="font-display text-2xl font-bold uppercase tracking-wide">Cobrança online</h3>
+                        <span class="bg-brand-400 px-2 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wide text-brand-950">
+                            Pix no app
+                        </span>
+                    </div>
+                    <p class="mt-2 text-sm text-white/60">O aluno paga direto pelo app, sem você correr atrás.</p>
+                    <div class="mt-6 flex items-baseline gap-2">
+                        <span class="font-display text-5xl font-bold tracking-wide text-white">5%</span>
+                        <span class="text-sm text-white/50">por cobrança paga</span>
+                    </div>
+                    <p class="mt-1 font-display text-sm font-semibold uppercase tracking-wide text-brand-400">
+                        Você recebe 95%
+                    </p>
+                    <ul class="mt-6 flex-1 space-y-2.5 text-sm text-white/70">
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            QR Code Pix gerado no app do aluno
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Baixa automática quando o pagamento cai
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Extrato de comissões e líquido por cobrança
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Repasse do líquido por Pix quando você solicitar
+                        </li>
+                    </ul>
+                    <a href="{{ route('register') }}"
+                        class="mt-7 inline-flex items-center justify-center bg-brand-400 px-6 py-3 font-display text-sm font-semibold uppercase tracking-wide text-brand-950 transition hover:bg-brand-300">
+                        Criar minha conta
+                    </a>
+                </div>
+
+                <div class="flex flex-col border border-white/10 bg-brand-950/40 p-7">
+                    <h3 class="font-display text-2xl font-bold uppercase tracking-wide">Fora do app</h3>
+                    <p class="mt-2 text-sm text-white/60">Para quem paga por transferência, dinheiro ou já tem outro meio.</p>
+                    <div class="mt-6 flex items-baseline gap-2">
+                        <span class="font-display text-5xl font-bold tracking-wide text-white">Sem taxa</span>
+                        <span class="text-sm text-white/50">no registro manual</span>
+                    </div>
+                    <p class="mt-1 font-display text-sm font-semibold uppercase tracking-wide text-brand-400">
+                        Controle no painel
+                    </p>
+                    <ul class="mt-6 flex-1 space-y-2.5 text-sm text-white/70">
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Registro das cobranças e vencimentos
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Lembretes automáticos ao aluno
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Histórico de pagamentos por aluno
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                            Você recebe na hora, direto de quem paga
+                        </li>
+                    </ul>
+                    <a href="{{ route('register') }}"
+                        class="mt-7 inline-flex items-center justify-center border border-white/25 px-6 py-3 font-display text-sm font-semibold uppercase tracking-wide text-white transition hover:border-brand-400 hover:text-brand-400">
+                        Começar grátis
+                    </a>
+                </div>
+            </div>
+
+            <p class="mt-8 text-center text-sm text-white/50">
+                O percentual é configurável pela plataforma — a comissão aparece discriminada em cada cobrança.
+            </p>
+        </section>
 
         {{-- App do aluno --}}
         <section class="border-y border-white/10 bg-gradient-to-r from-brand-950 via-brand-900 to-brand-800">
@@ -473,12 +490,12 @@
             <div class="mt-10 divide-y divide-white/10 border border-white/10">
                 @php
                     $faqs = [
-                        ['q' => 'Preciso de cartão de crédito para começar?', 'a' => 'Não. O plano Gratuito é gratuito para sempre e comporta até 10 alunos ativos — sem cartão, sem trial.'],
+                        ['q' => 'Preciso de cartão de crédito para começar?', 'a' => 'Não. O cadastro é gratuito e não existe mensalidade: você só paga a comissão quando cobra um aluno pelo app.'],
                         ['q' => 'Meus alunos precisam instalar alguma coisa?', 'a' => 'Sim, o app SportPlan para Android. O cadastro é feito com o código de convite que você gera na ficha de cada aluno.'],
                         ['q' => 'Consigo migrar minhas planilhas do Excel?', 'a' => 'Sim — cadastre os alunos, monte os treinos com nossa biblioteca de exercícios e publique. A maioria dos professores monta o primeiro plano em minutos.'],
-                        ['q' => 'Como funciona a cobrança dos planos pagos?', 'a' => 'Você assina pelo painel e paga via Pix, boleto ou cartão. Sem fidelidade: troque de plano ou cancele falando com o suporte.'],
+                        ['q' => 'Quanto custa usar o sistema?', 'a' => 'Nada fixo: a plataforma retém 5% de cada cobrança online paga pelo aluno (Pix pelo app) e repassa o líquido para você. Cobranças registradas manualmente não têm taxa.'],
                         ['q' => 'Funciona para qualquer modalidade?', 'a' => 'Sim — corrida, natação, ciclismo, triathlon, musculação, emagrecimento e condicionamento. A composição das sessões é livre.'],
-                        ['q' => 'O aluno paga por mim pelo sistema?', 'a' => 'O SportPlan já traz o controle dos seus pagamentos com lembretes automáticos; a cobrança dos seus alunos continua do jeito que você preferir (Pix, transferência etc.).'],
+                        ['q' => 'O aluno paga por mim pelo sistema?', 'a' => 'Sim, se você quiser: o aluno gera o Pix da cobrança dentro do app e o pagamento é confirmado automaticamente. E se preferir receber por fora, basta registrar a cobrança manualmente no painel.'],
                     ];
                 @endphp
                 @foreach ($faqs as $faq)
@@ -514,7 +531,7 @@
                     Criar conta grátis
                 </a>
                 <p class="mt-4 text-sm text-white/50">
-                    Gratuito até 10 alunos &bull; Sem cartão de crédito
+                    Sem mensalidade &bull; Sem cartão de crédito &bull; Comece em 2 minutos
                 </p>
             </div>
         </section>
@@ -541,7 +558,7 @@
 
             <nav class="flex flex-wrap items-center justify-center gap-6 font-display text-sm font-semibold uppercase tracking-wide">
                 <a href="#diferenciais" class="text-white/60 transition hover:text-brand-400">Por que</a>
-                <a href="#planos" class="text-white/60 transition hover:text-brand-400">Planos</a>
+                <a href="#precos" class="text-white/60 transition hover:text-brand-400">Preço</a>
                 <a href="#faq" class="text-white/60 transition hover:text-brand-400">Dúvidas</a>
                 <a href="{{ route('web.terms') }}" class="text-white/60 transition hover:text-brand-400">Termos</a>
                 <a href="{{ route('web.privacy') }}" class="text-white/60 transition hover:text-brand-400">Privacidade</a>
@@ -554,18 +571,6 @@
         </div>
     </footer>
 
-    <script>
-        // Toggle de período dos planos (mensal/trimestral/anual) — JS mínimo.
-        function pricing() {
-            return {
-                period: 'monthly',
-                set(value) {
-                    this.period = value;
-                },
-            };
-        }
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </body>
 
 </html>

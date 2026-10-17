@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\UserRole;
 use App\Models\Student;
-use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -25,8 +24,6 @@ class StudentService
         // Admin da plataforma não tem tenant: CRUD de alunos é do treinador.
         abort_unless($this->teacherId() > 0, 403);
 
-        $this->ensureStudentQuota();
-
         $student = new Student;
         $student->teacher_id = $this->teacherId();
         $student->fill($data);
@@ -38,42 +35,6 @@ class StudentService
         $student->save();
 
         return $student;
-    }
-
-    /**
-     * Enforcement do limite de alunos do plano do SaaS.
-     * Só vale com assinatura vigente e plano com limite definido
-     * (null = ilimitado; treinador sem assinatura não é bloqueado).
-     */
-    private function ensureStudentQuota(): void
-    {
-        $teacher = Teacher::find($this->teacherId());
-
-        $subscription = $teacher?->subscription;
-
-        if (! $subscription || ! $subscription->isCurrentlyActive()) {
-            return;
-        }
-
-        $limit = $subscription->maxStudents();
-
-        if ($limit === null) {
-            return;
-        }
-
-        $current = Student::query()->where('teacher_id', $this->teacherId())->count();
-
-        if ($current >= $limit) {
-            $planName = $subscription->plan?->name ?? 'atual';
-
-            throw ValidationException::withMessages([
-                'student' => sprintf(
-                    'Você atingiu o limite de %d aluno(s) do plano %s. Remova alunos inativos ou faça upgrade em "Minha assinatura".',
-                    $limit,
-                    $planName,
-                ),
-            ]);
-        }
     }
 
     public function update(Student $student, array $data): Student

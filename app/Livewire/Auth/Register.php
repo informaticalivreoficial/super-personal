@@ -5,7 +5,6 @@ namespace App\Livewire\Auth;
 use App\Enums\UserRole;
 use App\Models\Teacher;
 use App\Models\User;
-use App\Services\SubscriptionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
@@ -48,9 +47,6 @@ class Register extends Component
         $teacher->name = $this->name;
         $teacher->active = true;
         $teacher->save();
-
-        // Todo novo treinador nasce no plano gratuito da plataforma.
-        app(SubscriptionService::class)->assignFreePlan($teacher);
 
         Auth::login($user);
 

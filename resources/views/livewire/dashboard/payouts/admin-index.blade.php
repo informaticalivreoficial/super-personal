@@ -10,9 +10,9 @@
                 Líquido das cobranças online dos alunos, a transferir aos treinadores
             </p>
         </div>
-        <a wire:navigate href="{{ route('subscriptions.index') }}" class="btn btn-secondary">
-            <x-icon name="credit-card" class="h-4 w-4" />
-            Assinaturas
+        <a wire:navigate href="{{ route('professors.index') }}" class="btn btn-secondary">
+            <x-icon name="users" class="h-4 w-4" />
+            Treinadores
         </a>
     </div>
 
