@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard\Students;
 
 use App\Models\Student;
+use App\Services\StudentMessageService;
 use App\Services\StudentService;
 use App\Traits\WithToastr;
 use Illuminate\Support\Facades\Gate;
@@ -61,7 +62,7 @@ class StudentIndex extends Component
     }
 
     #[Title('Alunos')]
-    public function render()
+    public function render(StudentMessageService $messageService)
     {
         $students = Student::query()
             ->with('user')
@@ -77,6 +78,8 @@ class StudentIndex extends Component
 
         return view('livewire.dashboard.students.index', [
             'students' => $students,
+            // Mensagens não lidas por aluno (badge do ícone de mensagens)
+            'unreadMessages' => $messageService->unreadCountsByStudent($students->pluck('id')->all()),
         ]);
     }
 }

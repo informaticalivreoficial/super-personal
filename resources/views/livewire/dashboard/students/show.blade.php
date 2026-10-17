@@ -18,6 +18,9 @@
             <a wire:navigate href="{{ route('students.tracking', $student) }}" class="btn btn-secondary btn-sm">
                 <x-icon name="chart-bar" class="h-4 w-4" /> Acompanhamento
             </a>
+            <a wire:navigate href="{{ route('students.messages', $student) }}" class="btn btn-secondary btn-sm">
+                <x-icon name="envelope" class="h-4 w-4" /> Mensagens
+            </a>
             <a wire:navigate href="{{ route('students.edit', $student) }}" class="btn btn-primary btn-sm">
                 <x-icon name="pencil" class="h-4 w-4" /> Editar
             </a>
@@ -202,12 +205,8 @@
             </div>
         </div>
 
-        <div class="col-12 col-md-6">
+        <div class="col-12">
             @livewire('dashboard.students.student-notes', ['student' => $student], key('student-notes'))
-        </div>
-
-        <div class="col-12 col-md-6">
-            @livewire('dashboard.students.student-messages', ['student' => $student], key('student-messages'))
         </div>
     </div>
 </div>

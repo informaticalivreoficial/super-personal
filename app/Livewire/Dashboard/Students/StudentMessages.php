@@ -4,25 +4,37 @@ namespace App\Livewire\Dashboard\Students;
 
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Student;
-use App\Notifications\TeacherMessage;
+use App\Services\StudentMessageService;
 use App\Traits\ValidatesWithFormRequest;
 use App\Traits\WithToastr;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 /**
- * Mensagens do treinador ao aluno (aninhado no StudentShow).
- * Envia notificação database (canal único por enquanto; push Android no futuro)
- * — a lista do aluno é a API GET /api/v1/student/notifications.
+ * Mensagens do treinador ao aluno (página dedicada, saída da ficha do aluno).
+ * Envia notificação database para o usuário do aluno — a lista do aluno é a
+ * API GET /api/v1/student/notifications.
+ *
+ * O modal de envio é Alpine (padrão do painel); o PHP só dispara os eventos
+ * `open-message-modal` (abre já com o formulário limpo) e `message-sent`
+ * (fecha depois do envio).
  */
+#[Layout('components.layouts.app')]
+#[Title('Mensagens do Aluno')]
 class StudentMessages extends Component
 {
-    use ValidatesWithFormRequest, WithToastr;
+    use ValidatesWithFormRequest, WithPagination, WithToastr;
+
+    protected $paginationTheme = 'tailwind';
 
     public Student $student;
 
-    public bool $showForm = false;
+    public string $search = '';
+
+    public string $status = '';
 
     public $title;
 
@@ -35,12 +47,34 @@ class StudentMessages extends Component
         $this->student = $student;
     }
 
-    public function toggleForm(): void
+    public function updatingSearch(): void
     {
-        $this->showForm = ! $this->showForm;
+        $this->resetPage('mensagens');
     }
 
-    public function sendMessage(): void
+    public function updatedStatus(): void
+    {
+        $this->resetPage('mensagens');
+    }
+
+    public function clearFilters(): void
+    {
+        $this->reset(['search', 'status']);
+        $this->resetPage('mensagens');
+    }
+
+    /**
+     * Abre o modal de envio com o formulário limpo.
+     */
+    public function openModal(): void
+    {
+        $this->reset(['title', 'message']);
+        $this->resetValidation();
+
+        $this->dispatch('open-message-modal');
+    }
+
+    public function sendMessage(StudentMessageService $service): void
     {
         Gate::authorize('update', $this->student);
 
@@ -49,41 +83,27 @@ class StudentMessages extends Component
             'message' => $this->message,
         ]);
 
-        $user = $this->student->user;
-
-        if (! $user) {
-            throw ValidationException::withMessages([
-                'message' => 'Aluno sem acesso ao aplicativo: não há usuário vinculado.',
-            ]);
-        }
-
-        $user->notify(new TeacherMessage([
-            'title' => $validated['title'],
-            'message' => $validated['message'],
-            'student_id' => $this->student->id,
-            'teacher_id' => $this->student->teacher_id,
-            'sent_by' => auth()->id(),
-        ]));
+        $service->send($this->student, $validated);
 
         $this->toastSuccess('Mensagem enviada ao aluno.');
         $this->reset(['title', 'message']);
         $this->resetValidation();
-        $this->showForm = false;
+        $this->resetPage('mensagens');
+
+        $this->dispatch('message-sent');
     }
 
-    public function render()
+    public function render(StudentMessageService $service)
     {
-        $user = $this->student->user;
+        $hasAppAccess = $service->hasAppAccess($this->student);
 
         return view('livewire.dashboard.students.messages', [
-            'hasAppAccess' => (bool) $user,
-            'sentMessages' => $user
-                ? $user->notifications()
-                    ->where('type', TeacherMessage::class)
-                    ->latest()
-                    ->limit(10)
-                    ->get()
-                : collect(),
+            'hasAppAccess' => $hasAppAccess,
+            'messages' => $hasAppAccess
+                ? $service->paginate($this->student, ['search' => $this->search, 'status' => $this->status])
+                : null,
+            'counts' => $service->counts($this->student),
+            'statusOptions' => StudentMessageService::STATUS_OPTIONS,
         ]);
     }
 }

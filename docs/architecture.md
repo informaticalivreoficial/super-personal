@@ -221,17 +221,31 @@ sports ──1:N── training_sessions (restrict)
   - Cuidados: `TrainingPlan::sessions()` é `HasManyThrough` (retorno
     corrigido) e as colunas `status` são qualificadas
     (`training_sessions.status`) porque `training_weeks` também tem `status`.
-- **Observações e mensagens do aluno** — dois cards aninhados no `StudentShow`
-  (`@livewire('dashboard.students.student-*', ['student' => $student], ...)`):
+- **Observações do aluno** — card aninhado no `StudentShow`
+  (`@livewire('dashboard.students.student-notes', ['student' => $student], ...)`):
   - `StudentNotes` — CRUD de `student_notes` (listagem paginada `notas`,
     criação/exclusão) com `StoreStudentNoteRequest`, `StudentNoteService`
     (ownership pelo aluno) e `StudentNotePolicy` (before() admin);
     visibilidade `private`/`shared` (`NoteVisibility`).
-  - `StudentMessages` — envia `TeacherMessage` (notificação database) para o
-    `user` do aluno com `SendMessageRequest` (`title`/`message`); payload da
-    `data`: title, message, student_id, teacher_id, sent_by. Lista as últimas
-    10 enviadas; aluno sem usuário → card avisa e bloqueia envio. A leitura
-    pelo aluno é a API `GET /api/v1/student/notifications` (app Android).
+- **Mensagens do aluno** — página dedicada
+  `/admin/alunos/{student}/mensagens` (`students.messages`), componente
+  full-page `StudentMessages` (saiu da ficha do aluno a pedido do usuário —
+  o card antigo ficava fora do padrão da listagem):
+  - `StudentMessageService` (caminho único de escrita/consulta) — `send()`
+    (notificação database `TeacherMessage` para o `user` do aluno; payload
+    `data`: title, message, student_id, teacher_id, sent_by),
+    `paginate()` (filtros `search` por LIKE na coluna `data`, que cobre
+    título e corpo, e `status` todas/não lidas/lidas; 10 por página no
+    paginator `mensagens`), `counts()` (total/não lidas/lidas) e
+    `unreadCountsByStudent()` (badge do ícone na listagem de alunos);
+  - validação por `SendMessageRequest` (`title` máx. 120/`message` máx.
+    2000) via trait `ValidatesWithFormRequest`; aluno sem usuário vinculado
+    → `ValidationException` amigável e página sem formulário (o modal nem
+    é renderizado);
+  - o envio é um **modal** Alpine (padrão do painel: `x-show` + `x-cloak` +
+    escape/clique fora) aberto por `openModal()` (limpa o formulário e
+    dispara `open-message-modal`) e fechado por `message-sent` no envio;
+  - leitura pelo aluno: API `GET /api/v1/student/notifications` (app).
 - **Treinadores (tenants) pela plataforma** — `/admin/professores`
   (grupo `role:admin`, menu "Plataforma" no sidebar):
   - `ProfessorIndex` (busca por nome/e-mail, `students_count`, toggle
@@ -579,8 +593,14 @@ sports ──1:N── training_sessions (restrict)
     cross-tenant, admin preservando `teacher_id` do aluno.
   - `StudentNotesTest` (7) — CRUD de observações na ficha do aluno
     (criação/validação/exclusão, 404 cross-component, cross-tenant, admin).
-  - `StudentMessagesTest` (5) — envio de mensagem (payload da notificação),
-    validação, card no `StudentShow`, aluno sem usuário, cross-tenant.
+  - `StudentMessagesTest` (18) — página de mensagens: envio (payload da
+    notificação + eventos `open-message-modal`/`message-sent`), validação,
+    listagem/paginação (11 → 10+1), filtros (busca por título e corpo,
+    situação lida/não lida, clearFilters e reset da página), indicadores
+    (`counts`), card removido da ficha, aluno sem usuário (com o modal fora
+    do DOM), acesso (guest/papel/404 cross-tenant/AuthorizationException),
+    admin preservando ownership e badge de não lidas na listagem de alunos
+    (sem vazar entre tenants).
   - `ProfessorCrudTest` (11) — gestão de professores/tenants pelo admin
     (rotas admin/403 treinador/guest, criação com tenant nascido, validações,
     update com ignore de e-mail + senha opcional, toggle ativo/inativo, acesso
@@ -651,7 +671,7 @@ sports ──1:N── training_sessions (restrict)
     cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
     admin no treinador), form cria cobrança online (payable), quota manual
     erra no form e o índice mostra canal + KPIs.
-  - **Total: 379 testes / 1329 assertions** (86 API + 203 painel + 11 console
+  - **Total: 392 testes / 1375 assertions** (86 API + 216 painel + 11 console
     + 8 notificações + 45 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`

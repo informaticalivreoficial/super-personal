@@ -77,6 +77,16 @@
                                 </td>
                                 <td>
                                     <div class="flex items-center justify-center gap-1">
+                                        <a wire:navigate href="{{ route('students.messages', $student) }}"
+                                            class="btn btn-xs btn-secondary relative"
+                                            title="Mensagens{{ ($unreadMessages[$student->id] ?? 0) ? ' ('.($unreadMessages[$student->id]).' não lida(s))' : '' }}">
+                                            <x-icon name="envelope" class="h-4 w-4" />
+                                            @if ($unreadMessages[$student->id] ?? 0)
+                                                <span class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+                                                    {{ $unreadMessages[$student->id] }}
+                                                </span>
+                                            @endif
+                                        </a>
                                         <a wire:navigate href="{{ route('students.show', $student) }}"
                                             class="btn btn-xs btn-secondary" title="Visualizar">
                                             <x-icon name="eye" class="h-4 w-4" />
