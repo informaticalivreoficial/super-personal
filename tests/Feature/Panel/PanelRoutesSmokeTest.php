@@ -30,6 +30,7 @@ class PanelRoutesSmokeTest extends TestCase
 
         $routes = [
             '/admin',
+            '/admin/agenda',
             '/admin/alunos',
             '/admin/alunos/cadastrar',
             '/admin/alunos/'.$student->id,
@@ -43,7 +44,9 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/pagamentos',
             '/admin/pagamentos/cadastrar',
             '/admin/pagamentos/'.$payment->id.'/editar',
+            '/admin/relatorios/financeiro',
             '/admin/repasses',
+            '/admin/notificacoes',
             '/admin/exercicios',
             '/admin/exercicios/cadastrar',
             '/admin/exercicios/'.$exercise->id.'/editar',

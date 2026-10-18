@@ -1,15 +1,18 @@
 <?php
 
+use App\Http\Controllers\Reports\FinancialReportExportController;
 use App\Http\Controllers\Web\SiteController;
 use App\Http\Controllers\Web\TeacherLandingController;
 use App\Http\Controllers\Webhooks\PagBankWebhookController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
+use App\Livewire\Dashboard\Agenda;
 use App\Livewire\Dashboard\Dashboard;
 use App\Livewire\Dashboard\Exercises\ExerciseForm;
 use App\Livewire\Dashboard\Exercises\ExerciseIndex;
 use App\Livewire\Dashboard\LandingForm;
 use App\Livewire\Dashboard\MyProfile;
+use App\Livewire\Dashboard\Notifications\NotificationIndex;
 use App\Livewire\Dashboard\Payments\PaymentForm;
 use App\Livewire\Dashboard\Payments\PaymentIndex;
 use App\Livewire\Dashboard\Payouts\AdminPayoutIndex;
@@ -19,6 +22,7 @@ use App\Livewire\Dashboard\Plans\PlanIndex;
 use App\Livewire\Dashboard\Plans\PlanShow;
 use App\Livewire\Dashboard\Professores\ProfessorForm;
 use App\Livewire\Dashboard\Professores\ProfessorIndex;
+use App\Livewire\Dashboard\Reports\FinancialReport;
 use App\Livewire\Dashboard\Settings;
 use App\Livewire\Dashboard\Sports\SportForm;
 use App\Livewire\Dashboard\Sports\SportIndex;
@@ -66,6 +70,13 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
 
     Route::get('/', Dashboard::class)->name('admin');
 
+    // *********************** Agenda semanal **************************************/
+    // Visão da semana do próprio treinador (treinos de todos os alunos do
+    // tenant). Exclusivo do treinador: o admin não tem tenant/agenda própria.
+    Route::get('agenda', Agenda::class)
+        ->name('agenda.index')
+        ->middleware('role:teacher');
+
     // *********************** Alunos **********************************************/
     Route::get('alunos', StudentIndex::class)->name('students.index');
     Route::get('alunos/cadastrar', StudentForm::class)->name('students.create');
@@ -84,6 +95,26 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     Route::get('pagamentos', PaymentIndex::class)->name('payments.index');
     Route::get('pagamentos/cadastrar', PaymentForm::class)->name('payments.create');
     Route::get('pagamentos/{payment}/editar', PaymentForm::class)->name('payments.edit');
+
+    // *********************** Relatório financeiro *********************************/
+    // Cobranças por período (competência = vencimento): recebido, a receber e
+    // em atraso. Exclusivo do treinador — o admin apura a plataforma no
+    // dashboard de comissões/repasses.
+    Route::get('relatorios/financeiro', FinancialReport::class)
+        ->name('reports.financial')
+        ->middleware('role:teacher');
+
+    // Download em CSV com os mesmos filtros (fora do Livewire).
+    Route::get('relatorios/financeiro/exportar', FinancialReportExportController::class)
+        ->name('reports.financial.export')
+        ->middleware('role:teacher');
+
+    // *********************** Notificações enviadas ********************************/
+    // Auditoria (somente leitura) dos avisos entregues aos alunos do tenant:
+    // mensagens do treinador, planos publicados e lembretes automáticos.
+    Route::get('notificacoes', NotificationIndex::class)
+        ->name('notifications.index')
+        ->middleware('role:teacher');
 
     // *********************** Biblioteca de exercícios *****************************/
     Route::get('exercicios', ExerciseIndex::class)->name('exercises.index');

@@ -9,6 +9,7 @@ use App\Http\Requests\StoreTrainingSessionRequest;
 use App\Http\Requests\StoreWeekRequest;
 use App\Http\Requests\UpdateTrainingSessionRequest;
 use App\Models\Sport;
+use App\Models\Student;
 use App\Models\TrainingPlan;
 use App\Models\TrainingSession;
 use App\Models\TrainingWeek;
@@ -55,6 +56,13 @@ class PlanShow extends Component
     public $editingSessionId = null;
 
     public $sessionWeekId = null;
+
+    // Estado do formulário de duplicação (plano → outro aluno)
+    public bool $showDuplicateForm = false;
+
+    public $duplicateStudentId = null;
+
+    public $duplicateName = '';
 
     public $session = [
         'sport_id' => '',
@@ -161,6 +169,78 @@ class PlanShow extends Component
         $this->expandedItemsId = null;
         $this->resetWeekForm();
         $this->toastSuccess('Semana excluída com sucesso.');
+    }
+
+    // *********************** Duplicação ********************************************/
+
+    /**
+     * Abre o formulário de duplicação do plano para outro aluno.
+     */
+    public function openDuplicateForm(): void
+    {
+        Gate::authorize('view', $this->plan);
+
+        $this->resetDuplicateForm();
+        $this->duplicateStudentId = $this->plan->student_id;
+        $this->duplicateName = $this->plan->name.' (cópia)';
+        $this->showDuplicateForm = true;
+    }
+
+    public function closeDuplicateForm(): void
+    {
+        $this->resetDuplicateForm();
+    }
+
+    /**
+     * Copia o plano (semanas, sessões e composição) para o aluno escolhido.
+     * A cópia nasce como rascunho — publicar continua sendo ação explícita.
+     */
+    public function duplicatePlan(TrainingPlanService $service): void
+    {
+        Gate::authorize('view', $this->plan);
+
+        $this->validate([
+            'duplicateStudentId' => ['required'],
+            'duplicateName' => ['nullable', 'string', 'max:255'],
+        ], [
+            'duplicateStudentId.required' => 'Selecione o aluno que vai receber a cópia.',
+            'duplicateName.max' => 'O nome do plano não pode ter mais de 255 caracteres.',
+        ], [
+            'duplicateStudentId' => 'aluno',
+            'duplicateName' => 'nome',
+        ]);
+
+        // Escopo do tenant: aluno de outro treinador não é encontrado.
+        $student = Student::find($this->duplicateStudentId);
+
+        if (! $student) {
+            $this->addError('duplicateStudentId', 'Selecione um aluno válido.');
+
+            return;
+        }
+
+        $plan = $service->duplicate($this->plan, $student, $this->duplicateName ?: null);
+
+        $this->resetDuplicateForm();
+        $this->toastSuccess('Plano duplicado como rascunho. Revise as datas antes de publicar.');
+
+        $this->redirectRoute('plans.show', $plan);
+    }
+
+    /**
+     * Repete uma semana no fim do plano (microciclo novo, datas deslocadas).
+     */
+    public function duplicateWeek($weekId, TrainingPlanService $service): void
+    {
+        $week = TrainingWeek::findOrFail($weekId);
+        Gate::authorize('view', $week);
+
+        $newWeek = $service->duplicateWeek($week);
+
+        $this->expandedItemsId = null;
+        $this->closeSessionForm();
+        $this->expandedWeekId = $newWeek->id;
+        $this->toastSuccess('Semana duplicada para o fim do plano.');
     }
 
     // *********************** Sessões **********************************************/
@@ -317,6 +397,14 @@ class PlanShow extends Component
         $this->resetValidation();
     }
 
+    private function resetDuplicateForm(): void
+    {
+        $this->showDuplicateForm = false;
+        $this->duplicateStudentId = null;
+        $this->duplicateName = '';
+        $this->resetValidation();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -344,6 +432,7 @@ class PlanShow extends Component
         return view('livewire.dashboard.plans.show', [
             'plan' => $this->plan,
             'sports' => Sport::orderBy('name')->get(),
+            'students' => $this->showDuplicateForm ? Student::orderBy('name')->get() : collect(),
             'planStatus' => TrainingPlanStatus::labels(),
             'weekStatus' => TrainingWeekStatus::labels(),
             'sessionStatus' => TrainingSessionStatus::labels(),

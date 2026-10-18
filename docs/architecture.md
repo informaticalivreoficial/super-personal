@@ -145,6 +145,23 @@ sports ──1:N── training_sessions (restrict)
   - A API `GET /teacher/dashboard` devolve `teacherDashboard()` inteiro: as
     chaves novas (`money` e as listas) são **aditivas** — o contrato antigo
     (`students`/`plans`/`trainings`/`payments`) não mudou.
+- **Agenda semanal do treinador** — `/admin/agenda` (`agenda.index`,
+  `role:teacher`; o admin não tem tenant/agenda própria) → componente full-page
+  `App\Livewire\Dashboard\Agenda` + `AgendaService::week()`:
+  - recorte de **segunda a domingo** com navegação (anterior / **Hoje** /
+    próxima) e badge "Semana atual" quando é a semana corrente; rótulo do
+    período em pt-BR ("13 a 19 de outubro de 2026", com mês/ano quando a
+    semana cruza o mês);
+  - **7 cards por dia** (Hoje / Amanhã / Ontem / nome do dia) com os treinos
+    daquele dia; cada treino mostra aluno (link para a ficha), modalidade,
+    duração (segundos → "1h30"), distância (m → km), intensidade, badge de
+    status e o atalho "Abrir o plano" (`plans.show`);
+  - **KPIs do recorte**: treinos, alunos distintos, concluídos, planejados
+    (com pulados/cancelados na linha de apoio) e duração/distância totais;
+  - **filtros** por aluno, modalidade e status (com "Limpar filtros") e
+    **estados vazios distintos** — semana sem treino × filtro sem resultado;
+  - `AgendaService::week(CarbonInterface $startOfWeek, array $filters)` é
+    leitura pura sob o global scope `tenant` (a view não faz query).
 - **CRUD de Alunos** — componentes full-page em `app/Livewire/Dashboard/Students/`:
   - `StudentIndex` (busca/paginação/toggle ativo/exclusão lógica), `StudentForm`
     (create+edit), `StudentShow` (dados + plano ativo + pagamentos).
@@ -168,11 +185,47 @@ sports ──1:N── training_sessions (restrict)
     (`week.week_number`) pelo trait — senão o Livewire filtra e a view não exibe.
   - Aluno de outro tenant no form → `Student::find` com escopo → erro de validação
     (não cria plano no tenant errado).
+  - **Duplicar treino** (`TrainingPlanService::duplicate`/`duplicateWeek`):
+    - `duplicate($source, $target, ?$name)` copia **plano → semanas → sessões →
+      composição** para outro aluno (aceita o mesmo aluno); a cópia nasce como
+      **rascunho** (publicar é ação explícita → o aluno só é avisado na virada
+      para `ACTIVE`, via `TrainingPlanPublished`) e mantém as **datas originais**
+      (reaproveita a periodização; ajustar o calendário é passo à parte na edição);
+    - `duplicateWeek($source)` repete o **microciclo no fim do próprio plano**:
+      recebe o próximo Nº, copia sessões/composição e desloca as datas para logo
+      após a última semana (mesma duração, sessões da origem deslocadas junto);
+    - em ambas as cópias `status` é reiniciado (`week` → `pending`, sessão →
+      `planned`) e o `student_id` passa a ser o do **plano de destino** — execuções
+      (histórico) não são copiadas;
+    - no painel: botão "Duplicar plano" no cabeçalho do `PlanShow` (form inline com
+      select do aluno destino — o `Student::find` sob o escopo do tenant barra
+      outro treinador com erro de validação — e nome opcional, default "«nome» (cópia)")
+      e o ícone de duplicar em cada semana (`wire:confirm`).
 - **Pagamentos** — `app/Livewire/Dashboard/Payments/`:
   - `PaymentIndex` (busca, filtro por status, "marcar como pago", exclusão),
     `PaymentForm` (create/edit; aluno fixo na edição).
   - Reaproveita `StorePaymentRequest` (store e update, igual à API);
     `PaymentService` preenche/limpa `paid_at` conforme status.
+- **Relatório financeiro** — `/admin/relatorios/financeiro`
+  (`reports.financial`, `role:teacher`) → `App\Livewire\Dashboard\Reports\FinancialReport`
+  + `FinancialReportService` (leitura pura, agregação em PHP): KPIs do período
+  (recebido/líquido/taxas, a receber, em atraso, cobranças por canal), quebra
+  **por mês** (só pagas) e **por aluno** (ranking por líquido), lista paginada
+  (15/pág.) e **Exportar CSV** (`reports.financial.export`,
+  `FinancialReportExportController` — `streamDownload` com BOM e separador `;`).
+  Competência = **data de vencimento**; "em atraso" = status `overdue` ou
+  pendente com vencimento passado. Item "Relatório Financeiro" no sidebar (só
+  teacher).
+- **Auditoria das notificações** — `/admin/notificacoes`
+  (`notifications.index`, `role:teacher`) →
+  `App\Livewire\Dashboard\Notifications\NotificationIndex` +
+  `StudentNotificationService` (leitura pura sobre `notifications`): KPIs
+  (no recorte/não lidas/lidas), resumo por tipo clicável, filtros (busca por
+  **caminho JSON** — acha palavra acentuada —, aluno, tipo, situação, de/até) e
+  tabela somente leitura do que o aluno recebeu (mensagem do treinador, plano
+  publicado e os lembretes automáticos), com situação de leitura. Item
+  "Notificações" no sidebar (só teacher). O envio continua em
+  `/admin/alunos/{id}/mensagens`.
 - `AppServiceProvider` compartilha `config` (`Config::first() ?? new Config()`)
   em propriedade de instância (**não static** — static contaminava os testes).
 - Navegação: `side-navigation` com itens do domínio (Painel, Alunos, Planos,
@@ -365,6 +418,91 @@ sports ──1:N── training_sessions (restrict)
   (`SaasPlan`/`Subscription`) foi removido em 2026-10-16 junto com o modelo de
   assinatura (ver "Modelo de receita: comissão por cobrança"). A tela "Pagar"
   (Pix) do app está concluída (ver "Telas do aluno no app").
+
+### Relatório financeiro do treinador — 2026-10-17
+
+- **Página**: `GET /admin/relatorios/financeiro` (`reports.financial`,
+  `role:teacher`) → `App\Livewire\Dashboard\Reports\FinancialReport`
+  (full-page, `viewAny` de `Payment`), exclusiva do treinador (o admin apura a
+  plataforma em comissões/repasses).
+- **`FinancialReportService`** (leitura pura sob o global scope `tenant`;
+  nenhuma consulta recebe `teacher_id`): `filters()` (normaliza, **troca datas
+  invertidas**, ignora enum inválido e `student_id` não numérico, default =
+  mês corrente), `periodRange()` (presets `month`/`last_month`/`last_30`/
+  `year`), `query()`/`payments()`, `summary()`, `byMonth()`, `byStudent()`
+  (top 10 por líquido) e `csvRows()` (gerador, com cabeçalho).
+  - **Competência = `due_date`** em tudo (lista, KPIs e quebras): é o que o
+    treinador enxerga como "a mensalidade de outubro", paga ou não.
+  - **"Em atraso"** = status `overdue` **ou** pendente com `due_date` no
+    passado (mesma definição do dashboard/`payments.overdue_count`); canceladas
+    ficam fora de todos os totais.
+  - Líquido de cobrança sem `net_amount` cai no valor cheio (manual não tem
+    taxa).
+  - Intervalo com o **dia inteiro** nas duas pontas (`"Y-m-d 00:00:00"` a
+    `"Y-m-d 23:59:59"`): o driver guarda a data com hora, então o limite
+    superior só com a data deixaria o vencimento do último dia fora (pegou o
+    teste).
+  - Agregação **em PHP** (`rows()` carrega só as colunas necessárias) —
+    portável entre o SQLite dos testes e o MariaDB do runtime.
+- **Tela**: KPIs (recebido + líquido/taxas, a receber, em atraso, cobranças
+  com manual/online/pagas), presets de período + "Período personalizado",
+  filtros **aluno/canal/situação** com "Limpar filtros", tabela **por mês**
+  (só aparece com mais de um mês), ranking **por aluno**, lista de cobranças
+  paginada (15/pág., com badge de canal e situação, valor/taxa/líquido e
+  "Pago em") e dois estados vazios (período vazio × filtro sem resultado).
+- **Exportação CSV**: `GET /admin/relatorios/financeiro/exportar`
+  (`reports.financial.export`) → `FinancialReportExportController` (rota +
+  controller **fora do Livewire** — download é um GET simples), com os mesmos
+  filtros na query string, `streamDownload` linha a linha, **BOM UTF-8** e
+  separador **`;`** (Excel pt-BR), valores com vírgula decimal e nome
+  `relatorio-financeiro-{de}-a-{ate}.csv`.
+- **Sidebar**: item "Relatório Financeiro" (ícone `chart-bar`) só para
+  `isTeacher()`.
+
+### Auditoria das notificações enviadas — 2026-10-17
+
+- **Página**: `GET /admin/notificacoes` (`notifications.index`, `role:teacher`)
+  → `App\Livewire\Dashboard\Notifications\NotificationIndex` (full-page,
+  `viewAny` de `Student`) — **somente leitura**: mostra o que os alunos
+  receberam (mensagem do treinador, plano publicado e os lembretes automáticos
+  de cobrança/treino). O envio continua na página de mensagens do aluno.
+- **`StudentNotificationService`** (leitura pura): `TYPES` (classe FQCN do
+  `type` => rótulo pt-BR, na ordem da lista), `STATUS_OPTIONS` (todas/não
+  lidas/lidas), `filters()` (normaliza: tipo fora da lista e aluno não
+  numérico ignorados, **datas invertidas trocadas**), `query()`/`paginate()`
+  (15/pág., mais recentes primeiro, anexando o `student` de cada aviso),
+  `counts()`, `typeCounts()`, `studentOptions()` e `typeLabel()`.
+  - **Isolamento**: a notificação é entregue ao **usuário** do aluno, então a
+    consulta parte dos `user_id` dos alunos do tenant (global scope) — a query
+    nasce de `notifiable_id IN (...)`; `teacher_id` nunca vem do request.
+    Avisos de e-mail (`EmailChangeCode`, canal `mail`) não entram: não passam
+    pelo canal database.
+  - **Busca por caminho JSON** (`data->title` / `data->message` com `LIKE`):
+    a coluna guarda o JSON com `\u00e7` (unicode escapado), então um LIKE
+    direto na coluna não acharia palavra acentuada ("cobrança") — o caminho
+    JSON compara o valor já decodificado e funciona em SQLite e MariaDB.
+  - Intervalo de datas com o **dia inteiro** nas duas pontas
+    (`00:00:00`/`23:59:59`): o driver guarda `created_at` com hora.
+- **Tela**: KPIs (avisos no recorte / aguardando leitura / já lidas), resumo
+  por tipo (chips que aplicam o filtro), filtros (busca, aluno, tipo, situação,
+  de/até) com "Limpar filtros", tabela com data-hora, aluno (link para a
+  ficha), rótulo do tipo, título/corpo do aviso e situação de leitura (com a
+  data da leitura) + paginação e dois estados vazios (sem aviso × filtro sem
+  resultado).
+- **Sidebar**: item "Notificações" (ícone `bell`) só para `isTeacher()`.
+- **Testes**: `tests/Feature/Panel/NotificationAuditTest` (13) — listagem do
+  tenant (mensagem real via `StudentMessageService` + lembrete), isolamento de
+  outro treinador (nem no filtro de alunos), filtros (aluno/tipo/situação/
+  busca com acento/período), indicadores e resumo por tipo, paginação
+  (16 → 15+1), "Limpar filtros", estado vazio, filtros inválidos ignorados e
+  acesso (guest → login, teacher 200 com link no menu, admin 403). Rota no
+  `PanelRoutesSmokeTest` (24 rotas de teacher).
+- **Gotcha de teste**: os rótulos dos tipos aparecem **sempre** no `<select>`
+  de filtros — asserções de filtro devem usar o **corpo do aviso** (único por
+  linha), nunca o título/rótulo do tipo (ex.: `assertDontSee('Cobrança a
+  vencer')` falha porque o rótulo está na lista de opções). E `str_replace` do
+  `html(true)` do Livewire remove o snapshot — comparar `html(true)` com
+  `str_contains` é o mesmo caminho do `assertSee`.
 
 ### Meu perfil (conta do usuário logado)
 
@@ -574,9 +712,17 @@ sports ──1:N── training_sessions (restrict)
     exclusão lógica, admin sem CRUD de aluno, smoke HTTP das 4 rotas.
   - `TrainingPlanCrudTest` — isolamento de planos, criação com aluno do tenant,
     semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
+  - `PlanDuplicateTest` (9) — duplicação de plano para outro aluno (semanas,
+    sessões e composição copiadas; origem intacta), cópia nasce rascunho e **não
+    notifica** o aluno destino, `status` das sessões reiniciado (concluída →
+    planejada), nome default "«nome» (cópia)" com o campo vazio, aluno de outro
+    treinador recusado na validação (nada criado), aluno obrigatório, duplicar
+    semana (novo Nº no fim + datas deslocadas, sessões/composição junto), semana
+    de outro tenant bloqueada (ModelNotFound) e controles na tela (form inline
+    com o select de alunos e o reset ao fechar).
   - `PaymentCrudTest` — isolamento, `paid_at` automático, marcar como pago,
     404 cross-tenant, smoke das 3 rotas.
-  - `PanelRoutesSmokeTest` — as 17 rotas do domínio `/admin/*` retornam 200
+  - `PanelRoutesSmokeTest` — as 22 rotas do domínio `/admin/*` retornam 200
     para teacher (cria ConfigTableSeeder; pegou o 500 de Configurações);
     fase admin cobre as rotas exclusivas de plataforma (`/admin/modalidades*`
     e `/admin/professores*`); teacher recebe 403 em ambas. Rotas legadas de
@@ -620,6 +766,13 @@ sports ──1:N── training_sessions (restrict)
     das online pagas, cota manual n/10 com aviso quando cheia) e listas (limite
     de 5 cobranças em atraso / 8 treinos de hoje, vazios amigáveis), sem
     vazamento de outro tenant e com o admin ainda na visão da plataforma.
+  - `AgendaTest` (9) — agenda semanal: listagem da semana do tenant agrupada
+    por dia (KPIs, rótulo do período, treino de outra semana fora), navegação
+    entre semanas (próxima/Hoje/anterior), filtros (aluno/modalidade/status/
+    limpar), estados vazios (semana vazia × filtro sem resultado), sem
+    vazamento de outro tenant, rota exclusiva do treinador (guest redirect,
+    teacher 200, admin 403) e os totais do `AgendaService` (sessões/alunos/
+    status/duração/distância, 7 dias começando na segunda).
   - `LandingFormTest` (32) — página "Minha página pública" (prefill, salvar,
     slug gerado/reservado/duplicado/inválido, próprio slug não é tratado como
     duplicado, desligar opt-in esconde a landing, admin edita qualquer tenant,
@@ -671,7 +824,24 @@ sports ──1:N── training_sessions (restrict)
     cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
     admin no treinador), form cria cobrança online (payable), quota manual
     erra no form e o índice mostra canal + KPIs.
-  - **Total: 392 testes / 1375 assertions** (86 API + 216 painel + 11 console
+  - `FinancialReportTest` (13) — relatório financeiro: página só com as
+    cobranças do tenant (com controles), KPIs do período (recebido/líquido/
+    taxas, a receber, em atraso, manual × online × pagas, cancelada fora),
+    pendente com vencimento passado conta como atraso, quebras por mês e por
+    aluno (ranking por líquido), filtros de canal/situação/aluno,
+    presets de período + "Limpar filtros", datas invertidas trocadas e enum
+    inválido ignorado no service, paginação 15/pág., exportação CSV (nome do
+    arquivo, cabeçalho, valor com vírgula, status "Pago", sem dados de outro
+    tenant e respeitando filtro de situação), datas no cabeçalho, data inválida
+    caindo no mês corrente e acesso (guest → login, teacher 200, admin 403 nas
+    duas rotas).
+  - `NotificationAuditTest` (13) — auditoria das notificações enviadas:
+    listagem do tenant (mensagem real via service + lembrete), isolamento de
+    outro treinador, filtros de aluno/tipo/situação/busca acentuada/período,
+    indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
+    filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
+    403) — ver "Auditoria das notificações enviadas".
+  - **Total: 436 testes / 1649 assertions** (86 API + 260 painel + 11 console
     + 8 notificações + 45 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`

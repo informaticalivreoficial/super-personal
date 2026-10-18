@@ -21,6 +21,9 @@
             <a wire:navigate href="{{ route('plans.edit', $plan) }}" class="btn btn-primary btn-sm">
                 <x-icon name="pencil" class="h-4 w-4" /> Editar plano
             </a>
+            <button type="button" class="btn btn-secondary btn-sm" wire:click="openDuplicateForm">
+                <x-icon name="clipboard" class="h-4 w-4" /> Duplicar plano
+            </button>
         </div>
     </div>
 
@@ -79,6 +82,65 @@
             @endif
         </div>
     </div>
+
+    {{-- Duplicar plano (cópia para outro aluno) --}}
+    @if ($showDuplicateForm)
+        <div class="card mt-6 border-sky-300">
+            <div class="card-header bg-sky-50">
+                <h3 class="card-title flex items-center gap-2 text-sky-900">
+                    <x-icon name="clipboard" class="h-5 w-5" />
+                    Duplicar plano
+                </h3>
+            </div>
+            <form wire:submit="duplicatePlan">
+                <div class="card-body">
+                    <p class="mb-4 text-sm text-gray-500">
+                        Copia as semanas, as sessões e a composição deste plano. A cópia nasce como
+                        <strong>rascunho</strong> (o aluno só é avisado quando você publicar) e mantém as datas
+                        originais — ajuste o calendário na edição.
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="duplicate_student">Aluno que vai receber a cópia *</label>
+                                <select class="form-control @error('duplicateStudentId') is-invalid @enderror"
+                                    id="duplicate_student" wire:model="duplicateStudentId">
+                                    <option value="">Selecione...</option>
+                                    @foreach ($students as $student)
+                                        <option value="{{ $student->id }}">{{ $student->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('duplicateStudentId')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="duplicate_name">Nome do novo plano</label>
+                                <input type="text" class="form-control @error('duplicateName') is-invalid @enderror"
+                                    id="duplicate_name" wire:model="duplicateName" placeholder="Deixe vazio para usar “(cópia)”">
+                                @error('duplicateName')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="duplicatePlan">
+                        <span wire:loading.remove wire:target="duplicatePlan" class="flex items-center gap-2">
+                            <x-icon name="check" class="h-4 w-4" /> Duplicar
+                        </span>
+                        <span wire:loading wire:target="duplicatePlan">
+                            <x-icon name="arrow-path" class="h-4 w-4 animate-spin" />
+                        </span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeDuplicateForm">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    @endif
 
     {{-- Semanas --}}
     <div class="card mt-6">
@@ -194,6 +256,10 @@
                                 </button>
                                 <button type="button" class="btn-tool" wire:click="editWeek({{ $weekItem->id }})" title="Editar semana">
                                     <x-icon name="pencil" class="h-4 w-4" />
+                                </button>
+                                <button type="button" class="btn-tool" wire:click="duplicateWeek({{ $weekItem->id }})"
+                                    wire:confirm="Duplicar a semana {{ $weekItem->week_number }} para o fim do plano?" title="Duplicar semana">
+                                    <x-icon name="clipboard" class="h-4 w-4" />
                                 </button>
                                 <button type="button" class="btn-tool text-red-500 hover:text-red-600" wire:click="deleteWeek({{ $weekItem->id }})"
                                     wire:confirm="Excluir a semana {{ $weekItem->week_number }} e todas as suas sessões?" title="Excluir semana">

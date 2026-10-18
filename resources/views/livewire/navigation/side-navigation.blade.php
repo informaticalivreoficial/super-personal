@@ -60,6 +60,22 @@
                 </a>
             </li>
 
+            {{-- Agenda semanal (só o treinador tem tenant) --}}
+            @if (auth()->user()->isTeacher())
+                <li>
+                    <a href="{{ route('agenda.index') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('agenda.*')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="calendar-days" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Agenda</span>
+                    </a>
+                </li>
+            @endif
+
             {{-- Alunos --}}
             <li x-data="{ open: {{ Route::is('students.*') ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open"
@@ -125,6 +141,36 @@
                     <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Pagamentos</span>
                 </a>
             </li>
+
+            {{-- Relatório financeiro (só o treinador tem tenant/cobranças) --}}
+            @if (auth()->user()->isTeacher())
+                <li>
+                    <a href="{{ route('reports.financial') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('reports.*')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="chart-bar" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Relatório Financeiro</span>
+                    </a>
+                </li>
+
+                {{-- Auditoria dos avisos enviados aos alunos --}}
+                <li>
+                    <a href="{{ route('notifications.index') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('notifications.*')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="bell" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Notificações</span>
+                    </a>
+                </li>
+            @endif
 
             {{-- Biblioteca (exercícios + modalidades) --}}
             <li x-data="{ open: {{ Route::is(['exercises.*', 'sports.*']) ? 'true' : 'false' }} }">
