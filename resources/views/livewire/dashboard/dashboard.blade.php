@@ -249,12 +249,15 @@
                     <x-icon name="banknotes" class="h-6 w-6" />
                 </span>
                 <div class="min-w-0">
-                    <p class="text-sm font-medium text-gray-500">Saldo para repasse</p>
+                    <p class="text-sm font-medium text-gray-500">Saldo para saque</p>
                     <p class="text-2xl font-semibold tracking-tight text-gray-900">
                         R$ {{ number_format($stats['money']['awaiting_payout_amount'], 2, ',', '.') }}
                     </p>
                     <p class="text-xs text-gray-400">
-                        Já repassado: R$ {{ number_format($stats['money']['paid_out_total'], 2, ',', '.') }}
+                        Já recebido: R$ {{ number_format($stats['money']['paid_out_total'], 2, ',', '.') }}
+                        @if (($stats['money']['awaiting_release_amount'] ?? 0) > 0)
+                            · A liberar: R$ {{ number_format($stats['money']['awaiting_release_amount'], 2, ',', '.') }}
+                        @endif
                     </p>
                 </div>
             </div>

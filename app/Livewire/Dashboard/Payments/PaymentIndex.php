@@ -4,6 +4,7 @@ namespace App\Livewire\Dashboard\Payments;
 
 use App\Enums\PaymentChannel;
 use App\Enums\PaymentStatus;
+use App\Models\Config;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use App\Traits\WithToastr;
@@ -104,10 +105,20 @@ class PaymentIndex extends Component
             ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->count();
 
+        // Cobranças online pagas fora do prazo de liberação = saldo do treinador.
+        $releasedBefore = now()->subDays(Config::payoutHoldDays());
+
         $awaitingPayout = Payment::query()
             ->where('channel', PaymentChannel::ONLINE)
             ->where('status', PaymentStatus::PAID)
-            ->whereNull('payout_id');
+            ->whereNull('payout_id')
+            ->where('paid_at', '<=', $releasedBefore);
+
+        $releasing = Payment::query()
+            ->where('channel', PaymentChannel::ONLINE)
+            ->where('status', PaymentStatus::PAID)
+            ->whereNull('payout_id')
+            ->where('paid_at', '>', $releasedBefore);
 
         return view('livewire.dashboard.payments.index', [
             'payments' => $payments,
@@ -117,6 +128,8 @@ class PaymentIndex extends Component
             'manualLimit' => PaymentService::MANUAL_MONTHLY_LIMIT,
             'awaitingPayoutCount' => (clone $awaitingPayout)->count(),
             'awaitingPayoutTotal' => (float) (clone $awaitingPayout)->sum('net_amount'),
+            'releasingTotal' => (float) $releasing->sum('net_amount'),
+            'holdDays' => Config::payoutHoldDays(),
         ]);
     }
 }

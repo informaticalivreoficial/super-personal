@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\AgendaService;
 use Database\Seeders\ConfigTableSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -221,6 +222,10 @@ class AgendaTest extends TestCase
 
     public function test_agenda_service_computes_week_totals(): void
     {
+        // Semana congelada numa quarta-feira: terça já passou (o `is_past` do
+        // dia não pode depender do dia da semana em que a suíte roda).
+        Carbon::setTestNow(now()->startOfWeek()->addDays(2)->setTime(10, 0));
+
         $teacher = Teacher::factory()->create();
         $ana = Student::factory()->forTeacher($teacher)->create();
         $bruno = Student::factory()->forTeacher($teacher)->create();

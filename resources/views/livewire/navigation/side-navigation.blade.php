@@ -251,8 +251,8 @@
                                 ? 'bg-brand-400/15 text-brand-400'
                                 : 'text-gray-400 hover:bg-white/5 hover:text-white',
                         ])>
-                        <x-icon name="arrow-path" class="h-5 w-5 shrink-0" />
-                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Repasses</span>
+                        <x-icon name="banknotes" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Financeiro</span>
                     </a>
                 </li>
             @endif
@@ -280,8 +280,8 @@
                                 ? 'bg-brand-400/15 text-brand-400'
                                 : 'text-gray-400 hover:bg-white/5 hover:text-white',
                         ])>
-                        <x-icon name="arrow-path" class="h-5 w-5 shrink-0" />
-                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Repasses</span>
+                        <x-icon name="banknotes" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Repasses dos treinadores</span>
                     </a>
                     <a href="{{ route('settings') }}" wire:navigate
                         @class([

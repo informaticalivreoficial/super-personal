@@ -46,15 +46,20 @@ class TeacherDashboardTest extends TestCase
             ->create();
     }
 
-    /** Cobrança online paga no mês, com taxa/líquido (saldo de repasse). */
-    private function paidOnline(Student $student, float $amount, float $net): Payment
+    /**
+     * Cobrança online paga, com taxa/líquido (saldo do treinador).
+     *
+     * O padrão cai **fora** do prazo de liberação (10 dias) para entrar no
+     * saldo disponível; use `$paidAt` para testar valores ainda retidos.
+     */
+    private function paidOnline(Student $student, float $amount, float $net, ?string $paidAt = null): Payment
     {
         return Payment::factory()->forStudent($student)->online()->create([
             'amount' => $amount,
             'fee_amount' => round($amount - $net, 2),
             'net_amount' => $net,
             'status' => PaymentStatus::PAID,
-            'paid_at' => now(),
+            'paid_at' => $paidAt ?? now()->subDays(10),
         ]);
     }
 
@@ -83,7 +88,7 @@ class TeacherDashboardTest extends TestCase
             ->assertSee('R$ 500,00')
             ->assertSee('1 em atraso')
             ->assertSee('Recebido no mês')
-            ->assertSee('Saldo para repasse')
+            ->assertSee('Saldo para saque')
             ->assertSee('R$ 142,50')
             ->assertSee('Cobranças manuais este mês')
             ->assertSeeText('3 / 10')
@@ -127,6 +132,7 @@ class TeacherDashboardTest extends TestCase
         // Mês anterior fora do "recebido no mês".
         $this->assertSame(300.0, $stats['money']['received_this_month_amount']);
         $this->assertSame(285.0, $stats['money']['awaiting_payout_amount']);
+        $this->assertSame(0.0, $stats['money']['awaiting_release_amount']);
         $this->assertSame(0.0, $stats['money']['paid_out_total']);
         // Cota do mês = cobranças manuais criadas agora (inclusive a paga com
         // `paid_at` no mês passado: a regra olha `created_at`).
@@ -193,6 +199,28 @@ class TeacherDashboardTest extends TestCase
             ->assertDontSee('Treino do professor B');
     }
 
+    public function test_teacher_dashboard_separates_available_from_releasing_money(): void
+    {
+        $teacher = Teacher::factory()->create();
+        $student = Student::factory()->forTeacher($teacher)->create();
+
+        // Já liberado (10 dias) entra no saldo; recente (2 dias) fica retido.
+        $this->paidOnline($student, 300, 285);
+        $this->paidOnline($student, 100, 95, now()->subDays(2)->toDateTimeString());
+
+        $this->actingAs($teacher->user);
+        $stats = app(DashboardService::class)->teacherDashboard();
+
+        $this->assertSame(285.0, $stats['money']['awaiting_payout_amount']);
+        $this->assertSame(95.0, $stats['money']['awaiting_release_amount']);
+
+        $this->get(route('admin'))
+            ->assertOk()
+            ->assertSee('Saldo para saque')
+            ->assertSee('R$ 285,00')
+            ->assertSee('A liberar: R$ 95,00');
+    }
+
     public function test_teacher_dashboard_shows_empty_states_and_manual_quota(): void
     {
         $teacher = Teacher::factory()->create();
@@ -222,6 +250,6 @@ class TeacherDashboardTest extends TestCase
             ->assertSee('Visão geral da plataforma')
             ->assertSee('Comissões no mês')
             ->assertDontSee('Cobranças manuais este mês')
-            ->assertDontSee('Saldo para repasse');
+            ->assertDontSee('Saldo para saque');
     }
 }

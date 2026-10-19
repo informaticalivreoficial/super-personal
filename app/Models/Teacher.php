@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\PixKeyType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,8 +32,6 @@ class Teacher extends Model
         'phone',
         'whatsapp',
         'document',
-        'pix_key',
-        'pix_key_type',
         'birth_date',
         'profile_photo',
         'logo',
@@ -64,7 +61,6 @@ class Teacher extends Model
         'active' => 'boolean',
         'public_profile' => 'boolean',
         'display_address' => 'boolean',
-        'pix_key_type' => PixKeyType::class,
         'views' => 'integer',
     ];
 
@@ -221,6 +217,21 @@ class Teacher extends Model
     public function payouts(): HasMany
     {
         return $this->hasMany(Payout::class);
+    }
+
+    /** Contas/chaves de recebimento (destino dos repasses). */
+    public function payoutAccounts(): HasMany
+    {
+        return $this->hasMany(TeacherPayoutAccount::class);
+    }
+
+    /** Conta padrão de recebimento (ou a mais recente, se nenhuma marcada). */
+    public function defaultPayoutAccount(): ?TeacherPayoutAccount
+    {
+        return $this->payoutAccounts()
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->first();
     }
 
     public function progress(): HasMany

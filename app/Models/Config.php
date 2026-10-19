@@ -60,12 +60,16 @@ class Config extends Model
         'sitemap_data',
         'analytics_id',
         'fee_percent',
+        'payout_hold_days',
     ];
 
     public const DEFAULT_FEE_PERCENT = 5.0;
 
+    public const DEFAULT_PAYOUT_HOLD_DAYS = 7;
+
     protected $casts = [
         'fee_percent' => 'decimal:2',
+        'payout_hold_days' => 'integer',
     ];
 
     /**
@@ -77,6 +81,18 @@ class Config extends Model
         $value = static::query()->value('fee_percent');
 
         return $value !== null ? (float) $value : self::DEFAULT_FEE_PERCENT;
+    }
+
+    /**
+     * Prazo (em dias) que o líquido de uma cobrança online fica "a liberar"
+     * antes de entrar no saldo sacável do treinador.
+     * Fonte: `config.payout_hold_days` (editável em Configurações); fallback 7.
+     */
+    public static function payoutHoldDays(): int
+    {
+        $value = static::query()->value('payout_hold_days');
+
+        return $value !== null ? max(0, (int) $value) : self::DEFAULT_PAYOUT_HOLD_DAYS;
     }
 
     /**

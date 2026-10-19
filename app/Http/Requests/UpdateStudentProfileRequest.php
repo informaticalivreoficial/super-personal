@@ -62,7 +62,7 @@ class UpdateStudentProfileRequest extends FormRequest
         };
     }
 
-    /** Bloqueia menor de 18 anos (`idade` calculada na data de hoje). */
+    /** Bloqueia menor de 18 anos (quem faz 18 hoje já pode). */
     private function adultRule(): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail) {
@@ -73,7 +73,10 @@ class UpdateStudentProfileRequest extends FormRequest
                 return;
             }
 
-            if (Carbon::parse($date)->age < 18) {
+            // Comparação pelo **dia** do 18º aniversário: `->age` (e o diff em
+            // anos) erram a virada do dia quando o horário atual é anterior ao
+            // horário do nascimento.
+            if (Carbon::parse($date)->addYears(18)->startOfDay()->isAfter(now())) {
                 $fail('É preciso ter 18 anos ou mais para usar o aplicativo.');
             }
         };

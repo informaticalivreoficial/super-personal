@@ -24,6 +24,8 @@ class Payout extends Model
         'amount',
         'fee_total',
         'net_amount',
+        'payout_account_id',
+        'destination',
         'status',
         'gateway',
         'gateway_transfer_id',
@@ -47,6 +49,12 @@ class Payout extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /** Conta de recebimento escolhida no pedido (pode ter sido removida). */
+    public function payoutAccount(): BelongsTo
+    {
+        return $this->belongsTo(TeacherPayoutAccount::class);
     }
 
     public function isPaid(): bool

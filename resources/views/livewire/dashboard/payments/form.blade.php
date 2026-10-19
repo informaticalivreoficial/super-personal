@@ -179,7 +179,7 @@
                                     value="Taxa: R$ {{ number_format((float) $payment->fee_amount, 2, ',', '.') }} · Líquido: R$ {{ number_format((float) $payment->net_amount, 2, ',', '.') }}">
                                 <small class="text-muted">
                                     Status no gateway: {{ $payment->gateway_status ?: '—' }}.
-                                    O repasse é acompanhado em "Repasses".
+                                    O repasse é acompanhado em "Financeiro".
                                 </small>
                             </div>
                         </div>

@@ -17,12 +17,24 @@
     </div>
 
     {{-- KPIs --}}
-    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div class="card">
             <div class="card-body">
                 <p class="text-xs font-medium uppercase tracking-wide text-gray-500">A repassar (solicitado)</p>
                 <p class="mt-1 text-2xl font-semibold text-gray-900">
                     R$ {{ number_format($pendingTotal, 2, ',', '.') }}
+                </p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">A liberar</p>
+                <p class="mt-1 text-2xl font-semibold text-amber-600">
+                    R$ {{ number_format($releasingTotal, 2, ',', '.') }}
+                </p>
+                <p class="mt-1 text-xs text-gray-500">
+                    Já pagas pelos alunos, aguardando o prazo de {{ $holdDays }}
+                    {{ $holdDays === 1 ? 'dia' : 'dias' }} antes de ficarem disponíveis
                 </p>
             </div>
         </div>
@@ -54,6 +66,7 @@
                     <thead>
                         <tr>
                             <th>Treinador</th>
+                            <th>Destino</th>
                             <th>Solicitado em</th>
                             <th class="text-right">Bruto</th>
                             <th class="text-right">Taxas</th>
@@ -67,6 +80,15 @@
                         @foreach ($payouts as $payout)
                             <tr wire:key="payout-{{ $payout->id }}">
                                 <td>{{ $payout->teacher?->name ?? '—' }}</td>
+                                <td>
+                                    @if ($payout->destination)
+                                        <span class="block max-w-[16rem] truncate text-sm text-gray-700" title="{{ $payout->destination }}">
+                                            {{ $payout->destination }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-gray-400">—</span>
+                                    @endif
+                                </td>
                                 <td>{{ $payout->created_at?->format('d/m/Y H:i') }}</td>
                                 <td class="text-right">R$ {{ number_format((float) $payout->amount, 2, ',', '.') }}</td>
                                 <td class="text-right text-gray-500">

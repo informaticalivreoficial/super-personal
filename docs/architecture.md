@@ -390,34 +390,99 @@ sports ──1:N── training_sessions (restrict)
     `message`** no controller (não 500) para o app exibir ao aluno.
 - **`Payout`** (`payouts`, enum `PayoutStatus` = requested/paid/cancelled):
   repasse do líquido ao treinador (`amount` bruto, `fee_total`, `net_amount`,
-  `paid_at`, `notes`; `teacher_id` **fora do fillable** — setado pelo service).
-  `PayoutService`: `awaitingPayments`/`balance` (soma de `net_amount` das
-  cobranças online pagas sem `payout_id`), `request` (agrupa as cobranças num
-  `Payout` `requested`; sem saldo → `ValidationException`), `markPaid`,
-  `cancel` (devolve as cobranças ao saldo) e totais. `update`/`store` do
-  `PaymentService` recalculam taxa/líquido (`syncPlatformFee`) — confirmar
-  manualmente uma cobrança online também aplica a taxa.
-- **Painel — treinador**: `GET /admin/repasses` (`Payouts\PayoutIndex`,
-  `role:teacher`): KPIs (saldo disponível, solicitado, já repassado), tabela
-  das cobranças aguardando (com taxa e líquido), campo de observação e
-  **"Solicitar repasse"**; histórico com bruto/taxas/líquido/status. Link
-  "Repasses" no sidebar (só `isTeacher()`).
+  `paid_at`, `notes`, `payout_account_id` + `destination` = **campos da conta
+  usada, congelados no saque**; `teacher_id` **fora do fillable** — setado pelo
+  service).
+- **`PayoutService`** (fonte de verdade dos buckets; `hold` = `Config::
+  payoutHoldDays()`, padrão 7 dias a partir do `paid_at`): `releaseThreshold`,
+  `awaitingPayments` (**disponível** = online paga, `paid_at <= threshold` e
+  `payout_id` nulo), `releasingPayments` (**a liberar**), `balance`,
+  `releasingTotal`, `paidTotal`/`pendingTotal`/`openPayments`, `request`
+  (exige **conta de recebimento** e **um saque pendente por vez**; agrupa as
+  disponíveis num `Payout` `requested` com `destination`; sem saldo →
+  `ValidationException`), `markPaid`, `cancel` (devolve as cobranças ao saldo)
+  e `resolveAccount` (conta escolhida ou a padrão).
+- **`PayoutAccountService` + `teacher_payout_accounts`** (`TeacherPayoutAccount`,
+  enum `PayoutAccountType` = PIX/BANK_ACCOUNT + `BankAccountType` =
+  CHECKING/SAVINGS): CRUD das formas de recebimento com conta **padrão**
+  (`setDefault` desmarca as outras), normalização da chave Pix (CPF/CNPJ só
+  dígitos, e-mail/telefone em minúsculas, `''` → null) e `delete()` que
+  **zera o vínculo nos saques antigos** (`payout_account_id` → null,
+  `withoutGlobalScope` + `update` — independente do driver) e **promove a
+  próxima** conta a padrão. `description()` monta o rótulo do saque
+  (`'Pix (CPF) · 123.456.789-00'`, `'Banco do Brasil · Ag 1234 · Conta
+  56789-0'`). A migration `2026_10_18_100004` **migrou** `teachers.pix_key`/
+  `pix_key_type` para lá e dropou as colunas do treinador.
+- **`PayoutStatementService`** (extrato do treinador, leitura pura sob o global
+  scope): junta **créditos** (cobranças online pagas, com status disponível /
+  a liberar / repassado) e **débitos** (`Payout` requested = "Aguardando",
+  paid = "Pago"; `cancelled` fica fora), com `filters()` (`type` = all/credit/
+  debit, datas com **dia inteiro** nas pontas e troca de datas invertidas),
+  presets de período, `totals()`, `entries()` ordenado por data e
+  `paginate()`/`paginateCollection()` (pageName `extrato`).
+- **Painel — treinador: área "Financeiro"** em `GET /admin/repasses`
+  (`Payouts\PayoutIndex`, `role:teacher` — a rota antiga foi mantida; só o
+  rótulo do menu mudou) com **3 abas** (`showTab`, `#[On('show-tab')]`):
+  - **Saldo e saque** (`PayoutBalance`): KPIs (disponível / a liberar /
+    aguardando / já recebido) com o prazo do saque, tabela das cobranças
+    liberadas, select da conta de destino (default pré-selecionado), campo de
+    observação, **"Solicitar saque"**, banner do saque pendente e estados
+    vazios (sem cobranças liberadas × sem conta cadastrada).
+  - **Extrato** (`PayoutStatement`): presets + filtros (tipo, de/até) com
+    "Limpar filtros", KPIs (entradas/saídas/recebido no período), tabela de
+    créditos/débitos com badge de situação e paginação de 15 por página.
+  - **Formas de recebimento** (`PayoutAccounts`): lista das contas com badge
+    **"Padrão"**, `description()`, ações (tornar padrão / editar / excluir com
+    `wire:confirm`) e modal de criação/edição (Pix **ou** conta bancária, com
+    validação condicional `required_if` em `PayoutAccountRequest`).
+  - Fecha o ciclo: **card "Repasse" saiu de "Meu perfil"** (as telas de perfil
+    não têm mais nenhuma referência a Pix) e o antigo card único de saldo
+    virou o painel completo.
 - **Painel — admin**: `GET /admin/plataforma/repasses`
   (`Payouts\AdminPayoutIndex`, `role:admin`, `payouts.admin`): KPIs (a repassar
-  / já repassado), filtro de status, repasses de todos os treinadores com
-  **"Marcar como pago"** e **cancelar** (`wire:confirm`).
+  / **a liberar** / já repassado — o "a liberar" agrega `withoutGlobalScope`,
+  pois é visão de plataforma), filtro de status, coluna **"Destino"** e as
+  ações **"Marcar como pago"** / **cancelar** (`wire:confirm`); o índice de
+  treinadores mostra a repassar (liberado) com a linha secundária "+ R$ X a
+  liberar".
 - **Painel — cobranças**: o form de pagamento ganhou o **canal**
   (manual/online) e mostra a taxa/líquido ao editar uma cobrança online paga;
   o índice mostra badge de canal, coluna de líquido/taxa, filtro por canal e
-  os KPIs "cobranças manuais este mês (n/10)" e "aguardando repasse (online)".
-- **Chave Pix do treinador**: card "Repasse" no "Meu perfil" (`pix_key` +
-  `pix_key_type`, enum `PixKeyType`) — `ProfileService` persiste no `teachers`.
+  os KPIs "cobranças manuais este mês (n/10)" e "disponível para saque
+  (online)" com a linha "a liberar".
+- **Dashboard do treinador**: `money.awaiting_payout_amount` (liberado) e
+  `money.awaiting_release_amount` (a liberar) — o card virou **"Saldo para
+  saque"** com "A liberar" condicional.
+- **Prazo de liberação**: campo "Prazo de liberação do saque (dias)" em
+  Configurações (admin) → `config.payout_hold_days` (validado 0–90).
 - **Taxa da plataforma**: campo "Taxa das cobranças online (%)" em
   Configurações (admin) → `config.fee_percent` (validado 0–100).
 - **Quota antiga descontinuada**: o limite de alunos por plano
   (`SaasPlan`/`Subscription`) foi removido em 2026-10-16 junto com o modelo de
   assinatura (ver "Modelo de receita: comissão por cobrança"). A tela "Pagar"
   (Pix) do app está concluída (ver "Telas do aluno no app").
+
+### Financeiro do treinador: saque, extrato e formas de recebimento — 2026-10-19
+
+- **Saque com prazo de liberação**: o líquido de cada cobrança online paga
+  entra em **a liberar** e só fica **disponível** depois de `config.
+  payout_hold_days` dias (padrão **7**, 0 = sem retenção) contados do `paid_at`.
+  Fecha o risco de o aluno pedir estorno (o estorno reverte a cobrança, e uma
+  cobrança já sacada não seria recuperável).
+- **Formas de recebimento** (`teacher_payout_accounts`): o treinador mantém
+  **várias** chaves Pix/contas bancárias com **uma padrão**; o saque grava a
+  conta usada (`payout_account_id`) e o rótulo congelado (`destination`) no
+  `Payout` — excluir a conta **não apaga o histórico**. O antigo campo único
+  `teachers.pix_key` foi migrado para a tabela nova e removido.
+- **Área `Financeiro`** (`/admin/repasses`, 3 abas): ver os bullets em
+  "Cobrança do aluno (manual x online)" (§ `PayoutService`,
+  `PayoutAccountService`, `PayoutStatementService` e os dois painéis).
+- **Um saque pendente por vez**: evita duas solicitações concorrentes sobre as
+  mesmas cobranças; o cancelamento pelo admin devolve as cobranças ao saldo.
+  Seleção por cobrança (saque parcial) fica para uma fase seguinte; hoje o
+  saque leva **tudo o que já liberou**.
+- **Adiados**: comprovante de repasse e notificação ao treinador quando o
+  admin marca o saque como pago.
 
 ### Relatório financeiro do treinador — 2026-10-17
 
@@ -760,10 +825,11 @@ sports ──1:N── training_sessions (restrict)
   - `PlatformDashboardTest` (3) — dashboard da plataforma do admin (KPIs de
     comissão e repasses, agregação cross-tenant via service — manual paga não
     gera comissão, treinador vê o próprio painel).
-  - `TeacherDashboardTest` (6) — painel do treinador: dinheiro (a receber incl.
+  - `TeacherDashboardTest` (7) — painel do treinador: dinheiro (a receber incl.
     vencidas, atraso pela definição status `overdue`/pendente vencida, recebido
-    no mês excluindo o mês anterior, saldo de repasse pela soma do `net_amount`
-    das online pagas, cota manual n/10 com aviso quando cheia) e listas (limite
+    no mês excluindo o mês anterior, **disponível × a liberar** pela soma do
+    `net_amount` das online pagas conforme o `payout_hold_days`, cota manual
+    n/10 com aviso quando cheia) e listas (limite
     de 5 cobranças em atraso / 8 treinos de hoje, vazios amigáveis), sem
     vazamento de outro tenant e com o admin ainda na visão da plataforma.
   - `AgendaTest` (9) — agenda semanal: listagem da semana do tenant agrupada
@@ -817,13 +883,28 @@ sports ──1:N── training_sessions (restrict)
     `config.fee_percent` customizado, líquido, reversão de estorno limpa
     taxa/líquido, referência desconhecida ignorada) e `syncFromOrder` usando
     o `gateway_order_id`.
-  - `PayoutFlowTest` (11) — repasses e canal de cobrança no painel: saldo
-    (só online paga), manuais/pendentes e de outro tenant fora do saldo,
-    solicitar repasse (agrupa as cobranças, bruto/taxas/líquido, observação),
-    sem saldo → toast de erro sem gravar, admin marca como pago, admin
-    cancela (cobranças voltam ao saldo), 403 cruzado (treinador no admin /
-    admin no treinador), form cria cobrança online (payable), quota manual
-    erra no form e o índice mostra canal + KPIs.
+  - `PayoutFlowTest` (15) — financeiro do treinador e canal de cobrança:
+    disponível só com online paga **fora do prazo** de liberação (manuais,
+    pendentes, recentes e de outro tenant ficam fora), solicitar saque (agrupa
+    as cobranças, bruto/taxas/líquido, **destino congelado** com a conta usada,
+    observação), saque **sem conta** de recebimento recusado, **um saque
+    pendente por vez**, sem saldo → toast de erro sem gravar, admin marca como
+    pago, admin cancela (cobranças voltam ao saldo), 403 cruzado (treinador no
+    admin / admin no treinador), form cria cobrança online (payable), quota
+    manual erra no form sem gravar e o índice mostra canal + KPIs.
+  - `PayoutAccountTest` (11) — formas de recebimento: criação de Pix (chave
+    normalizada, conta nasce padrão) e de conta bancária, validação
+    condicional por tipo, campos do modal por tipo (Pix × conta bancária),
+    troca da conta padrão (desmarca a anterior), `description()` do Pix/conta
+    nos rótulos, edição, exclusão com promoção da próxima a padrão, saque
+    anterior **preservado** com o destino congelado (`payout_account_id`
+    nulo), 404 cross-tenant e estado vazio.
+  - `PayoutHoldTest` (14) — prazo de liberação: `payoutHoldDays` (default 7,
+    configurável inclusive 0 = sem retenção, fallback de config ausente),
+    bucket a liberar × disponível no service e no componente de saldo, saque
+    considera só as liberadas, extrato com entradas/saídas/totais/filtros de
+    tipo e período/paginação/"Limpar filtros"/presets, transição disponível →
+    repassado após o saque e as 3 abas do `PayoutIndex` (`#[On('show-tab')]`).
   - `FinancialReportTest` (13) — relatório financeiro: página só com as
     cobranças do tenant (com controles), KPIs do período (recebido/líquido/
     taxas, a receber, em atraso, manual × online × pagas, cancelada fora),
@@ -841,7 +922,7 @@ sports ──1:N── training_sessions (restrict)
     indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
     filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
     403) — ver "Auditoria das notificações enviadas".
-  - **Total: 436 testes / 1649 assertions** (86 API + 260 painel + 11 console
+  - **Total: 466 testes / 1803 assertions** (86 API + 290 painel + 11 console
     + 8 notificações + 45 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`

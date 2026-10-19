@@ -41,6 +41,7 @@
                             <th>E-mail</th>
                             <th class="text-center">Alunos</th>
                             <th class="text-right">A repassar</th>
+
                             <th class="text-center">Status</th>
                             <th class="text-center">Ações</th>
                         </tr>
@@ -56,7 +57,7 @@
                                 </td>
                                 <td>{{ $teacher->user?->email }}</td>
                                 <td class="text-center">{{ $teacher->students_count }}</td>
-                                {{-- Saldo de repasse do treinador (líquido das cobranças online pagas). --}}
+                                {{-- Saldo liberado para saque (líquido das cobranças online pagas fora do prazo). --}}
                                 <td class="text-right">
                                     @if ((float) $teacher->awaiting_payout_amount > 0)
                                         <a href="{{ route('payouts.admin') }}" wire:navigate
@@ -65,6 +66,12 @@
                                         </a>
                                     @else
                                         <span class="text-xs text-gray-400">—</span>
+                                    @endif
+                                    @if ((float) $teacher->releasing_amount > 0)
+                                        <span class="block text-xs text-amber-600"
+                                            title="Aguardando o prazo de liberação">
+                                            + {{ 'R$ '.number_format((float) $teacher->releasing_amount, 2, ',', '.') }} a liberar
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="text-center">

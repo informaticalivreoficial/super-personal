@@ -135,6 +135,7 @@ class Settings extends Component
             'configData.app_name' => 'required|min:3',
             // Taxa retida pela plataforma nas cobranças online dos alunos.
             'configData.fee_percent' => 'nullable|numeric|min:0|max:100',
+            'configData.payout_hold_days' => 'nullable|integer|min:0|max:90',
             // 'configData.email' => 'required|email',
         ], $this->imageValidationRules());
     }

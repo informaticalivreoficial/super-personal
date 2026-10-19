@@ -39,11 +39,19 @@
                     <x-icon name="banknotes" class="h-5 w-5" />
                 </span>
                 <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Aguardando repasse (online)</p>
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Disponível para saque (online)</p>
                     <p class="text-lg font-semibold text-gray-900">
                         R$ {{ number_format($awaitingPayoutTotal, 2, ',', '.') }}
                         <span class="text-sm font-normal text-gray-500">({{ $awaitingPayoutCount }})</span>
                     </p>
+                    @if (($releasingTotal ?? 0) > 0)
+                        <p class="text-xs text-amber-600">
+                            A liberar: R$ {{ number_format($releasingTotal, 2, ',', '.') }}
+                            @if (($holdDays ?? 0) > 0)
+                                (prazo de {{ $holdDays }} {{ $holdDays === 1 ? 'dia' : 'dias' }})
+                            @endif
+                        </p>
+                    @endif
                 </div>
             </div>
         </div>

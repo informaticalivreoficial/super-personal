@@ -94,6 +94,16 @@
                                             <small class="text-muted">Retida pela plataforma nas cobranças pagas pelo app; o restante é repassado ao treinador.</small>
                                         </div>
                                     </div>
+                                    <div class="col-12 col-md-6 col-sm-6 col-lg-6 mb-2">
+                                        <div class="form-group">
+                                            <label class="mb-1 block text-sm font-medium text-gray-700"><b>Prazo de liberação do saque (dias)</b></label>
+                                            <input type="number" step="1" min="0" max="90" class="form-control @error('configData.payout_hold_days') is-invalid @enderror" placeholder="Ex.: 7" wire:model="configData.payout_hold_days" id="payout_hold_days">
+                                            @error('configData.payout_hold_days')
+                                                <span class="error erro-feedback">{{ $message }}</span>
+                                            @enderror
+                                            <small class="text-muted">Tempo de segurança entre o pagamento do aluno e o valor ficar disponível para saque. Use 0 para liberar na hora.</small>
+                                        </div>
+                                    </div>
                                 @endif
                                 <div class="col-12 col-md-6 col-sm-6 col-lg-6 mb-2">
                                     @if(\Illuminate\Support\Facades\Auth::user()->isPlatformAdmin())

@@ -81,6 +81,7 @@ class DashboardService
                 'overdue_amount' => (float) $overdue()->sum('amount'),
                 'received_this_month_amount' => $paidThisMonth,
                 'awaiting_payout_amount' => $teacher ? $this->payouts->balance($teacher) : 0.0,
+                'awaiting_release_amount' => $teacher ? $this->payouts->releasingTotal($teacher) : 0.0,
                 'paid_out_total' => $teacher ? $this->payouts->paidTotal($teacher) : 0.0,
                 'manual_this_month' => $teacher ? $this->payments->manualCountThisMonth($teacher->id) : 0,
                 'manual_limit' => PaymentService::MANUAL_MONTHLY_LIMIT,

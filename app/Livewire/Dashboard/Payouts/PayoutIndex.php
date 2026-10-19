@@ -2,65 +2,56 @@
 
 namespace App\Livewire\Dashboard\Payouts;
 
-use App\Enums\PayoutStatus;
-use App\Services\PayoutService;
-use App\Traits\WithToastr;
-use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * "Repasses" do treinador: saldo disponível (líquido das cobranças online
- * pagas ainda sem repasse), cobranças aguardando e histórico dos repasses.
+ * Área **Financeiro** do treinador (rota `/admin/repasses`).
  *
- * O botão "Solicitar repasse" agrupa as cobranças em um Payout `requested`;
- * o admin confirma a transferência e marca como pago.
+ * Concentra o dinheiro das cobranças online: saldo/saque (com o prazo de
+ * liberação), extrato das movimentações e as formas de recebimento (chave Pix
+ * ou conta bancária). Cada aba é um componente aninhado; esta classe apenas
+ * controla a navegação e a autorização (exclusiva do treinador).
  */
+#[Layout('components.layouts.app')]
+#[Title('Financeiro')]
 class PayoutIndex extends Component
 {
-    use WithToastr;
+    /** Abas disponíveis (chave => rótulo). */
+    public const TABS = [
+        'saldo' => 'Saldo e saque',
+        'extrato' => 'Extrato',
+        'contas' => 'Formas de recebimento',
+    ];
 
-    /** Observação opcional do pedido (ex.: chave Pix para o depósito). */
-    public string $notes = '';
+    public string $tab = 'saldo';
 
     public function mount(): void
     {
-        // Treinador não tem perfil? 403 (o admin usa /admin/assinaturas/repasses).
+        // A rota é role:teacher (o admin não tem tenant/saldo próprio).
         abort_unless(auth()->user()?->teacher, 403, 'Perfil de treinador não encontrado.');
     }
 
-    public function requestPayout(PayoutService $service): void
+    public function showTab(string $tab): void
     {
-        $teacher = auth()->user()->teacher;
-
-        try {
-            $payout = $service->request($teacher, $this->notes ?: null);
-        } catch (ValidationException $e) {
-            $this->toastError($e->errors()['payout'][0] ?? 'Não foi possível solicitar o repasse.');
-
-            return;
+        if (array_key_exists($tab, self::TABS)) {
+            $this->tab = $tab;
         }
-
-        $this->notes = '';
-
-        $this->toastSuccess(
-            'Repasse solicitado: R$ '.number_format((float) $payout->net_amount, 2, ',', '.').'.',
-        );
     }
 
-    #[Title('Repasses')]
-    public function render(PayoutService $service)
+    /** Componentes filhos pedem a troca de aba (ex.: saldo sem conta → contas). */
+    #[On('show-tab')]
+    public function onShowTab(string $tab = 'saldo'): void
     {
-        $teacher = auth()->user()->teacher;
+        $this->showTab($tab);
+    }
 
+    public function render()
+    {
         return view('livewire.dashboard.payouts.index', [
-            'balance' => $service->balance($teacher),
-            'awaiting' => $service->awaitingPayments($teacher),
-            'payouts' => $service->payouts($teacher)->get(),
-            'paidTotal' => $service->paidTotal($teacher),
-            'pendingTotal' => $service->pendingTotal($teacher),
-            'statusLabels' => PayoutStatus::labels(),
-            'pixKey' => $teacher->pix_key,
+            'tabs' => self::TABS,
         ]);
     }
 }
