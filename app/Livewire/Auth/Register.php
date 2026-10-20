@@ -52,7 +52,7 @@ class Register extends Component
 
         session()->flash('toast', [
             'type' => 'success',
-            'message' => 'Bem-vindo ao SportPlan! Cadastre seus alunos para começar.',
+            'message' => 'Bem-vindo ao Super Personal! Cadastre seus alunos para começar.',
         ]);
 
         return $this->redirect(route('admin'));

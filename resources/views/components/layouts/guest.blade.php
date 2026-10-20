@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>{{ $title ?? 'Acesso' }} | {{ config('app.name', 'SportPlan') }}</title>
+    <title>{{ $title ?? 'Acesso' }} | {{ config('app.name', 'Super Personal') }}</title>
 
     <link rel="icon" href="{{ $config->favicon ? $config->getfaveicon() : asset('images/chave.png') }}">
 

@@ -10,7 +10,7 @@
 
     <link rel="icon" href="{{ $config->getfaveicon() }}">
 
-    {{-- Fonte condensada dos títulos (identidade SportPlan) --}}
+    {{-- Fonte condensada dos títulos (identidade Super Personal) --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -160,7 +160,7 @@
                         <div class="px-4 pb-5 pt-3">
                             <div class="flex items-center justify-between text-[10px] text-white/50">
                                 <span>9:41</span>
-                                <span>SportPlan</span>
+                                <span>Super Personal</span>
                             </div>
 
                             <p class="mt-4 font-display text-xl font-semibold uppercase tracking-wide text-white">
@@ -438,7 +438,7 @@
                         O treino do seu atleta no bolso dele
                     </h2>
                     <p class="mt-4 max-w-lg leading-relaxed text-brand-100/80">
-                        Seus alunos baixam o app SportPlan, entram com o código de convite que você gera
+                        Seus alunos baixam o app Super Personal, entram com o código de convite que você gera
                         e passam a receber cada sessão com instruções, ritmos e registros — e você
                         acompanha tudo em tempo real pelo painel.
                     </p>
@@ -463,7 +463,7 @@
                         <x-icon name="bolt" class="h-7 w-7" />
                     </span>
                     <p class="mt-4 font-display text-xl font-semibold uppercase tracking-wide">
-                        SportPlan para Android
+                        Super Personal para Android
                     </p>
                     <p class="mt-2 text-sm text-white/60">
                         O app do aluno já está disponível. Publique o primeiro treino hoje mesmo.
@@ -491,7 +491,7 @@
                 @php
                     $faqs = [
                         ['q' => 'Preciso de cartão de crédito para começar?', 'a' => 'Não. O cadastro é gratuito e não existe mensalidade: você só paga a comissão quando cobra um aluno pelo app.'],
-                        ['q' => 'Meus alunos precisam instalar alguma coisa?', 'a' => 'Sim, o app SportPlan para Android. O cadastro é feito com o código de convite que você gera na ficha de cada aluno.'],
+                        ['q' => 'Meus alunos precisam instalar alguma coisa?', 'a' => 'Sim, o app Super Personal para Android. O cadastro é feito com o código de convite que você gera na ficha de cada aluno.'],
                         ['q' => 'Consigo migrar minhas planilhas do Excel?', 'a' => 'Sim — cadastre os alunos, monte os treinos com nossa biblioteca de exercícios e publique. A maioria dos professores monta o primeiro plano em minutos.'],
                         ['q' => 'Quanto custa usar o sistema?', 'a' => 'Nada fixo: a plataforma retém 5% de cada cobrança online paga pelo aluno (Pix pelo app) e repassa o líquido para você. Cobranças registradas manualmente não têm taxa.'],
                         ['q' => 'Funciona para qualquer modalidade?', 'a' => 'Sim — corrida, natação, ciclismo, triathlon, musculação, emagrecimento e condicionamento. A composição das sessões é livre.'],
