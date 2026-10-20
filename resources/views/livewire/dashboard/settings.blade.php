@@ -143,7 +143,7 @@
                                 <div class="col-12 col-md-6 col-lg-2" x-ref="configData_zipcode"> 
                                     <div class="form-group">
                                         <label class="mb-1 block text-sm font-medium text-gray-700"><b>*CEP:</b></label>
-                                        <input type="text" x-mask="99.999-999" class="form-control @error('configData.zipcode') is-invalid @enderror" id="zipcode" wire:model.lazy="configData.zipcode">
+                                        <input type="text" x-mask="cep" class="form-control @error('configData.zipcode') is-invalid @enderror" id="zipcode" wire:model.lazy="configData.zipcode">
                                         @error('configData.zipcode')
                                             <span class="error erro-feedback">{{ $message }}</span>
                                         @enderror                                                    
@@ -350,14 +350,14 @@
                             <div class="form-group">
                                 <label class="mb-1 block text-sm font-medium text-gray-700"><b>Telefone fixo:</b></label>
                                 <input type="text" class="form-control" placeholder="(00) 0000-0000"
-                                    x-mask="(99) 9999-9999" wire:model="configData.phone" id="phone">
+                                    x-mask="phone" wire:model="configData.phone" id="phone">
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4"> 
                             <div class="form-group">
                                 <label class="mb-1 block text-sm font-medium text-gray-700"><b>*Celular:</b></label>
                                 <input type="text" class="form-control" placeholder="(00) 00000-0000"
-                                    x-mask="(99) 99999-9999" wire:model="configData.cell_phone"
+                                    x-mask="cell" wire:model="configData.cell_phone"
                                     id="cell_phone">                                    
                             </div>
                         </div>
@@ -365,7 +365,7 @@
                             <div class="form-group">
                                 <label class="mb-1 block text-sm font-medium text-gray-700"><b>WhatsApp:</b></label>
                                 <input type="text" class="form-control" placeholder="(00) 00000-0000"
-                                    x-mask="(99) 99999-9999" wire:model="configData.whatsapp"
+                                    x-mask="cell" wire:model="configData.whatsapp"
                                     id="whatsapp">
                             </div>
                         </div>

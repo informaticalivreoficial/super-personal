@@ -64,7 +64,16 @@ const resolveMask = (value) => {
         return null;
     }
 
-    return MASK_ALIASES[value] || value;
+    if (MASK_ALIASES[value]) {
+        return MASK_ALIASES[value];
+    }
+
+    // Padrão escrito na mão no estilo jQuery mask (`99.999-999`): no IMask o
+    // dígito é `0` — `9` seria literal e travaria a digitação. Normaliza para
+    // não deixar a armadilha nas views.
+    return /^[\d\s()./\-]+$/.test(value)
+        ? value.replace(/9/g, '0')
+        : value;
 };
 
 document.addEventListener('alpine:init', () => {
