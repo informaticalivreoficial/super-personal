@@ -60,7 +60,9 @@ com o R2, mesmo que o `.env` de dev/produção esteja em `s3`. Os testes usam
   LAN (`APP_URL=laravel.test` não resolve no celular).
 - `User::getUrlAvatarAttribute()`, `Settings` (7 previews),
   `Student::profilePhotoUrl()` e `Teacher` (logo/favicon/metaimg/foto) usam
-  `Storage::disk()->url()`.
+  `Storage::disk()->url()`. Em `Settings` o `mount()` também usa o disco padrão
+  (via `loadLogos()`) — nunca `asset('storage/...')` fixo, que quebrava os
+  previews quando `FILESYSTEM_DISK=s3` (coberto por `SettingsImagesTest`).
 - `Config` memoiza `exists()` por instância (o `AppServiceProvider` compartilha
   a mesma instância em todas as views): no R2 evita um HEAD por imagem a cada
   página.
@@ -1043,7 +1045,7 @@ sports ──1:N── training_sessions (restrict)
     indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
     filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
     403) — ver "Auditoria das notificações enviadas".
-  - **Total: 480 testes / 1849 assertions** (86 API + 301 painel + 3 storage
+  - **Total: 482 testes / 1853 assertions** (86 API + 303 painel + 3 storage
     + 11 console + 8 notificações + 45 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`

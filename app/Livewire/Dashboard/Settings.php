@@ -156,14 +156,8 @@ class Settings extends Component
         $config = Config::findOrFail(1);
         $this->configData = $config->toArray();
 
-        // Converte os campos de imagem salvos no banco para URLs
-        foreach (['logo', 'logo_admin', 'logo_footer', 'favicon', 'metaimg', 'imgheader', 'watermark'] as $field) {
-            if (! empty($config->$field)) {
-                $this->$field = asset('storage/'.$config->$field);
-            } else {
-                $this->$field = asset('images/image.jpg'); // fallback
-            }
-        }
+        // URLs dos previews respeitam o disco padrão (local ou R2) — nunca /storage fixo.
+        $this->loadLogos();
 
         $this->tags = explode(',', $config->metatags ?? '');
     }
