@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
- * O disco `public` é o disco de mídia do produto: local em dev/testes e
- * S3-compatível (Cloudflare R2) em produção, sem mudar o código chamador.
+ * O disco **padrão** (`FILESYSTEM_DISK`) é o de mídia do produto: `public`
+ * (local) em dev/testes e `s3` (Cloudflare R2) em produção. O código chama
+ * sempre `Storage::disk()`, então trocar o armazenamento é só mudar o .env.
  */
 class MediaDiskTest extends TestCase
 {
@@ -21,7 +22,8 @@ class MediaDiskTest extends TestCase
     private function useR2Disk(): void
     {
         config([
-            'filesystems.disks.public' => [
+            'filesystems.default' => 's3',
+            'filesystems.disks.s3' => [
                 'driver' => 's3',
                 'key' => 'chave-de-teste',
                 'secret' => 'segredo-de-teste',
@@ -34,11 +36,12 @@ class MediaDiskTest extends TestCase
             ],
         ]);
 
-        Storage::forgetDisk('public');
+        Storage::forgetDisk('s3');
     }
 
-    public function test_local_disk_is_the_default_for_media(): void
+    public function test_local_media_disk_is_the_default(): void
     {
+        $this->assertSame('public', config('filesystems.default'));
         $this->assertSame('local', config('filesystems.disks.public.driver'));
         $this->assertSame(storage_path('app/public'), config('filesystems.disks.public.root'));
     }
@@ -49,7 +52,7 @@ class MediaDiskTest extends TestCase
 
         $this->assertSame(
             'https://cdn.example.test/superpersonal/students/1/profile_photo.jpg',
-            Storage::disk('public')->url('students/1/profile_photo.jpg')
+            Storage::disk()->url('students/1/profile_photo.jpg')
         );
     }
 

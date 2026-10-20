@@ -157,7 +157,7 @@ class LandingForm extends Component
             $validated = $this->validateWith(UpdateLandingRequest::class, $data);
         } catch (ValidationException $e) {
             foreach ($stored as $path) {
-                Storage::disk('public')->delete($path);
+                Storage::disk()->delete($path);
             }
 
             throw $e;
@@ -167,8 +167,8 @@ class LandingForm extends Component
         $service->updateLanding($teacher, $validated);
 
         foreach ($stale as $path) {
-            if (Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            if (Storage::disk()->exists($path)) {
+                Storage::disk()->delete($path);
             }
         }
 
@@ -203,7 +203,9 @@ class LandingForm extends Component
                 $paths[$column] = $this->{$prop}->storeAs(
                     'teachers/'.$teacher->id,
                     $column.'.'.$this->{$prop}->getClientOriginalExtension(),
-                    'public'
+                    // Livewire usa um disco temporário próprio em teste; sem
+                    // o disco explícito o arquivo final ficaria lá.
+                    config('filesystems.default')
                 );
                 $stored[] = $paths[$column];
 
@@ -336,7 +338,7 @@ class LandingForm extends Component
             return $value;
         }
 
-        return Storage::disk('public')->url($value);
+        return Storage::disk()->url($value);
     }
 
     #[Title('Minha página pública')]

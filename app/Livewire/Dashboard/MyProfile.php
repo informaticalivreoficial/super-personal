@@ -143,7 +143,7 @@ class MyProfile extends Component
             $validated = $this->validateWith(UpdateProfileRequest::class, $data);
         } catch (ValidationException $e) {
             if ($stored !== null) {
-                Storage::disk('public')->delete($stored);
+                Storage::disk()->delete($stored);
             }
 
             throw $e;
@@ -153,8 +153,8 @@ class MyProfile extends Component
         $service->update($user, $validated);
 
         foreach ($stale as $path) {
-            if (Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            if (Storage::disk()->exists($path)) {
+                Storage::disk()->delete($path);
             }
         }
 
@@ -201,7 +201,9 @@ class MyProfile extends Component
             $path = $this->avatar->storeAs(
                 'users/'.$user->id,
                 'avatar.'.$this->avatar->getClientOriginalExtension(),
-                'public'
+                // Livewire usa um disco temporário próprio em teste; sem o
+                // disco explícito o arquivo final ficaria lá.
+                config('filesystems.default')
             );
             $stored = $path;
 
@@ -272,7 +274,7 @@ class MyProfile extends Component
             return $value;
         }
 
-        return Storage::disk('public')->url($value);
+        return Storage::disk()->url($value);
     }
 
     #[Title('Meu perfil')]

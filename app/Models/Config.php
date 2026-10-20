@@ -119,7 +119,7 @@ class Config extends Model
             return false;
         }
 
-        return $this->existingFiles[$path] ??= Storage::disk('public')->exists($path);
+        return $this->existingFiles[$path] ??= Storage::disk()->exists($path);
     }
 
     public function getmetaimg()
@@ -128,7 +128,7 @@ class Config extends Model
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::disk('public')->url($this->metaimg);
+        return Storage::disk()->url($this->metaimg);
     }
 
     public function getlogo()
@@ -137,7 +137,7 @@ class Config extends Model
             return asset('images/image.jpg');
         }
 
-        return Storage::disk('public')->url($this->logo);
+        return Storage::disk()->url($this->logo);
     }
 
     public function getlogoadmin()
@@ -146,7 +146,7 @@ class Config extends Model
             return asset('images/image.jpg');
         }
 
-        return Storage::disk('public')->url($this->logo_admin);
+        return Storage::disk()->url($this->logo_admin);
     }
 
     public function getfaveicon()
@@ -155,7 +155,7 @@ class Config extends Model
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::disk('public')->url($this->favicon);
+        return Storage::disk()->url($this->favicon);
     }
 
     public function getwatermark()
@@ -164,7 +164,7 @@ class Config extends Model
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::disk('public')->url($this->watermark);
+        return Storage::disk()->url($this->watermark);
     }
 
     public function getheadersite()
@@ -173,7 +173,7 @@ class Config extends Model
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::disk('public')->url($this->imgheader);
+        return Storage::disk()->url($this->imgheader);
     }
 
     public function getlogofooter()
@@ -182,7 +182,7 @@ class Config extends Model
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::disk('public')->url($this->logo_footer);
+        return Storage::disk()->url($this->logo_footer);
     }
 
     public function setZipcodeAttribute($value)

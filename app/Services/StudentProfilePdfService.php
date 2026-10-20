@@ -106,7 +106,7 @@ class StudentProfilePdfService
         }
 
         try {
-            $disk = Storage::disk('public');
+            $disk = Storage::disk();
 
             if (! $disk->exists($path)) {
                 return null;

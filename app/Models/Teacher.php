@@ -176,7 +176,7 @@ class Teacher extends Model
             return $path;
         }
 
-        return Storage::disk('public')->url($path);
+        return Storage::disk()->url($path);
     }
 
     public function user(): BelongsTo

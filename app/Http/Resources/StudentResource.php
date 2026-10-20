@@ -40,8 +40,11 @@ class StudentResource extends JsonResource
     }
 
     /**
-     * URL da foto no disco public, montada com o host da requisição
-     * (o app fala por IP na rede local; APP_URL pode não resolver no aparelho).
+     * URL da foto no disco padrão (`FILESYSTEM_DISK`).
+     *
+     * No disco local (dev/testes) a URL usa o host da requisição: o app fala
+     * por IP na rede local e `APP_URL` (laravel.test) pode não resolver no
+     * aparelho. No R2 a URL pública já vem absoluta de `R2_URL`.
      */
     private function photoUrl($request): ?string
     {
@@ -53,13 +56,12 @@ class StudentResource extends JsonResource
             return $this->profile_photo;
         }
 
-        // Disco remoto (R2): a URL pública já vem absoluta do `R2_URL`.
-        if (config('filesystems.disks.public.driver') === 's3') {
-            return Storage::disk('public')->url($this->profile_photo);
+        $disk = Storage::disk();
+
+        if (($disk->getConfig()['driver'] ?? null) === 's3') {
+            return $disk->url($this->profile_photo);
         }
 
-        // Disco local: usa o host da requisição. O app Android em dev acessa
-        // pelo IP da LAN, então `APP_URL` (laravel.test) não serve aqui.
         return $request->getSchemeAndHttpHost().'/storage/'.ltrim($this->profile_photo, '/');
     }
 }

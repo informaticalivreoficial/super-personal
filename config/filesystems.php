@@ -7,13 +7,16 @@ return [
     | Default Filesystem Disk
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default filesystem disk that should be used
-    | by the framework. The "local" disk, as well as a variety of cloud
-    | based disks are available to your application. Just store away!
+    | Todo o produto usa o disco **padrão** para mídia (fotos, logos, favicon,
+    | documentos): `Storage::disk()->...`. Para trocar o armazenamento basta
+    | mudar `FILESYSTEM_DISK` no .env:
+    |
+    |   public → storage/app/public (disco local, dev/testes)
+    |   s3     → Cloudflare R2 (produção)
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 'public'),
 
     /*
     |--------------------------------------------------------------------------
@@ -37,49 +40,35 @@ return [
         ],
 
         /*
-         * Disco de mídia do produto (fotos, logos, favicon, metaimg...).
-         *
-         * O código usa sempre `Storage::disk('public')`; o driver é trocado
-         * pelo env para que o mesmo nome funcione local (dev/testes) e no
-         * Cloudflare R2 (produção, driver `s3`). Assim não há refatoração dos
-         * componentes nem dos testes (`Storage::fake('public')` segue igual).
-         *
-         * Para usar o R2: FILESYSTEM_PUBLIC_DRIVER=s3 + R2_* no .env.
+         * Mídia local (dev/testes): servida pelo symlink público `/storage`
+         * criado por `storage:link`.
          */
-        'public' => env('FILESYSTEM_PUBLIC_DRIVER', 'local') === 's3'
-            ? [
-                'driver' => 's3',
-                'key' => env('R2_ACCESS_KEY_ID'),
-                'secret' => env('R2_SECRET_ACCESS_KEY'),
-                'region' => env('R2_REGION', 'auto'),
-                'bucket' => env('R2_BUCKET'),
-                'root' => env('R2_ROOT', ''),
-                'url' => env('R2_URL'),
-                'endpoint' => env('R2_ENDPOINT')
-                    ?: 'https://'.env('R2_ACCOUNT_ID').'.r2.cloudflarestorage.com',
-                'use_path_style_endpoint' => env('R2_USE_PATH_STYLE_ENDPOINT', false),
-                'visibility' => 'public',
-                // Erros de credencial/rede devem estourar, não falhar em silêncio.
-                'throw' => true,
-            ]
-            : [
-                'driver' => 'local',
-                'root' => storage_path('app/public'),
-                'url' => env('APP_URL').'/storage',
-                'visibility' => 'public',
-                'throw' => false,
-            ],
+        'public' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => env('APP_URL').'/storage',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
 
+        /*
+         * Cloudflare R2 (S3-compatível). Ativado com `FILESYSTEM_DISK=s3`.
+         * O prefixo `R2_ROOT` faz parte da URL pública (`R2_URL`).
+         */
         's3' => [
             'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
-            'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => env('R2_REGION', 'auto'),
+            'bucket' => env('R2_BUCKET'),
+            'root' => env('R2_ROOT', ''),
+            'url' => env('R2_URL'),
+            'endpoint' => env('R2_ENDPOINT')
+                ?: 'https://'.env('R2_ACCOUNT_ID').'.r2.cloudflarestorage.com',
+            'use_path_style_endpoint' => env('R2_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'public',
+            // Credencial/rede ruim deve estourar, não falhar em silêncio.
+            'throw' => true,
         ],
 
     ],

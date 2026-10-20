@@ -12,21 +12,29 @@
 - Comandos: `vendor/bin/sail artisan ...`, testes: `vendor/bin/phpunit`
 - PDF: `barryvdh/laravel-dompdf` (ficha do aluno; `config/dompdf.php` não publicado —
   defaults, fontes DejaVu embutidas)
-- Mídia: disco `public` local em dev/testes ou **Cloudflare R2** (`s3` +
-  `league/flysystem-aws-s3-v3`), trocado por env — ver "Armazenamento de mídia"
+- Mídia: disco **padrão** (`FILESYSTEM_DISK`) — `public` local em dev/testes ou
+  `s3` (**Cloudflare R2**, via `league/flysystem-aws-s3-v3`) — ver
+  "Armazenamento de mídia"
 
 ## Armazenamento de mídia (local ↔ Cloudflare R2) — 2026-10-19
 
-Todo o produto grava/lê mídia em `Storage::disk('public')` (fotos de aluno e
-treinador, logos, favicon, metaimg, watermark, documentos de identidade). O
-**nome do disco não muda** — o driver é escolhido por env, então o código
-chamador, as views e os testes (`Storage::fake('public')`) seguem iguais.
+Todo o produto grava/lê mídia pelo **disco padrão**: `Storage::disk()->...`
+(uploads incluídos, sem nome de disco). O padrão é resolvido por
+**`FILESYSTEM_DISK`** no `.env`:
+
+| `FILESYSTEM_DISK` | Disco | Uso |
+|---|---|---|
+| `public` (default) | local | `storage/app/public` + symlink `/storage` (dev/testes) |
+| `s3` | Cloudflare R2 | bucket público via `R2_*` (produção) |
+
+Trocar o armazenamento é **só mudar o `.env`** — nenhum componente, Service ou
+view conhece o nome do disco.
 
 ### Configuração (`config/filesystems.php`)
 
 | Env | Uso |
 |---|---|
-| `FILESYSTEM_PUBLIC_DRIVER` | `local` (default) ou `s3` (R2) |
+| `FILESYSTEM_DISK` | `public` (local) ou `s3` (R2) |
 | `R2_ACCOUNT_ID` | endpoint derivado: `https://{account}.r2.cloudflarestorage.com` |
 | `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | token de API do R2 (Object Read & Write) |
 | `R2_BUCKET` | nome do bucket |
@@ -36,29 +44,37 @@ chamador, as views e os testes (`Storage::fake('public')`) seguem iguais.
 | `R2_ENDPOINT` | opcional, sobrepõe o derivado do account id |
 | `R2_USE_PATH_STYLE_ENDPOINT` | `false` para o R2 |
 
-No modo `s3` o disco usa `visibility=public` e `throw=true` (credencial/rede
-ruim estoura em vez de falhar em silêncio). No modo `local` continua
+No disco `s3` o produto usa `visibility=public` e `throw=true` (credencial/rede
+ruim estoura em vez de falhar em silêncio). O disco `public` continua
 `storage/app/public` + symlink `/storage`.
+
+**Testes**: `phpunit.xml` fixa `FILESYSTEM_DISK=public` — a suíte nunca fala
+com o R2, mesmo que o `.env` de dev/produção esteja em `s3`. Os testes usam
+`Storage::fake('public')`, que passa a ser o disco padrão.
 
 ### Pontos que dependem do driver
 
-- `StudentResource::photoUrl()`: no R2 devolve a URL absoluta de
-  `Storage::disk('public')->url()`; no local mantém o **host da requisição**
+- `StudentResource::photoUrl()`: no disco remoto (`driver=s3`) devolve a URL
+  absoluta de `Storage::disk()->url()`; no local mantém o **host da requisição**
   (`/storage/...`), necessário porque o app Android em dev acessa pelo IP da
   LAN (`APP_URL=laravel.test` não resolve no celular).
-- `User::getUrlAvatarAttribute()`, `Settings` (7 previews) e
-  `Student::profilePhotoUrl()` usam `Storage::disk('public')->url()` — não
-  dependem mais de `FILESYSTEM_DISK`.
+- `User::getUrlAvatarAttribute()`, `Settings` (7 previews),
+  `Student::profilePhotoUrl()` e `Teacher` (logo/favicon/metaimg/foto) usam
+  `Storage::disk()->url()`.
 - `Config` memoiza `exists()` por instância (o `AppServiceProvider` compartilha
   a mesma instância em todas as views): no R2 evita um HEAD por imagem a cada
   página.
-- `StudentProfilePdfService` lê os bytes pelo disco `public` → funciona nos
-  dois modos.
+- `StudentProfilePdfService` lê os bytes pelo disco padrão → funciona nos dois
+  modos.
+- **Uploads** passam `config('filesystems.default')` como disco explicitamente
+  (3º argumento de `storeAs`/`storePubliclyAs`). Não usar o default implícito:
+  o `TemporaryUploadedFile` do Livewire resolve para o disco **temporário**
+  dele (`tmp-for-tests` em teste), e o arquivo final acabaria lá.
 
 ### Migração para o R2 (uma vez)
 
 ```bash
-# 1. .env: FILESYSTEM_PUBLIC_DRIVER=s3 + R2_* preenchidos
+# 1. .env: FILESYSTEM_DISK=s3 + R2_* preenchidos
 vendor/bin/sail artisan optimize:clear
 
 # 2. copiar os arquivos atuais preservando os caminhos (sem storage/app/public/.gitignore)
@@ -71,9 +87,9 @@ aws s3 sync storage/app/public/ s3://$R2_BUCKET/$R2_ROOT/ \
 #    (sem isso as <img> recebem 403). `storage:link` deixa de ser necessário.
 ```
 
-Coberto por `tests/Feature/Storage/MediaDiskTest` (3): disco local como
-default, URL do R2 com o prefixo `R2_ROOT` e `StudentResource` devolvendo a URL
-remota (o host da requisição não vaza no modo R2).
+Coberto por `tests/Feature/Storage/MediaDiskTest` (3): disco local (`public`)
+como padrão, URL do R2 com o prefixo `R2_ROOT` e `StudentResource` devolvendo a
+URL remota (o host da requisição não vaza no modo R2).
 
 ## Multi-tenancy (3 camadas)
 
@@ -1027,7 +1043,7 @@ sports ──1:N── training_sessions (restrict)
     indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
     filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
     403) — ver "Auditoria das notificações enviadas".
-  - **Total: 480 testes / 1848 assertions** (86 API + 301 painel + 3 storage
+  - **Total: 480 testes / 1849 assertions** (86 API + 301 painel + 3 storage
     + 11 console + 8 notificações + 45 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`

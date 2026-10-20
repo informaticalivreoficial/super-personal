@@ -68,13 +68,13 @@ class StudentService
         $path = $file->storePubliclyAs(
             'students/'.$student->id,
             'profile_photo.'.$extension,
-            'public'
+            config('filesystems.default')
         );
 
         // Nome canônico: extensões diferentes (foto antiga .png vs nova .jpg)
         // geram arquivos distintos — apaga o anterior já substituído.
         if ($old && $old !== $path && ! str_starts_with($old, 'http')) {
-            Storage::disk('public')->delete($old);
+            Storage::disk()->delete($old);
         }
 
         $student->profile_photo = $path;
@@ -89,7 +89,7 @@ class StudentService
     public function removeProfilePhoto(Student $student): Student
     {
         if ($student->profile_photo && ! str_starts_with($student->profile_photo, 'http')) {
-            Storage::disk('public')->delete($student->profile_photo);
+            Storage::disk()->delete($student->profile_photo);
         }
 
         $student->profile_photo = null;

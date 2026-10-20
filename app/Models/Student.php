@@ -65,7 +65,7 @@ class Student extends Model
             return $this->profile_photo;
         }
 
-        return Storage::disk('public')->url($this->profile_photo);
+        return Storage::disk()->url($this->profile_photo);
     }
 
     /** Iniciais para o avatar quando não há foto ("Renato Silva" → "RS"). */
