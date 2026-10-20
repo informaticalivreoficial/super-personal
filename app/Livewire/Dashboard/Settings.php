@@ -246,7 +246,7 @@ class Settings extends Component
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->configData['logo']);
+        return Storage::disk('public')->url($this->configData['logo']);
     }
 
     public function getLogoadmin()
@@ -255,7 +255,7 @@ class Settings extends Component
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->configData['logo_admin']);
+        return Storage::disk('public')->url($this->configData['logo_admin']);
     }
 
     public function getLogofooter()
@@ -264,7 +264,7 @@ class Settings extends Component
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->configData['logo_footer']);
+        return Storage::disk('public')->url($this->configData['logo_footer']);
     }
 
     public function getfaveicon()
@@ -273,7 +273,7 @@ class Settings extends Component
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->configData['favicon']);
+        return Storage::disk('public')->url($this->configData['favicon']);
     }
 
     public function getwatermark()
@@ -282,7 +282,7 @@ class Settings extends Component
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->configData['watermark']);
+        return Storage::disk('public')->url($this->configData['watermark']);
     }
 
     public function getmetaimg()
@@ -291,7 +291,7 @@ class Settings extends Component
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->configData['metaimg']);
+        return Storage::disk('public')->url($this->configData['metaimg']);
     }
 
     public function getheadersite()
@@ -300,7 +300,7 @@ class Settings extends Component
             return url(asset('images/image.jpg'));
         }
 
-        return Storage::url($this->configData['imgheader']);
+        return Storage::disk('public')->url($this->configData['imgheader']);
     }
 
     protected function resetImages()

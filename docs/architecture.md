@@ -12,6 +12,68 @@
 - Comandos: `vendor/bin/sail artisan ...`, testes: `vendor/bin/phpunit`
 - PDF: `barryvdh/laravel-dompdf` (ficha do aluno; `config/dompdf.php` não publicado —
   defaults, fontes DejaVu embutidas)
+- Mídia: disco `public` local em dev/testes ou **Cloudflare R2** (`s3` +
+  `league/flysystem-aws-s3-v3`), trocado por env — ver "Armazenamento de mídia"
+
+## Armazenamento de mídia (local ↔ Cloudflare R2) — 2026-10-19
+
+Todo o produto grava/lê mídia em `Storage::disk('public')` (fotos de aluno e
+treinador, logos, favicon, metaimg, watermark, documentos de identidade). O
+**nome do disco não muda** — o driver é escolhido por env, então o código
+chamador, as views e os testes (`Storage::fake('public')`) seguem iguais.
+
+### Configuração (`config/filesystems.php`)
+
+| Env | Uso |
+|---|---|
+| `FILESYSTEM_PUBLIC_DRIVER` | `local` (default) ou `s3` (R2) |
+| `R2_ACCOUNT_ID` | endpoint derivado: `https://{account}.r2.cloudflarestorage.com` |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | token de API do R2 (Object Read & Write) |
+| `R2_BUCKET` | nome do bucket |
+| `R2_ROOT` | prefixo dos objetos (ex.: `superpersonal`); a URL pública já o inclui |
+| `R2_URL` | URL pública do bucket (`https://pub-....r2.dev` ou domínio próprio) |
+| `R2_REGION` | `auto` |
+| `R2_ENDPOINT` | opcional, sobrepõe o derivado do account id |
+| `R2_USE_PATH_STYLE_ENDPOINT` | `false` para o R2 |
+
+No modo `s3` o disco usa `visibility=public` e `throw=true` (credencial/rede
+ruim estoura em vez de falhar em silêncio). No modo `local` continua
+`storage/app/public` + symlink `/storage`.
+
+### Pontos que dependem do driver
+
+- `StudentResource::photoUrl()`: no R2 devolve a URL absoluta de
+  `Storage::disk('public')->url()`; no local mantém o **host da requisição**
+  (`/storage/...`), necessário porque o app Android em dev acessa pelo IP da
+  LAN (`APP_URL=laravel.test` não resolve no celular).
+- `User::getUrlAvatarAttribute()`, `Settings` (7 previews) e
+  `Student::profilePhotoUrl()` usam `Storage::disk('public')->url()` — não
+  dependem mais de `FILESYSTEM_DISK`.
+- `Config` memoiza `exists()` por instância (o `AppServiceProvider` compartilha
+  a mesma instância em todas as views): no R2 evita um HEAD por imagem a cada
+  página.
+- `StudentProfilePdfService` lê os bytes pelo disco `public` → funciona nos
+  dois modos.
+
+### Migração para o R2 (uma vez)
+
+```bash
+# 1. .env: FILESYSTEM_PUBLIC_DRIVER=s3 + R2_* preenchidos
+vendor/bin/sail artisan optimize:clear
+
+# 2. copiar os arquivos atuais preservando os caminhos (sem storage/app/public/.gitignore)
+aws s3 sync storage/app/public/ s3://$R2_BUCKET/$R2_ROOT/ \
+  --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" \
+  --exclude ".gitignore"
+# ou: rclone sync storage/app/public/ r2:$R2_BUCKET/$R2_ROOT/ --exclude ".gitignore"
+
+# 3. o bucket precisa de acesso público (r2.dev) ou domínio próprio em R2_URL
+#    (sem isso as <img> recebem 403). `storage:link` deixa de ser necessário.
+```
+
+Coberto por `tests/Feature/Storage/MediaDiskTest` (3): disco local como
+default, URL do R2 com o prefixo `R2_ROOT` e `StudentResource` devolvendo a URL
+remota (o host da requisição não vaza no modo R2).
 
 ## Multi-tenancy (3 camadas)
 
@@ -814,6 +876,9 @@ sports ──1:N── training_sessions (restrict)
     admin baixa de qualquer tenant, conteúdo (dados pessoais/físicos, dias, plano
     ativo, pagamentos, observações, treinador/CREF), iniciais sem foto, foto
     embutida como `data:image/jpeg;base64` e link/`Baixar PDF`/foto na ficha.
+  - `MediaDiskTest` (3, em `tests/Feature/Storage`) — disco `public` local por
+    default, URL do R2 com o prefixo `R2_ROOT` e `StudentResource` com a URL
+    remota (sem o host da requisição) — ver "Armazenamento de mídia".
   - `TrainingPlanCrudTest` — isolamento de planos, criação com aluno do tenant,
     semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
   - `PlanDuplicateTest` (9) — duplicação de plano para outro aluno (semanas,
@@ -962,8 +1027,8 @@ sports ──1:N── training_sessions (restrict)
     indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
     filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
     403) — ver "Auditoria das notificações enviadas".
-  - **Total: 466 testes / 1803 assertions** (86 API + 290 painel + 11 console
-    + 8 notificações + 45 web + 26 services).
+  - **Total: 480 testes / 1848 assertions** (86 API + 301 painel + 3 storage
+    + 11 console + 8 notificações + 45 web + 26 services).
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`
     customizado), `WAITING` só registra o status do gateway, `REFUNDED` de

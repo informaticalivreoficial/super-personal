@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class StudentResource extends JsonResource
 {
@@ -52,6 +53,13 @@ class StudentResource extends JsonResource
             return $this->profile_photo;
         }
 
+        // Disco remoto (R2): a URL pública já vem absoluta do `R2_URL`.
+        if (config('filesystems.disks.public.driver') === 's3') {
+            return Storage::disk('public')->url($this->profile_photo);
+        }
+
+        // Disco local: usa o host da requisição. O app Android em dev acessa
+        // pelo IP da LAN, então `APP_URL` (laravel.test) não serve aqui.
         return $request->getSchemeAndHttpHost().'/storage/'.ltrim($this->profile_photo, '/');
     }
 }

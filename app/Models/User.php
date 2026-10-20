@@ -203,7 +203,7 @@ class User extends Authenticatable
     public function getUrlAvatarAttribute(): string
     {
         if (! empty($this->avatar) && Storage::disk('public')->exists($this->avatar)) {
-            return Storage::url($this->avatar);
+            return Storage::disk('public')->url($this->avatar);
         }
 
         return asset('images/image.jpg');

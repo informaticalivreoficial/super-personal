@@ -10,6 +10,15 @@ class Config extends Model
 {
     use HasFactory;
 
+    /**
+     * Cache de existência dos arquivos por instância — o `AppServiceProvider`
+     * compartilha a mesma instância em todas as views, então no disco remoto
+     * (R2) isso evita um HEAD por imagem a cada página.
+     *
+     * @var array<string, bool>
+     */
+    private array $existingFiles = [];
+
     protected $table = 'config';
 
     protected $fillable = [
@@ -103,9 +112,19 @@ class Config extends Model
      * symlink `/storage`). Antes alguns acessores checavam o disco `local`
      * (raiz `storage/app`) e sempre caían no fallback — corrigido em 2026-10-14.
      */
+    /** Existência memoizada por caminho (um HEAD por arquivo por página). */
+    private function fileExists(?string $path): bool
+    {
+        if (empty($path)) {
+            return false;
+        }
+
+        return $this->existingFiles[$path] ??= Storage::disk('public')->exists($path);
+    }
+
     public function getmetaimg()
     {
-        if (empty($this->metaimg) || ! Storage::disk('public')->exists($this->metaimg)) {
+        if (empty($this->metaimg) || ! $this->fileExists($this->metaimg)) {
             return url(asset('images/image.jpg'));
         }
 
@@ -114,7 +133,7 @@ class Config extends Model
 
     public function getlogo()
     {
-        if (empty($this->logo) || ! Storage::disk('public')->exists($this->logo)) {
+        if (empty($this->logo) || ! $this->fileExists($this->logo)) {
             return asset('images/image.jpg');
         }
 
@@ -123,7 +142,7 @@ class Config extends Model
 
     public function getlogoadmin()
     {
-        if (empty($this->logo_admin) || ! Storage::disk('public')->exists($this->logo_admin)) {
+        if (empty($this->logo_admin) || ! $this->fileExists($this->logo_admin)) {
             return asset('images/image.jpg');
         }
 
@@ -132,7 +151,7 @@ class Config extends Model
 
     public function getfaveicon()
     {
-        if (empty($this->favicon) || ! Storage::disk('public')->exists($this->favicon)) {
+        if (empty($this->favicon) || ! $this->fileExists($this->favicon)) {
             return url(asset('images/image.jpg'));
         }
 
@@ -141,7 +160,7 @@ class Config extends Model
 
     public function getwatermark()
     {
-        if (empty($this->watermark) || ! Storage::disk('public')->exists($this->watermark)) {
+        if (empty($this->watermark) || ! $this->fileExists($this->watermark)) {
             return url(asset('images/image.jpg'));
         }
 
@@ -150,7 +169,7 @@ class Config extends Model
 
     public function getheadersite()
     {
-        if (empty($this->imgheader) || ! Storage::disk('public')->exists($this->imgheader)) {
+        if (empty($this->imgheader) || ! $this->fileExists($this->imgheader)) {
             return url(asset('images/image.jpg'));
         }
 
@@ -159,7 +178,7 @@ class Config extends Model
 
     public function getlogofooter()
     {
-        if (empty($this->logo_footer) || ! Storage::disk('public')->exists($this->logo_footer)) {
+        if (empty($this->logo_footer) || ! $this->fileExists($this->logo_footer)) {
             return url(asset('images/image.jpg'));
         }
 
