@@ -85,7 +85,10 @@ class TeacherPayoutAccount extends Model
         return implode(' · ', $parts) ?: 'Conta bancária';
     }
 
-    /** Chave Pix legível (CPF/CNPJ pontuados; as demais como foram guardadas). */
+    /**
+     * Chave Pix legível: CPF/CNPJ pontuados e telefone no formato
+     * "(DDD) número" (o valor guardado é só dígitos / E.164).
+     */
     private function formattedPixKey(): ?string
     {
         $key = $this->pix_key;
@@ -94,17 +97,7 @@ class TeacherPayoutAccount extends Model
             return null;
         }
 
-        $digits = preg_replace('/\D+/', '', $key);
-
-        return match ($this->pix_key_type) {
-            PixKeyType::CPF => strlen((string) $digits) === 11
-                ? preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $digits)
-                : $key,
-            PixKeyType::CNPJ => strlen((string) $digits) === 14
-                ? preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $digits)
-                : $key,
-            default => $key,
-        };
+        return $this->pix_key_type?->format($key) ?? $key;
     }
 
     /**

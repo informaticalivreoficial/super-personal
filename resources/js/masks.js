@@ -5,15 +5,18 @@
  * IMask e flatpickr já são expostos globalmente em resources/js/app.js.
  *
  * Uso nas views:
- *   x-mask="cpf|cep|phone|cell|card|cvv" → máscara IMask no input (wire:model ok:
- *       os mutators do User limpam a formatação no save e os accessors
- *       reformatam no prefill — mesmo contrato dos campos sem máscara).
+ *   x-mask="cpf|cnpj|cep|phone|cell|document|card|cvv" → máscara IMask no input
+ *       (wire:model ok: os Services/mutators limpam a formatação no save e o
+ *       prefill é formatado no PHP — mesmo contrato dos campos sem máscara).
+ *       A expressão pode ser dinâmica, avaliada no escopo Alpine e reaplicada
+ *       quando o valor muda — ex.: `x-mask="keyType === 'cpf' ? 'cpf' : ..."`.
  *   x-datepicker                 → flatpickr pt-BR, d/m/Y, até hoje.
  *   x-data="passwordField"       → olho mostrar/ocultar + medidor de força
  *       (usar @input="value = $event.target.value" no input para o medidor).
  */
 const MASK_PATTERNS = {
     cpf: '000.000.000-00',
+    cnpj: '00.000.000/0000-00',
     cep: '00000-000',
     phone: '(00) 0000-0000',
     cell: '(00) 00000-0000',
@@ -21,15 +24,98 @@ const MASK_PATTERNS = {
     cvv: '0000',
 };
 
+// Documento (CPF até 11 dígitos, CNPJ a partir do 12º).
+const DOCUMENT_MASK = {
+    mask: [{ mask: MASK_PATTERNS.cpf }, { mask: MASK_PATTERNS.cnpj }],
+    dispatch(appended, dynamicMasked) {
+        const digits = (dynamicMasked.value + appended).replace(/\D/g, '');
+
+        return digits.length > 11
+            ? dynamicMasked.compiledMasks[1]
+            : dynamicMasked.compiledMasks[0];
+    },
+};
+
+// Telefone do Pix: fixo (10 dígitos) ou celular (11), sem o +55.
+const PHONE_KEY_MASK = {
+    mask: [{ mask: MASK_PATTERNS.phone }, { mask: MASK_PATTERNS.cell }],
+    dispatch(appended, dynamicMasked) {
+        const digits = (dynamicMasked.value + appended).replace(/\D/g, '');
+
+        return digits.length > 10
+            ? dynamicMasked.compiledMasks[1]
+            : dynamicMasked.compiledMasks[0];
+    },
+};
+
+const MASK_ALIASES = {
+    ...MASK_PATTERNS,
+    document: DOCUMENT_MASK,
+    'pix-phone': PHONE_KEY_MASK,
+};
+
+// Expressão literal (alias conhecido ou pattern na mão, ex.: "99.999-999")
+// vs. expressão Alpine reativa (ex.: "pixKeyType === 'cpf' ? 'cpf' : ''").
+const isStaticMask = (expression) => Object.prototype.hasOwnProperty.call(MASK_ALIASES, expression)
+    || /^[\d\s()./\-]+$/.test(expression);
+
+const resolveMask = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    return MASK_ALIASES[value] || value;
+};
+
 document.addEventListener('alpine:init', () => {
     const Alpine = window.Alpine;
 
     // Máscara IMask — x-mask="cpf" (ou um pattern na mão, ex.: x-mask="00").
-    Alpine.directive('mask', (el, { expression }) => {
-        const pattern = MASK_PATTERNS[expression] || expression;
-        const mask = window.IMask(el, { mask: pattern });
+    // Expressões reativas são reavaliadas pelo efeito do Alpine: ao trocar o
+    // tipo da chave Pix, a máscara é recriada já com o texto digitado.
+    Alpine.directive('mask', (el, { expression }, { effect, evaluate, cleanup }) => {
+        let mask = null;
+        let pattern = null;
 
-        return () => mask.destroy();
+        const apply = (raw) => {
+            const next = resolveMask(raw);
+
+            if (next === pattern) {
+                return;
+            }
+
+            const value = mask ? mask.unmaskedValue : el.value;
+
+            if (mask) {
+                mask.destroy();
+                mask = null;
+            }
+
+            pattern = next;
+
+            if (next === null) {
+                return;
+            }
+
+            mask = window.IMask(el, { mask: next });
+
+            if (value) {
+                mask.unmaskedValue = value;
+            }
+        };
+
+        if (isStaticMask(expression)) {
+            apply(expression);
+        } else {
+            effect(() => apply(evaluate(expression)));
+        }
+
+        cleanup(() => {
+            if (mask) {
+                mask.destroy();
+                mask = null;
+            }
+        });
     });
 
     // Data (nascimento etc.) — flatpickr com locale pt-BR e formato d/m/Y

@@ -8,6 +8,7 @@ use App\Enums\PixKeyType;
 use App\Http\Requests\PayoutAccountRequest;
 use App\Models\TeacherPayoutAccount;
 use App\Services\PayoutAccountService;
+use App\Support\Document;
 use App\Traits\ValidatesWithFormRequest;
 use App\Traits\WithToastr;
 use Livewire\Component;
@@ -161,7 +162,9 @@ class PayoutAccounts extends Component
         $this->type = $account->type->value;
         $this->label = $account->label ?? '';
         $this->is_default = (bool) $account->is_default;
-        $this->pix_key = $account->pix_key ?? '';
+        // Prefill formatado (o banco guarda CPF/CNPJ só com dígitos e o
+        // telefone em E.164); o Service normaliza de novo no save.
+        $this->pix_key = $account->pix_key_type?->format($account->pix_key) ?? ($account->pix_key ?? '');
         $this->pix_key_type = $account->pix_key_type?->value ?? '';
         $this->bank_name = $account->bank_name ?? '';
         $this->bank_code = $account->bank_code ?? '';
@@ -170,7 +173,7 @@ class PayoutAccounts extends Component
         $this->account_digit = $account->account_digit ?? '';
         $this->account_type = $account->account_type?->value ?? BankAccountType::CHECKING->value;
         $this->holder_name = $account->holder_name ?? '';
-        $this->holder_document = $account->holder_document ?? '';
+        $this->holder_document = Document::format($account->holder_document) ?? '';
     }
 
     private function resetForm(): void

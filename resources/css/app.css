@@ -421,6 +421,10 @@
         @apply col-span-12;
     }
 
+    .col-md-1 {
+        @apply col-span-12 md:col-span-1;
+    }
+
     .col-md-2 {
         @apply col-span-12 md:col-span-2;
     }
@@ -441,8 +445,24 @@
         @apply col-span-12 md:col-span-6;
     }
 
+    .col-md-7 {
+        @apply col-span-12 md:col-span-7;
+    }
+
+    .col-md-8 {
+        @apply col-span-12 md:col-span-8;
+    }
+
     .col-md-9 {
         @apply col-span-12 md:col-span-9;
+    }
+
+    .col-md-10 {
+        @apply col-span-12 md:col-span-10;
+    }
+
+    .col-md-11 {
+        @apply col-span-12 md:col-span-11;
     }
 
     .col-md-12 {

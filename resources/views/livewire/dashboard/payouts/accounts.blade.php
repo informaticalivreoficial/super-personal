@@ -125,12 +125,14 @@
                     </div>
 
                     @if ($type === 'pix')
-                        <div class="row">
+                        {{-- `pixKeyType` espelha o select para a máscara da chave
+                             acompanhar o tipo imediatamente (sem round-trip). --}}
+                        <div class="row" x-data="{ pixKeyType: @js($pix_key_type) }">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="account-pix-type">Tipo de chave</label>
                                     <select id="account-pix-type" class="form-control @error('pix_key_type') is-invalid @enderror"
-                                        wire:model="pix_key_type">
+                                        wire:model="pix_key_type" x-on:change="pixKeyType = $event.target.value">
                                         <option value="">Selecione...</option>
                                         @foreach ($pixKeyTypes as $value => $label)
                                             <option value="{{ $value }}">{{ $label }}</option>
@@ -145,7 +147,9 @@
                                 <div class="form-group">
                                     <label for="account-pix-key">Chave Pix</label>
                                     <input type="text" id="account-pix-key" class="form-control @error('pix_key') is-invalid @enderror"
-                                        wire:model="pix_key" placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória">
+                                        wire:model="pix_key"
+                                        x-mask="pixKeyType === 'cpf' ? 'cpf' : (pixKeyType === 'cnpj' ? 'cnpj' : (pixKeyType === 'phone' ? 'pix-phone' : ''))"
+                                        placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória">
                                     @error('pix_key')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror
@@ -238,7 +242,8 @@
                                 <div class="form-group">
                                     <label for="account-holder-doc">CPF/CNPJ do titular (opcional)</label>
                                     <input type="text" id="account-holder-doc" class="form-control @error('holder_document') is-invalid @enderror"
-                                        wire:model="holder_document">
+                                        wire:model="holder_document" x-mask="document"
+                                        placeholder="000.000.000-00 ou 00.000.000/0000-00">
                                     @error('holder_document')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror

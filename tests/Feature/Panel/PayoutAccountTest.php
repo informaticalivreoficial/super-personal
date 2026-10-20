@@ -204,16 +204,85 @@ class PayoutAccountTest extends TestCase
         Livewire::test(PayoutAccounts::class)
             ->call('openModal', $account->id)
             ->assertSet('editingId', $account->id)
-            ->assertSet('pix_key', '12345678900')
+            // Prefill formatado (o banco guarda só os dígitos).
+            ->assertSet('pix_key', '123.456.789-00')
             ->assertSet('label', 'Antiga')
             ->set('label', 'Nova')
-            ->set('pix_key', '98765432100')
+            ->set('pix_key', '987.654.321-00')
             ->call('save')
             ->assertHasNoErrors();
 
         $this->assertSame('Nova', $account->fresh()->label);
         $this->assertSame('98765432100', $account->fresh()->pix_key);
         $this->assertDatabaseCount('teacher_payout_accounts', 1);
+    }
+
+    public function test_editing_fills_the_pix_key_formatted_by_its_type(): void
+    {
+        $teacher = Teacher::factory()->create();
+
+        $cpf = TeacherPayoutAccount::factory()->forTeacher($teacher)->pix()->default()->create([
+            'pix_key' => '12345678900',
+            'pix_key_type' => 'cpf',
+        ]);
+        $cnpj = TeacherPayoutAccount::factory()->forTeacher($teacher)->pix()->create([
+            'pix_key' => '12345678000190',
+            'pix_key_type' => 'cnpj',
+        ]);
+        $phone = TeacherPayoutAccount::factory()->forTeacher($teacher)->pix()->create([
+            'pix_key' => '+5511987654321',
+            'pix_key_type' => 'phone',
+        ]);
+        $email = TeacherPayoutAccount::factory()->forTeacher($teacher)->pix()->create([
+            'pix_key' => 'financeiro@exemplo.com',
+            'pix_key_type' => 'email',
+        ]);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(PayoutAccounts::class)
+            ->call('openModal', $cpf->id)
+            ->assertSet('pix_key', '123.456.789-00')
+            // A máscara do campo acompanha o tipo (expressão Alpine reativa).
+            ->assertSee("x-data=\"{ pixKeyType: 'cpf' }\"", false)
+            ->assertSee("x-mask=\"pixKeyType === 'cpf'", false)
+            ->call('openModal', $cnpj->id)
+            ->assertSet('pix_key', '12.345.678/0001-90')
+            ->call('openModal', $phone->id)
+            ->assertSet('pix_key', '(11) 98765-4321')
+            // E-mail e chave aleatória não têm formatação própria.
+            ->call('openModal', $email->id)
+            ->assertSet('pix_key', 'financeiro@exemplo.com');
+    }
+
+    public function test_editing_fills_the_holder_document_formatted(): void
+    {
+        $teacher = Teacher::factory()->create();
+        $cpf = TeacherPayoutAccount::factory()->forTeacher($teacher)->bank()->default()->create([
+            'holder_document' => '12345678900',
+        ]);
+        $cnpj = TeacherPayoutAccount::factory()->forTeacher($teacher)->bank()->create([
+            'holder_document' => '12345678000190',
+        ]);
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(PayoutAccounts::class)
+            ->call('openModal', $cpf->id)
+            ->assertSet('holder_document', '123.456.789-00')
+            ->call('openModal', $cnpj->id)
+            ->assertSet('holder_document', '12.345.678/0001-90');
+    }
+
+    public function test_description_formats_the_phone_pix_key(): void
+    {
+        $teacher = Teacher::factory()->create();
+        $account = TeacherPayoutAccount::factory()->forTeacher($teacher)->pix()->create([
+            'pix_key' => '+5511987654321',
+            'pix_key_type' => 'phone',
+        ]);
+
+        $this->assertSame('Pix (Telefone) · (11) 98765-4321', $account->description());
     }
 
     public function test_modal_shows_the_fields_of_the_selected_type(): void
