@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Reports\FinancialReportExportController;
+use App\Http\Controllers\Students\StudentProfilePdfController;
 use App\Http\Controllers\Web\SiteController;
 use App\Http\Controllers\Web\TeacherLandingController;
 use App\Http\Controllers\Webhooks\PagBankWebhookController;
@@ -83,6 +84,8 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     Route::get('alunos/{student}/editar', StudentForm::class)->name('students.edit');
     Route::get('alunos/{student}/acompanhamento', StudentTracking::class)->name('students.tracking');
     Route::get('alunos/{student}/mensagens', StudentMessages::class)->name('students.messages');
+    // Ficha em PDF (download fora do Livewire) — Policy + binding do tenant.
+    Route::get('alunos/{student}/pdf', StudentProfilePdfController::class)->name('students.pdf');
     Route::get('alunos/{student}', StudentShow::class)->name('students.show');
 
     // *********************** Planos de treino *************************************/

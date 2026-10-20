@@ -10,6 +10,8 @@
 - Sanctum (tokens pessoais de longa duração); papéis em `users.role`
   (`spatie/laravel-permission` **removido** — ver "Perfis")
 - Comandos: `vendor/bin/sail artisan ...`, testes: `vendor/bin/phpunit`
+- PDF: `barryvdh/laravel-dompdf` (ficha do aluno; `config/dompdf.php` não publicado —
+  defaults, fontes DejaVu embutidas)
 
 ## Multi-tenancy (3 camadas)
 
@@ -173,6 +175,28 @@ sports ──1:N── training_sessions (restrict)
     e o policy derruba a render com 403; usar `mount($student = null)` + `instanceof`.
   - `UpdateStudentRequest` aceita `student_id` no payload (fallback do model binding
     da rota, que não existe em contexto Livewire).
+  - **Ficha do aluno** (`students.show`) redesenhada em Tailwind: card de
+    identificação com faixa em gradiente da marca, **foto de perfil** (ou iniciais
+    via `Student::initials()`) e badges (ativo/inativo + nível), KPIs rápidos
+    (idade/altura/peso atual/peso meta), duas colunas de dados ("Dados pessoais"
+    e "Dados físicos e objetivo") alinhadas com `flex justify-between`, cards de
+    "Acesso no app" (código de convite) e "Plano ativo", observações e os últimos
+    pagamentos em card de largura cheia — antes a tela usava `dl.row` com
+    `col-sm-*` e desalinhava; o componente entrega `photoUrl`/`initials`/`age`/
+    `availableDays` (mapa de dias em pt-BR no próprio componente).
+  - **Ficha em PDF**: botão "Baixar PDF" na ficha → `GET /admin/alunos/{student}/pdf`
+    (`students.pdf`) → `App\Http\Controllers\Students\StudentProfilePdfController`
+    (fora do Livewire; `Gate::authorize('view', $student)`) → `StudentProfilePdfService`
+    (`make`/`download`/`filename`) com a view `resources/views/pdf/student-profile.blade.php`
+    (A4, `barryvdh/laravel-dompdf`): cabeçalho da marca com foto, contatos,
+    dados pessoais/físicos, plano ativo, última avaliação, **pagamentos com badge**,
+    observações e rodapé fixo (treinador/CREF + data de geração) repetido por página.
+    - Foto e logo do treinador são **embutidas em base64** (redimensionadas com o
+      Intervention: foto 460px em JPEG, logo 300px em PNG) — o PDF não depende de
+      rede nem do `APP_URL`; imagem ausente/corrompida cai em iniciais/nome.
+    - Isolamento: binding do `Student` pelo global scope + Policy (cross-tenant →
+      404); admin da plataforma baixa de qualquer tenant.
+    - `Document::format()` formata CPF/CNPJ na exibição (banco guarda só dígitos).
 - **Planos de treino** — `app/Livewire/Dashboard/Plans/`:
   - `PlanIndex` (busca/exclusão), `PlanForm` (create com select de aluno; edit com
     aluno fixo), `PlanShow` (detalhe + **CRUD de semanas** e **CRUD de sessões**).
@@ -434,7 +458,13 @@ sports ──1:N── training_sessions (restrict)
   - **Formas de recebimento** (`PayoutAccounts`): lista das contas com badge
     **"Padrão"**, `description()`, ações (tornar padrão / editar / excluir com
     `wire:confirm`) e modal de criação/edição (Pix **ou** conta bancária, com
-    validação condicional `required_if` em `PayoutAccountRequest`).
+    validação condicional `required_if` em `PayoutAccountRequest`). A **chave
+    Pix é formatada conforme o tipo** (CPF/CNPJ pontuados e telefone
+    `(DDD) número`): máscara dinâmica no formulário (`x-mask` reativo segue o
+    select do tipo) e prefill formatado no PHP (`PixKeyType::format()`); o
+    banco continua guardando só dígitos/E.164, normalizados pelo
+    `PayoutAccountService`. O CPF/CNPJ do titular usa a máscara
+    `document` (alterna CPF↔CNPJ) e `App\Support\Document` formata o prefill.
   - Fecha o ciclo: **card "Repasse" saiu de "Meu perfil"** (as telas de perfil
     não têm mais nenhuma referência a Pix) e o antigo card único de saldo
     virou o painel completo.
@@ -721,8 +751,12 @@ sports ──1:N── training_sessions (restrict)
 - **Camada de compatibilidade** em `resources/css/app.css` (`@layer components`):
   classes herdadas do AdminLTE/Bootstrap continuam válidas (`card`, `btn-*`,
   `form-*`, `table*`, `badge*`, `alert*`, `info-box*`, `row`/`col-*`...), o que
-  permitiu migrar as views legadas sem tocar em bindings. Cores de fundo
-  legadas (`bg-danger` etc.) NÃO existem — usar utilitários Tailwind.
+  permitiu migrar as views legadas sem tocar em bindings. A escala
+  **`col-md-1..12` é completa** (2026-10-19: faltavam `col-md-1`, `col-md-7`,
+  `col-md-8`, `col-md-10` e `col-md-11` — um `col-md-8` sem regra encolhia o
+  input até não caber texto); `col-*`/`col-sm-*`/`col-lg-*` existem conforme o
+  uso das views (rodar um scan antes de introduzir uma coluna nova). Cores de
+  fundo legadas (`bg-danger` etc.) NÃO existem — usar utilitários Tailwind.
 - Toast global sem CDN: `livewire/components/toastr-notification.blade.php`
   (Alpine, escuta `window` `toast`/`toastr`, normaliza detail array/objeto e
   `session('toast')`); `dispatch('toast')` do PHP já aparece sozinho.
@@ -775,6 +809,11 @@ sports ──1:N── training_sessions (restrict)
   - `StudentCrudTest` — listagem isolada por tenant, criação/edição com Form Requests,
     email duplicado, 404 cross-tenant na rota, AuthorizationException no Livewire,
     exclusão lógica, admin sem CRUD de aluno, smoke HTTP das 4 rotas.
+  - `StudentPdfTest` (8) — guest → login, download da ficha (200, `application/pdf`,
+    nome `ficha-aluno-{slug}.pdf` e assinatura `%PDF`), treinador de outro tenant 404,
+    admin baixa de qualquer tenant, conteúdo (dados pessoais/físicos, dias, plano
+    ativo, pagamentos, observações, treinador/CREF), iniciais sem foto, foto
+    embutida como `data:image/jpeg;base64` e link/`Baixar PDF`/foto na ficha.
   - `TrainingPlanCrudTest` — isolamento de planos, criação com aluno do tenant,
     semanas duplicadas, sessões (modalidade obrigatória), 404 cross-tenant, smoke.
   - `PlanDuplicateTest` (9) — duplicação de plano para outro aluno (semanas,
@@ -787,7 +826,7 @@ sports ──1:N── training_sessions (restrict)
     com o select de alunos e o reset ao fechar).
   - `PaymentCrudTest` — isolamento, `paid_at` automático, marcar como pago,
     404 cross-tenant, smoke das 3 rotas.
-  - `PanelRoutesSmokeTest` — as 22 rotas do domínio `/admin/*` retornam 200
+  - `PanelRoutesSmokeTest` — as 25 rotas do domínio `/admin/*` retornam 200
     para teacher (cria ConfigTableSeeder; pegou o 500 de Configurações);
     fase admin cobre as rotas exclusivas de plataforma (`/admin/modalidades*`
     e `/admin/professores*`); teacher recebe 403 em ambas. Rotas legadas de
@@ -892,13 +931,14 @@ sports ──1:N── training_sessions (restrict)
     pago, admin cancela (cobranças voltam ao saldo), 403 cruzado (treinador no
     admin / admin no treinador), form cria cobrança online (payable), quota
     manual erra no form sem gravar e o índice mostra canal + KPIs.
-  - `PayoutAccountTest` (11) — formas de recebimento: criação de Pix (chave
+  - `PayoutAccountTest` (14) — formas de recebimento: criação de Pix (chave
     normalizada, conta nasce padrão) e de conta bancária, validação
     condicional por tipo, campos do modal por tipo (Pix × conta bancária),
     troca da conta padrão (desmarca a anterior), `description()` do Pix/conta
-    nos rótulos, edição, exclusão com promoção da próxima a padrão, saque
-    anterior **preservado** com o destino congelado (`payout_account_id`
-    nulo), 404 cross-tenant e estado vazio.
+    nos rótulos (telefone formatado), edição com prefill **formatado** por
+    tipo (CPF/CNPJ/telefone e documento do titular), exclusão com promoção da
+    próxima a padrão, saque anterior **preservado** com o destino congelado
+    (`payout_account_id` nulo), 404 cross-tenant e estado vazio.
   - `PayoutHoldTest` (14) — prazo de liberação: `payoutHoldDays` (default 7,
     configurável inclusive 0 = sem retenção, fallback de config ausente),
     bucket a liberar × disponível no service e no componente de saldo, saque

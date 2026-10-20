@@ -37,6 +37,7 @@ class PanelRoutesSmokeTest extends TestCase
             '/admin/alunos/'.$student->id.'/editar',
             '/admin/alunos/'.$student->id.'/acompanhamento',
             '/admin/alunos/'.$student->id.'/mensagens',
+            '/admin/alunos/'.$student->id.'/pdf',
             '/admin/planos',
             '/admin/planos/cadastrar',
             '/admin/planos/'.$plan->id,

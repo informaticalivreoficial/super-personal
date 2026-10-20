@@ -19,6 +19,17 @@ class StudentShow extends Component
 {
     use WithToastr;
 
+    /** Dias da semana usados em `students.available_days` (1 = domingo). */
+    private const WEEKDAYS = [
+        1 => 'Domingo',
+        2 => 'Segunda',
+        3 => 'Terça',
+        4 => 'Quarta',
+        5 => 'Quinta',
+        6 => 'Sexta',
+        7 => 'Sábado',
+    ];
+
     public Student $student;
 
     public function mount(Student $student): void
@@ -55,13 +66,23 @@ class StudentShow extends Component
             ->limit(5)
             ->get();
 
+        $paymentStatus = PaymentStatus::labels();
+
         return view('livewire.dashboard.students.show', [
             'student' => $student,
             'activePlan' => $activePlan,
             'recentPayments' => $recentPayments,
             'genders' => StudentGender::labels(),
             'levels' => StudentLevel::labels(),
-            'paymentStatus' => PaymentStatus::labels(),
+            'paymentStatus' => $paymentStatus,
+            'photoUrl' => $student->profilePhotoUrl(),
+            'initials' => $student->initials(),
+            'age' => $student->birth_date?->age,
+            'availableDays' => collect($student->available_days ?? [])
+                ->map(fn ($day) => self::WEEKDAYS[(int) $day] ?? null)
+                ->filter()
+                ->values()
+                ->all(),
         ]);
     }
 }
