@@ -147,7 +147,7 @@
             </p>
 
             <div class="legal mt-10 border-t border-white/10 pt-8">
-                {!! $content !!}
+                {!! \App\Support\HtmlSanitizer::richText($content) !!}
             </div>
         </div>
     </main>

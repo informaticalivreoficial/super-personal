@@ -338,7 +338,7 @@
                             </div>                                                     
                         </div>
                         <div class="col-12 col-md-6 col-sm-6 col-lg-6 mapa-google mb-3"> 
-                            {!! $configData['maps_google'] ?? '' !!}
+                            {!! \App\Support\HtmlSanitizer::googleMapsEmbed($configData['maps_google'] ?? null) !!}
                         </div>
                     </div>                    
                 </div>

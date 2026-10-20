@@ -185,7 +185,11 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     // Mantidas: o Config (nome do site etc.) é compartilhado em todas as views
     // pelo AppServiceProvider. Páginas legadas de blog/usuarios/sitemap
     // removidas no product pass da Fase 2 (2026-10-08).
-    Route::get('configuracoes', Settings::class)->name('settings');
+    // Configurações são da PLATAFORMA: o treinador não altera taxa, prazo de
+    // saque, HTML legal nem dados do site (o componente também bloqueia).
+    Route::get('configuracoes', Settings::class)
+        ->name('settings')
+        ->middleware('role:admin');
 
 });
 

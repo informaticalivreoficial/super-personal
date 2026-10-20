@@ -3,8 +3,11 @@
 namespace App\Livewire\Dashboard;
 
 use App\Models\Config;
+use App\Support\HtmlSanitizer;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -15,6 +18,80 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 class Settings extends Component
 {
     use WithFileUploads;
+
+    /**
+     * Campos de imagem: nome canônico (config/{campo}.{ext}) e validação
+     * feita ANTES de gravar — a extensão nunca vem do nome enviado.
+     *
+     * @var array<int, string>
+     */
+    private const IMAGE_FIELDS = [
+        'logo',
+        'logo_admin',
+        'logo_footer',
+        'favicon',
+        'metaimg',
+        'imgheader',
+        'watermark',
+    ];
+
+    /**
+     * Extensões realmente aceitas (derivadas do MIME validado).
+     *
+     * @var array<int, string>
+     */
+    private const IMAGE_EXTENSIONS = ['jpg', 'png', 'webp'];
+
+    /**
+     * Colunas que o formulário pode gravar. Qualquer outra coluna existente em
+     * `config` (template, subdomain, status, rss…) fica de fora do update.
+     *
+     * @var array<int, string>
+     */
+    private const EDITABLE_FIELDS = [
+        'app_name',
+        'social_name',
+        'alias_name',
+        'slug',
+        'init_date',
+        'cnpj',
+        'ie',
+        'domain',
+        'logo',
+        'logo_admin',
+        'logo_footer',
+        'favicon',
+        'metaimg',
+        'imgheader',
+        'watermark',
+        'phone',
+        'cell_phone',
+        'whatsapp',
+        'telegram',
+        'email',
+        'additional_email',
+        'display_address',
+        'zipcode',
+        'street',
+        'number',
+        'complement',
+        'neighborhood',
+        'state',
+        'city',
+        'facebook',
+        'twitter',
+        'youtube',
+        'instagram',
+        'linkedin',
+        'information',
+        'privacy_policy',
+        'terms_condicions',
+        'maps_google',
+        'metatags',
+        'analytics_id',
+        'fee_percent',
+        'payout_hold_days',
+    ];
 
     public array $configData = [];
 
@@ -35,6 +112,15 @@ class Settings extends Component
     public $metaimg;
 
     public array $tags = [];
+
+    /**
+     * Roda em toda requisição do componente (inclusive nas ações do Livewire):
+     * as Configurações são da plataforma, nunca de um tenant.
+     */
+    public function boot(): void
+    {
+        $this->ensurePlatformAdmin();
+    }
 
     public function updatedLogo($file)
     {
@@ -72,58 +158,84 @@ class Settings extends Component
     }
 
     /**
-     * Função genérica para salvar imagens automaticamente
+     * Valida e grava a imagem com nome canônico. Chamado pelos hooks
+     * `updated{Nome}` — a validação precisa acontecer antes de qualquer
+     * `storeAs` (um arquivo inválido não pode chegar ao disco/banco).
      */
     protected function saveImage(string $key, $file)
     {
-        if ($file instanceof TemporaryUploadedFile) {
-            // Deleta a antiga
-            if (! empty($this->configData[$key]) && Storage::disk()->exists($this->configData[$key])) {
-                Storage::disk()->delete($this->configData[$key]);
-            }
+        if (! in_array($key, self::IMAGE_FIELDS, true) || ! $file instanceof TemporaryUploadedFile) {
+            return;
+        }
 
-            // Salva sempre com o mesmo nome (sobrescrevendo)
-            $path = $file->storeAs(
-                'config',
-                "{$key}.".$file->getClientOriginalExtension(),
-                config('filesystems.default')
-            );
+        Validator::make(['file' => $file], [
+            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [
+            'file.mimes' => 'Envie uma imagem JPG, PNG ou WebP.',
+            'file.max' => 'A imagem deve ter no máximo 2 MB.',
+        ])->validate();
 
-            // Atualiza no array
-            $this->configData[$key] = $path;
+        $extension = strtolower((string) $file->extension());
+        $extension = $extension === 'jpeg' ? 'jpg' : $extension;
 
-            // Salva no banco imediatamente
-            Config::where('id', 1)->update([$key => $path]);
+        if (! in_array($extension, self::IMAGE_EXTENSIONS, true)) {
+            throw ValidationException::withMessages([
+                $key => 'Formato de imagem inválido.',
+            ]);
+        }
 
-            // Atualiza o preview
-            $this->loadLogos();
+        $this->deleteStoredImage($key);
+
+        $path = $file->storeAs(
+            'config',
+            "{$key}.{$extension}",
+            config('filesystems.default')
+        );
+
+        $this->configData[$key] = $path;
+
+        // Só a coluna conhecida é atualizada (sem mass assignment).
+        Config::where('id', 1)->update([$key => $path]);
+
+        $this->loadLogos();
+    }
+
+    /**
+     * Remove somente arquivos dentro de `config/` (evita que um caminho
+     * manipulado no configData apague mídia de outro tenant).
+     */
+    private function deleteStoredImage(string $key): void
+    {
+        $old = $this->configData[$key] ?? null;
+
+        if (! $this->isSafeConfigImagePath($old)) {
+            return;
+        }
+
+        if (Storage::disk()->exists($old)) {
+            Storage::disk()->delete($old);
         }
     }
 
-    public function updated($field, $value)
+    /**
+     * Caminho canônico de imagem da plataforma: `config/{arquivo}.{ext}`, sem
+     * diretórios extras (`..`, `/` interno) — o mesmo formato gerado por
+     * saveImage().
+     */
+    private function isSafeConfigImagePath(mixed $path): bool
     {
-        $uploadableFields = [
-            'logo',
-            'logo_admin',
-            'logo_footer',
-            'favicon',
-            'metaimg',
-            'imgheader',
-            'watermark',
-        ];
-
-        if (in_array($field, $uploadableFields)) {
-            $this->saveImage($field, $this->$field);
-        }
+        return is_string($path)
+            && preg_match('#^config/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$#', $path) === 1;
     }
 
     protected function imageValidationRules(): array
     {
         $rules = [];
 
-        foreach (['logo', 'logo_admin', 'logo_footer', 'favicon', 'watermark', 'metaimg', 'imgheader'] as $field) {
-            $isUpload = $this->{$field} instanceof TemporaryUploadedFile;
-            $rules["configData.{$field}"] = $isUpload ? 'nullable|image|max:1024' : 'nullable|string';
+        foreach (self::IMAGE_FIELDS as $field) {
+            $rules["configData.{$field}"] = is_string($this->configData[$field] ?? null)
+                ? 'nullable|string|max:255'
+                : 'nullable';
         }
 
         return $rules;
@@ -132,11 +244,23 @@ class Settings extends Component
     protected function rules()
     {
         return array_merge([
-            'configData.app_name' => 'required|min:3',
+            'configData.app_name' => ['required', 'string', 'min:3', 'max:255', 'unique:config,app_name,1'],
             // Taxa retida pela plataforma nas cobranças online dos alunos.
-            'configData.fee_percent' => 'nullable|numeric|min:0|max:100',
-            'configData.payout_hold_days' => 'nullable|integer|min:0|max:90',
-            // 'configData.email' => 'required|email',
+            'configData.fee_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'configData.payout_hold_days' => ['nullable', 'integer', 'min:0', 'max:90'],
+            'configData.domain' => ['nullable', 'url:http,https', 'max:255'],
+            'configData.email' => ['nullable', 'email', 'max:255', 'not_regex:/[\r\n]/'],
+            'configData.additional_email' => ['nullable', 'email', 'max:255', 'not_regex:/[\r\n]/'],
+            'configData.facebook' => ['nullable', 'url:http,https', 'max:255'],
+            'configData.twitter' => ['nullable', 'url:http,https', 'max:255'],
+            'configData.youtube' => ['nullable', 'url:http,https', 'max:255'],
+            'configData.instagram' => ['nullable', 'url:http,https', 'max:255'],
+            'configData.linkedin' => ['nullable', 'url:http,https', 'max:255'],
+            'configData.information' => ['nullable', 'string', 'max:100000'],
+            'configData.privacy_policy' => ['nullable', 'string', 'max:100000'],
+            'configData.terms_condicions' => ['nullable', 'string', 'max:100000'],
+            'configData.maps_google' => ['nullable', 'string', 'max:20000'],
+            'configData.init_date' => ['nullable', 'integer'],
         ], $this->imageValidationRules());
     }
 
@@ -153,6 +277,8 @@ class Settings extends Component
 
     public function mount()
     {
+        $this->ensurePlatformAdmin();
+
         $config = Config::findOrFail(1);
         $this->configData = $config->toArray();
 
@@ -165,22 +291,20 @@ class Settings extends Component
     public function update()
     {
         try {
-            $validated = $this->validate();
+            $this->validate();
 
-            // Salva os uploads e atualiza configData com os novos caminhos
+            // Salva uploads pendentes (os hooks normalmente já fizeram isso).
             $this->handleImageUploads();
 
-            // remove campos que não podem ser atualizados manualmente
-            unset($this->configData['id'], $this->configData['created_at'], $this->configData['updated_at']);
-            $this->configData['metatags'] = implode(',', $this->tags ?? []);
+            // Somente colunas conhecidas + conteúdo sanitizado (sem mass assignment).
+            Config::where('id', 1)->update($this->persistableConfigData());
 
-            // Salva no banco
-            Config::where('id', 1)->update($this->configData);
+            // Recarrega o estado normalizado (HTML sanitizado, imagens canônicas).
+            $config = Config::findOrFail(1);
+            $this->configData = $config->toArray();
+            $this->tags = explode(',', $config->metatags ?? '');
 
-            // Recarrega as imagens para o preview
             $this->loadLogos();
-
-            // $this->resetImages();
 
             $this->dispatch(['atualizado']);
 
@@ -188,9 +312,8 @@ class Settings extends Component
             $firstErrorKey = array_key_first($e->validator->errors()->messages());
 
             $this->currentTab = match (true) {
-                str_starts_with($firstErrorKey, 'configData.app_name') => 'dados',
-                str_starts_with($firstErrorKey, 'configData.meta_') => 'seo',
-                str_starts_with($firstErrorKey, 'configData.contact_') => 'contato',
+                str_starts_with((string) $firstErrorKey, 'configData.meta_') => 'seo',
+                str_starts_with((string) $firstErrorKey, 'configData.contact_') => 'contato',
                 default => 'dados',
             };
 
@@ -231,7 +354,9 @@ class Settings extends Component
     #[On('updatePrivacyPolicy')]
     public function updatePrivacyPolicy($value)
     {
-        $this->configData['privacy_policy'] = $value;
+        $this->configData['privacy_policy'] = HtmlSanitizer::richText(
+            is_string($value) ? $value : null
+        );
     }
 
     public function getLogo()
@@ -304,33 +429,54 @@ class Settings extends Component
 
     protected function handleImageUploads()
     {
-        $images = [
-            'logo' => $this->logo,
-            'logo_admin' => $this->logo_admin,
-            'logo_footer' => $this->logo_footer,
-            'favicon' => $this->favicon,
-            'watermark' => $this->watermark,
-            'metaimg' => $this->metaimg,
-            'imgheader' => $this->imgheader,
-        ];
-
-        foreach ($images as $key => $file) {
-            if ($file instanceof TemporaryUploadedFile) {
-                // Apaga a imagem antiga, se existir
-                if (! empty($this->configData[$key]) && Storage::disk()->exists($this->configData[$key])) {
-                    Storage::disk()->delete($this->configData[$key]);
-                }
-
-                // Salva a nova
-                $path = $file->storeAs(
-                    'config',
-                    "{$key}.".$file->getClientOriginalExtension(), // força o mesmo nome
-                    config('filesystems.default')
-                );
-
-                $this->configData[$key] = $path;
+        foreach (self::IMAGE_FIELDS as $key) {
+            if (($this->{$key} ?? null) instanceof TemporaryUploadedFile) {
+                $this->saveImage($key, $this->{$key});
             }
         }
+    }
+
+    /**
+     * Monta o array final do update: allowlist de colunas, caminhos de imagem
+     * restritos a `config/` e HTML sanitizado.
+     *
+     * @return array<string, mixed>
+     */
+    private function persistableConfigData(): array
+    {
+        $data = Arr::only($this->configData, self::EDITABLE_FIELDS);
+
+        foreach (self::IMAGE_FIELDS as $field) {
+            $path = $data[$field] ?? null;
+
+            if (! $this->isSafeConfigImagePath($path)) {
+                unset($data[$field]);
+            }
+        }
+
+        $data['privacy_policy'] = HtmlSanitizer::richText($this->string($data['privacy_policy'] ?? null)) ?: null;
+        $data['terms_condicions'] = HtmlSanitizer::richText($this->string($data['terms_condicions'] ?? null)) ?: null;
+        $data['maps_google'] = HtmlSanitizer::googleMapsEmbed($this->string($data['maps_google'] ?? null)) ?: null;
+        $data['metatags'] = implode(',', array_map(
+            static fn ($tag) => strip_tags(trim((string) $tag)),
+            $this->tags ?? []
+        ));
+
+        if (isset($data['state']) && is_string($data['state'])) {
+            $data['state'] = strtoupper(substr(trim($data['state']), 0, 2)) ?: null;
+        }
+
+        return $data;
+    }
+
+    private function string($value): ?string
+    {
+        return is_string($value) ? $value : null;
+    }
+
+    private function ensurePlatformAdmin(): void
+    {
+        abort_unless((bool) auth()->user()?->isPlatformAdmin(), 403);
     }
 
     public function render()

@@ -93,6 +93,29 @@ Coberto por `tests/Feature/Storage/MediaDiskTest` (3): disco local (`public`)
 como padrão, URL do R2 com o prefixo `R2_ROOT` e `StudentResource` devolvendo a
 URL remota (o host da requisição não vaza no modo R2).
 
+## Configurações da plataforma (admin-only)
+
+`/admin/configuracoes` (`settings`) edita o registro único de `config` (nome do
+site, contatos, imagens, HTML legal, taxa da plataforma etc.). É uma tela **da
+plataforma**, não do treinador:
+
+- Rota com `role:admin` no grupo `/admin` **e** `Settings::boot()`/`mount()` com
+  `abort_unless(auth()->user()?->isPlatformAdmin(), 403)` — protege também as
+  chamadas Livewire (`update`, hooks de upload), não só o GET.
+- `update()` usa **allowlist** (`Settings::EDITABLE_FIELDS` via `Arr::only`):
+  `template`, `subdomain`, `status`, `rss`… nunca são gravados pelo formulário.
+- Uploads: validados com `mimes:jpg,jpeg,png,webp|max:2048` **antes** do
+  `storeAs`; nome canônico `config/{campo}.{ext}` com extensão derivada do MIME
+  (`jpeg`→`jpg`), nunca do nome enviado. A imagem antiga só é apagada se o
+  caminho casar `config/{arquivo}.{jpg|jpeg|png|webp}` (não toca mídia de
+  tenant).
+- HTML: `App\Support\HtmlSanitizer::richText()` nos textos legais (Quill) e
+  `googleMapsEmbed()` no mapa (só HTTPS + host `google.com`/`google.com.br` com
+  path `/maps`); a view legal também sanitiza na saída (defesa em profundidade).
+- E-mails com `not_regex:/[\r\n]/` e redes/domínio com `url:http,https`.
+
+Coberto por `SettingsSecurityTest` (10) e `HtmlSanitizerTest` (6).
+
 ## Multi-tenancy (3 camadas)
 
 O **tenant é o treinador** (`teachers.id`). Todo dado de domínio carrega `teacher_id`.
