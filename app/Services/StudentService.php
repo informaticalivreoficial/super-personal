@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\UserRole;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\MediaFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -64,7 +65,7 @@ class StudentService
     public function updateProfilePhoto(Student $student, UploadedFile $file): Student
     {
         $old = $student->profile_photo;
-        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $extension = MediaFile::extension($file);
         $path = $file->storePubliclyAs(
             'students/'.$student->id,
             'profile_photo.'.$extension,

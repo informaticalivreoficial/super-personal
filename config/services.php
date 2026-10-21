@@ -46,6 +46,10 @@ return [
             ? 'https://sandbox.api.pagseguro.com'
             : 'https://api.pagseguro.com',
         'webhook_url' => env('PAGBANK_WEBHOOK_URL'),
+        // Token da conta usado no header `X-Authenticity-Token` (SHA-256).
+        'webhook_token' => env('PAGBANK_WEBHOOK_TOKEN'),
+        // Lista opcional de IPs do gateway (separados por vírgula).
+        'webhook_ips' => env('PAGBANK_WEBHOOK_IPS'),
     ],
 
 ];

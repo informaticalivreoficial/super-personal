@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateStudentRequest;
 use App\Http\Resources\StudentResource;
 use App\Models\Student;
 use App\Services\StudentService;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -26,7 +27,7 @@ class StudentController extends ApiController
                 });
             })
             ->orderBy('name')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(Pagination::perPage($request));
 
         return StudentResource::collection($students);
     }

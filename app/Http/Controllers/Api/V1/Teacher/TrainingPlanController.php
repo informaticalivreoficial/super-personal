@@ -9,6 +9,7 @@ use App\Http\Resources\TrainingPlanResource;
 use App\Models\Student;
 use App\Models\TrainingPlan;
 use App\Services\TrainingPlanService;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -21,7 +22,7 @@ class TrainingPlanController extends ApiController
 
         $plans = $student->trainingPlans()
             ->with('weeks')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(Pagination::perPage($request));
 
         return TrainingPlanResource::collection($plans);
     }

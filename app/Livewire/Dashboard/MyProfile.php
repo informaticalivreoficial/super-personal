@@ -5,6 +5,7 @@ namespace App\Livewire\Dashboard;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Models\User;
 use App\Services\ProfileService;
+use App\Support\MediaFile;
 use App\Traits\ValidatesWithFormRequest;
 use App\Traits\WithToastr;
 use Illuminate\Support\Facades\Storage;
@@ -45,6 +46,13 @@ class MyProfile extends Component
     public string $name = '';
 
     public string $email = '';
+
+    // Troca de e-mail (código enviado ao endereço novo)
+    public bool $changingEmail = false;
+
+    public string $newEmail = '';
+
+    public string $emailCode = '';
 
     public string $additionalEmail = '';
 
@@ -117,7 +125,6 @@ class MyProfile extends Component
         $data = [
             'user_id' => $user->id,
             'name' => $this->name,
-            'email' => $this->email,
             'additional_email' => $this->additionalEmail ?: null,
             'birthday' => $this->birthday ?: null,
             'cpf' => $this->cpf ?: null,
@@ -173,6 +180,82 @@ class MyProfile extends Component
         $this->toastSuccess('Seus dados foram atualizados com sucesso.');
     }
 
+    /** Abre o fluxo de troca de e-mail (o endereço atual só muda com código). */
+    public function openEmailChange(): void
+    {
+        $this->resetValidation();
+        $this->newEmail = '';
+        $this->emailCode = '';
+        $this->changingEmail = true;
+    }
+
+    public function closeEmailChange(): void
+    {
+        $this->resetValidation();
+        $this->newEmail = '';
+        $this->emailCode = '';
+        $this->changingEmail = false;
+    }
+
+    /** Envia o código de 6 dígitos ao endereço novo. */
+    public function requestEmailChange(ProfileService $service): void
+    {
+        $this->validate([
+            'newEmail' => ['required', 'email', 'max:255'],
+        ], [
+            'newEmail.required' => 'Informe o novo e-mail.',
+            'newEmail.email' => 'Informe um e-mail válido.',
+        ]);
+
+        /** @var User $user */
+        $user = auth()->user();
+
+        try {
+            $service->requestEmailChange($user, $this->newEmail);
+        } catch (ValidationException $e) {
+            throw ValidationException::withMessages([
+                'newEmail' => $e->errors()['email'][0] ?? 'Não foi possível usar este e-mail.',
+            ]);
+        }
+
+        $this->syncFromUser($user->refresh());
+        $this->toastSuccess('Enviamos um código de 6 dígitos para o novo e-mail.');
+    }
+
+    /** Confirma o código e efetiva a troca. */
+    public function confirmEmailChange(ProfileService $service): void
+    {
+        $this->validate([
+            'emailCode' => ['required', 'digits:6'],
+        ], [
+            'emailCode.required' => 'Informe o código recebido.',
+            'emailCode.digits' => 'O código tem 6 dígitos.',
+        ]);
+
+        /** @var User $user */
+        $user = auth()->user();
+
+        try {
+            $service->confirmEmailChange($user, $this->emailCode);
+        } catch (ValidationException $e) {
+            throw ValidationException::withMessages([
+                'emailCode' => $e->errors()['code'][0] ?? $e->errors()['email'][0] ?? 'Não foi possível confirmar.',
+            ]);
+        }
+
+        $this->closeEmailChange();
+        $this->syncFromUser($user->refresh());
+        $this->toastSuccess('E-mail de acesso atualizado.');
+    }
+
+    public function cancelEmailChange(ProfileService $service): void
+    {
+        $service->cancelEmailChange(auth()->user());
+        $this->closeEmailChange();
+        $this->syncFromUser(auth()->user()->refresh());
+        $this->toastSuccess('Troca de e-mail cancelada.');
+    }
+
     /**
      * Modo "completar cadastro" (rota `profile.complete`): primeiro acesso do
      * treinador, obrigatório enquanto CPF/celular não estiverem preenchidos
@@ -200,7 +283,7 @@ class MyProfile extends Component
             // caminho; extensões diferentes geram arquivo novo + stale do antigo.
             $path = $this->avatar->storeAs(
                 'users/'.$user->id,
-                'avatar.'.$this->avatar->getClientOriginalExtension(),
+                'avatar.'.MediaFile::extension($this->avatar),
                 // Livewire usa um disco temporário próprio em teste; sem o
                 // disco explícito o arquivo final ficaria lá.
                 config('filesystems.default')

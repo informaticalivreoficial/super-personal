@@ -5,6 +5,7 @@ namespace App\Livewire\Dashboard;
 use App\Http\Requests\UpdateLandingRequest;
 use App\Models\Teacher;
 use App\Services\TeacherService;
+use App\Support\MediaFile;
 use App\Traits\ValidatesWithFormRequest;
 use App\Traits\WithToastr;
 use Illuminate\Support\Facades\Gate;
@@ -202,7 +203,7 @@ class LandingForm extends Component
                 // outro) e a substituição vira sobrescrita no mesmo caminho.
                 $paths[$column] = $this->{$prop}->storeAs(
                     'teachers/'.$teacher->id,
-                    $column.'.'.$this->{$prop}->getClientOriginalExtension(),
+                    $column.'.'.MediaFile::extension($this->{$prop}),
                     // Livewire usa um disco temporário próprio em teste; sem
                     // o disco explícito o arquivo final ficaria lá.
                     config('filesystems.default')

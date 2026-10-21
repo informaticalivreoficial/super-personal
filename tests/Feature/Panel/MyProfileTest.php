@@ -5,9 +5,11 @@ namespace Tests\Feature\Panel;
 use App\Livewire\Dashboard\MyProfile;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Notifications\EmailChangeCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -45,15 +47,15 @@ class MyProfileTest extends TestCase
             ->assertSee('11 98888-7777');
     }
 
-    public function test_teacher_saves_name_email_phone_syncing_tenant(): void
+    public function test_teacher_saves_name_and_phone_syncing_tenant_without_changing_email(): void
     {
         $teacher = Teacher::factory()->create(['name' => 'Ana Silva']);
+        $email = $teacher->user->email;
 
         $this->actingAs($teacher->user);
 
         Livewire::test(MyProfile::class)
             ->set('name', 'Ana Souza')
-            ->set('email', 'ana.souza@exemplo.com')
             ->set('phone', '11 97777-6666')
             ->call('save')
             ->assertHasNoErrors()
@@ -62,7 +64,7 @@ class MyProfileTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $teacher->user_id,
             'name' => 'Ana Souza',
-            'email' => 'ana.souza@exemplo.com',
+            'email' => $email,
             'phone' => '11 97777-6666',
         ]);
 
@@ -74,27 +76,79 @@ class MyProfileTest extends TestCase
         ]);
     }
 
-    public function test_email_unique_ignores_own_account(): void
+    public function test_email_change_requires_code_sent_to_the_new_address(): void
     {
+        Notification::fake();
+
         $teacher = Teacher::factory()->create();
-        Teacher::factory()->create(); // outro treinador com e-mail próprio
+        $original = $teacher->user->email;
 
         $this->actingAs($teacher->user);
 
-        // E-mail igual ao próprio: não é conflito.
         Livewire::test(MyProfile::class)
-            ->set('name', 'Nome Novo')
-            ->set('email', $teacher->user->email)
-            ->call('save')
+            ->call('openEmailChange')
+            ->assertSet('changingEmail', true)
+            ->set('newEmail', 'novo@exemplo.com')
+            ->call('requestEmailChange')
             ->assertHasNoErrors();
 
-        // E-mail de outro usuário: erro.
-        $other = Teacher::factory()->create();
+        $teacher->user->refresh();
+        $this->assertSame($original, $teacher->user->email);
+        $this->assertSame('novo@exemplo.com', $teacher->user->pending_email);
+
+        $code = null;
+        Notification::assertSentOnDemand(EmailChangeCode::class, function (EmailChangeCode $notification) use (&$code) {
+            $code = $notification->code;
+
+            return true;
+        });
 
         Livewire::test(MyProfile::class)
-            ->set('email', $other->user->email)
-            ->call('save')
-            ->assertHasErrors(['email']);
+            ->set('emailCode', $code)
+            ->call('confirmEmailChange')
+            ->assertHasNoErrors()
+            ->assertSet('changingEmail', false);
+
+        $this->assertSame('novo@exemplo.com', $teacher->user->fresh()->email);
+        $this->assertNull($teacher->user->fresh()->pending_email);
+    }
+
+    public function test_email_change_rejects_an_address_already_in_use(): void
+    {
+        Notification::fake();
+
+        $teacher = Teacher::factory()->create();
+        $other = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MyProfile::class)
+            ->call('openEmailChange')
+            ->set('newEmail', $other->user->email)
+            ->call('requestEmailChange')
+            ->assertHasErrors(['newEmail']);
+
+        $this->assertNull($teacher->user->fresh()->pending_email);
+        Notification::assertNothingSent();
+    }
+
+    public function test_email_change_can_be_cancelled(): void
+    {
+        Notification::fake();
+
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($teacher->user);
+
+        Livewire::test(MyProfile::class)
+            ->call('openEmailChange')
+            ->set('newEmail', 'pendente@exemplo.com')
+            ->call('requestEmailChange')
+            ->call('cancelEmailChange')
+            ->assertHasNoErrors();
+
+        $this->assertNull($teacher->user->fresh()->pending_email);
+        $this->assertSame($teacher->user->email, $teacher->user->fresh()->email);
     }
 
     public function test_password_is_optional_and_hashed(): void
@@ -151,10 +205,9 @@ class MyProfileTest extends TestCase
 
         Livewire::test(MyProfile::class)
             ->set('name', '')
-            ->set('email', 'nao-e-email')
             ->set('phone', 'abc')
             ->call('save')
-            ->assertHasErrors(['name', 'email', 'phone']);
+            ->assertHasErrors(['name', 'phone']);
     }
 
     public function test_cpf_is_formatted_on_prefill(): void
@@ -178,7 +231,6 @@ class MyProfileTest extends TestCase
 
         Livewire::test(MyProfile::class)
             ->set('name', 'Admin Silva')
-            ->set('email', $admin->email)
             ->call('save')
             ->assertHasNoErrors();
 
@@ -208,7 +260,6 @@ class MyProfileTest extends TestCase
 
         Livewire::test(MyProfile::class)
             ->set('name', 'Ana Silva')
-            ->set('email', $teacher->user->email)
             ->set('additionalEmail', 'ana.extra@exemplo.com')
             ->set('birthday', '25/12/1990')
             ->set('cpf', '123.456.789-00')

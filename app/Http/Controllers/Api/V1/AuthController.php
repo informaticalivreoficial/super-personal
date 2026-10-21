@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends ApiController
 {
@@ -71,7 +72,14 @@ class AuthController extends ApiController
 
     public function logout(): JsonResponse
     {
-        auth()->user()->currentAccessToken()->delete();
+        // `currentAccessToken()` pode ser um `TransientToken` (sessão web em
+        // testes/primeira parte), que não tem `delete()` — só o token pessoal
+        // do Sanctum é revogável.
+        $token = auth()->user()->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
 
         return response()->json(['message' => 'Sessão encerrada.']);
     }

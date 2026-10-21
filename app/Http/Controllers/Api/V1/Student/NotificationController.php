@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Student;
 
 use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Resources\NotificationResource;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 
 class NotificationController extends ApiController
@@ -14,7 +15,7 @@ class NotificationController extends ApiController
 
         $notifications = auth()->user()
             ->notifications()
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(Pagination::perPage($request));
 
         return NotificationResource::collection($notifications);
     }

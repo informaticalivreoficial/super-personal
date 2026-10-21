@@ -181,14 +181,84 @@ class PagBankWebhookTest extends TestCase
         $this->postJson(route('webhooks.pagbank'), [])->assertOk();
     }
 
-    public function test_get_notification_is_accepted(): void
+    public function test_get_notification_is_rejected(): void
     {
+        $this->get(route('webhooks.pagbank').'?id=ORDE_PIX')->assertStatus(405);
+    }
+
+    public function test_valid_authenticity_token_is_accepted(): void
+    {
+        config(['services.pagbank.webhook_token' => 'token-da-conta']);
+
         $payment = $this->pendingCharge();
         $this->fakeOrder($payment, 'PAID');
 
-        $this->get(route('webhooks.pagbank').'?id=ORDE_PIX')->assertOk();
+        $body = json_encode(['id' => 'ORDE_PIX']);
+        $signature = hash('sha256', 'token-da-conta-'.$body);
+
+        $this->call('POST', route('webhooks.pagbank'), [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_AUTHENTICITY_TOKEN' => $signature,
+        ], $body)->assertOk();
 
         $this->assertSame(PaymentStatus::PAID, $payment->refresh()->status);
+    }
+
+    public function test_invalid_authenticity_token_is_rejected_without_processing(): void
+    {
+        config(['services.pagbank.webhook_token' => 'token-da-conta']);
+
+        $payment = $this->pendingCharge();
+
+        $this->mock(PagBankService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('fetchOrder')->never();
+        });
+
+        $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'], [
+            'X-Authenticity-Token' => str_repeat('a', 64),
+        ])->assertUnauthorized();
+
+        $this->assertSame(PaymentStatus::PENDING, $payment->refresh()->status);
+    }
+
+    public function test_missing_authenticity_token_is_rejected_when_configured(): void
+    {
+        config(['services.pagbank.webhook_token' => 'token-da-conta']);
+
+        $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])
+            ->assertUnauthorized();
+    }
+
+    public function test_notification_from_ip_outside_allowlist_is_rejected(): void
+    {
+        config(['services.pagbank.webhook_ips' => '203.0.113.10']);
+
+        $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])
+            ->assertForbidden();
+    }
+
+    public function test_same_notification_is_processed_only_once(): void
+    {
+        $payment = $this->pendingCharge();
+
+        $this->mock(PagBankService::class, function (MockInterface $mock) use ($payment) {
+            $mock->shouldReceive('fetchOrder')->once()->andReturn([
+                'id' => 'ORDE_PIX',
+                'reference_id' => $payment->externalReference(),
+                'status' => 'approved',
+                'gateway_status' => 'PAID',
+                'charge_id' => 'CHAR_1',
+                'code' => '',
+                'message' => '',
+                'qr_code_text' => '',
+                'qr_code_image' => '',
+            ]);
+        });
+
+        $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])->assertOk();
+        $this->postJson(route('webhooks.pagbank'), ['id' => 'ORDE_PIX'])
+            ->assertOk()
+            ->assertJson(['duplicated' => true]);
     }
 
     public function test_route_is_exempt_from_csrf(): void

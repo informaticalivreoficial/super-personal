@@ -56,10 +56,10 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
 });
 
 /**
- * Webhook do gateway de pagamentos (assinaturas do SaaS) — público, fora do
- * namespace Web do site. Sempre reconsulta o pedido no gateway.
+ * Webhook do gateway de pagamentos (cobranças online do aluno) — público,
+ * fora do namespace Web do site. Somente POST, com assinatura do gateway.
  */
-Route::match(['get', 'post'], 'webhooks/pagbank', PagBankWebhookController::class)
+Route::post('webhooks/pagbank', PagBankWebhookController::class)
     ->name('webhooks.pagbank');
 
 /*

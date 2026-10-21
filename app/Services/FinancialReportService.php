@@ -287,8 +287,8 @@ class FinancialReportService
         foreach ($this->payments($filters)->cursor() as $payment) {
             yield [
                 $payment->due_date?->format('d/m/Y') ?? '',
-                $payment->student?->name ?? '',
-                (string) $payment->description,
+                $this->csvSafe($payment->student?->name ?? ''),
+                $this->csvSafe((string) $payment->description),
                 $channels[$payment->channel?->value] ?? '',
                 $statuses[$payment->status?->value] ?? '',
                 number_format((float) $payment->amount, 2, ',', ''),
@@ -297,6 +297,17 @@ class FinancialReportService
                 $payment->paid_at?->format('d/m/Y') ?? '',
             ];
         }
+    }
+
+    /**
+     * Neutraliza fórmulas em células de texto (CSV injection).
+     *
+     * Planilhas interpretam `=`, `+`, `-`, `@`, TAB e CR no início da célula
+     * como fórmula. Prefixar com apóstrofo mantém o texto visível e inofensivo.
+     */
+    private function csvSafe(string $value): string
+    {
+        return preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'".$value : $value;
     }
 
     /**

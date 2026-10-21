@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Edição da conta do próprio usuário logado (página "Meu perfil" e o
@@ -30,7 +29,6 @@ class UpdateProfileRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->input('user_id'))],
             // Caminho final do upload de avatar resolvido pelo componente
             // (o arquivo temporário é validado no componente, como na landing).
             'avatar' => ['nullable', 'string', 'max:255'],
@@ -78,9 +76,6 @@ class UpdateProfileRequest extends FormRequest
     {
         return [
             'name.required' => 'O nome é obrigatório.',
-            'email.required' => 'O e-mail é obrigatório.',
-            'email.email' => 'Informe um e-mail válido.',
-            'email.unique' => 'Já existe um usuário com este e-mail.',
             'additional_email.email' => 'Informe um e-mail adicional válido.',
             'birthday.date_format' => 'A data de nascimento deve estar no formato dia/mês/ano (ex.: 25/12/1990).',
             'cpf.required' => 'Informe o CPF (obrigatório para usar o sistema).',

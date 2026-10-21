@@ -40,7 +40,7 @@ class ProfileService
         return DB::transaction(function () use ($user, $data) {
             // Dados pessoais
             $user->name = $data['name'];
-            $user->email = $data['email'];
+            // O e-mail NÃO muda aqui: só pelo fluxo com código (requestEmailChange).
             $user->additional_email = ($data['additional_email'] ?? '') ?: null;
             $user->birthday = ($data['birthday'] ?? '') ?: null;
 

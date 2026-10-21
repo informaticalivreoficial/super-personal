@@ -35,6 +35,18 @@ class StudentNotificationsTest extends TestCase
         return $student->user->notifications()->latest()->first()->id;
     }
 
+    public function test_notification_list_caps_per_page(): void
+    {
+        $student = Student::factory()->create();
+        $this->notifyStudent($student);
+
+        Sanctum::actingAs($student->user);
+
+        $this->getJson('/api/v1/student/notifications?per_page=500')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 100);
+    }
+
     public function test_student_lists_own_notifications(): void
     {
         $student = Student::factory()->create();

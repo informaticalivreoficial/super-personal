@@ -8,6 +8,7 @@ use App\Http\Resources\TrainingExecutionResource;
 use App\Http\Resources\TrainingSessionResource;
 use App\Models\TrainingSession;
 use App\Services\TrainingExecutionService;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 
 class TrainingController extends ApiController
@@ -45,7 +46,7 @@ class TrainingController extends ApiController
             ->when($request->filled('date'), fn ($query, $date) => $query->whereDate('scheduled_date', $date))
             ->with(['sport', 'execution' => fn ($q) => $q->where('student_id', $student->id)])
             ->orderByDesc('scheduled_date')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(Pagination::perPage($request));
 
         return TrainingSessionResource::collection($sessions);
     }

@@ -7,7 +7,7 @@
 
 - PHP 8.3 / Laravel 10 / Laravel Sail
 - MariaDB (host `mariadb`, db `superpersonal`)
-- Sanctum (tokens pessoais de longa duração); papéis em `users.role`
+- Sanctum (tokens pessoais com expiração configurável, padrão 30 dias); papéis em `users.role`
   (`spatie/laravel-permission` **removido** — ver "Perfis")
 - Comandos: `vendor/bin/sail artisan ...`, testes: `vendor/bin/phpunit`
 - PDF: `barryvdh/laravel-dompdf` (ficha do aluno; `config/dompdf.php` não publicado —
@@ -115,6 +115,47 @@ plataforma**, não do treinador:
 - E-mails com `not_regex:/[\r\n]/` e redes/domínio com `url:http,https`.
 
 Coberto por `SettingsSecurityTest` (10) e `HtmlSanitizerTest` (6).
+
+## Hardening de segurança (P1) — 2026-10-20
+
+Complemento do P0 das Configurações, cobrindo uploads, e-mail, webhook,
+paginação, exportação e cabeçalhos:
+
+- **Uploads**: `App\Support\MediaFile::extension()` deriva a extensão do
+  **MIME real** (allowlist jpg/jpeg/png/webp/gif, fallback `jpg`) e é usada por
+  `LandingForm`, `MyProfile` e `StudentService`; nunca o nome enviado pelo
+  cliente. O arquivo só é gravado depois da validação `image|max`.
+- **E-mail de acesso**: `ProfileService::update()` **não** altera mais o e-mail.
+  No painel, `MyProfile` abre um modal que envia um código de 6 dígitos ao
+  endereço novo (`ProfileService::requestEmailChange`), confirma
+  (`confirmEmailChange`) ou cancela (`cancelEmailChange`); o e-mail atual só
+  muda após o código. `UpdateProfileRequest` não tem mais a regra de e-mail.
+- **Webhook PagBank** (`PagBankWebhookController`): apenas `POST`; allowlist
+  opcional `PAGBANK_WEBHOOK_IPS` (403); assinatura
+  `X-Authenticity-Token` = SHA-256 de `{token}-{corpo bruto}` (401);
+  idempotência por hash do corpo em cache de 1h; sem token configurado só
+  aceita fora de produção. O estado continua sendo reconsultado no gateway.
+- **Paginação**: `App\Support\Pagination::perPage()` centraliza o
+  `per_page` (padrão 15, teto 100) nos nove controllers da API que paginam.
+- **CSV**: `FinancialReportService::csvSafe()` prefixa com apóstrofo células
+  iniciadas por `=`, `+`, `-`, `@`, TAB ou CR (CSV injection), aplicado a aluno
+  e descrição.
+- **Sessão/API**: `SESSION_SECURE_COOKIE` assume `true` em produção;
+  `SANCTUM_EXPIRATION` (padrão 43200 min) expira tokens; `AuthController::logout`
+  só revoga `PersonalAccessToken` (tolera `TransientToken`).
+- **Cabeçalhos**: `SecurityHeaders` (web/api) envia `nosniff`,
+  `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`,
+  `Permissions-Policy` e HSTS sob HTTPS.
+- **Dependências**: `composer audit` foi de 10 advisories (4 pacotes) para 4
+  advisories em `laravel/framework` (Laravel 10 EOL; XSS da debug page, path
+  confusion em signed URL e CRLF na regra `email`). Correção definitiva exige
+  upgrade de major, que o usuário fará manualmente.
+
+Coberto por `MyProfileTest` (17, inclui o fluxo com código),
+`PagBankWebhookTest` (15, inclui GET 405, assinatura, IP e idempotência),
+`MediaFileTest` (2), `SecurityHeadersTest` (1), `FinancialReportTest` (14) e
+`StudentNotificationsTest` (9). Suíte **510 testes / 1948 assertions**;
+`vendor/bin/pint --test` limpo.
 
 ## Multi-tenancy (3 camadas)
 
@@ -1068,8 +1109,7 @@ sports ──1:N── training_sessions (restrict)
     indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
     filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
     403) — ver "Auditoria das notificações enviadas".
-  - **Total: 482 testes / 1853 assertions** (86 API + 303 painel + 3 storage
-    + 11 console + 8 notificações + 45 web + 26 services).
+  - **Total: 510 testes / 1948 assertions**.
   - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`
     customizado), `WAITING` só registra o status do gateway, `REFUNDED` de

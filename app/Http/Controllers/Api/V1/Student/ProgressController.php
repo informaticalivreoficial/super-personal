@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Student;
 use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Resources\StudentProgressResource;
 use App\Models\StudentProgress;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 
 class ProgressController extends ApiController
@@ -16,7 +17,7 @@ class ProgressController extends ApiController
         $this->authorize('viewAny', StudentProgress::class);
 
         $progress = $student->progress()
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(Pagination::perPage($request));
 
         return StudentProgressResource::collection($progress);
     }

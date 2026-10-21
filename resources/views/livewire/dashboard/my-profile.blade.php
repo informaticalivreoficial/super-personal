@@ -99,13 +99,29 @@
 
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="profile_email">E-mail</label>
-                                    <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                        id="profile_email" wire:model="email" placeholder="voce@exemplo.com">
-                                    @error('email')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
-                                    <p class="mt-1 text-xs text-gray-500">Usado para entrar no painel.</p>
+                                    <label for="profile_email">E-mail de acesso</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="email" class="form-control bg-gray-50" id="profile_email"
+                                            value="{{ $email }}" readonly>
+                                        <button type="button" class="btn btn-outline btn-sm whitespace-nowrap"
+                                            wire:click="openEmailChange">
+                                            Alterar
+                                        </button>
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        A troca é confirmada por um código enviado ao novo endereço.
+                                    </p>
+                                    @if (auth()->user()->hasPendingEmailChange())
+                                        <div class="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                            <span>Troca pendente para <strong>{{ auth()->user()->pending_email }}</strong>.</span>
+                                            <button type="button" class="font-semibold underline" wire:click="openEmailChange">
+                                                Digitar código
+                                            </button>
+                                            <button type="button" class="font-semibold underline" wire:click="cancelEmailChange">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -422,4 +438,67 @@
             </button>
         </div>
     </form>
+
+    @if ($changingEmail)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4" wire:key="email-change-modal">
+            <div class="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+                <div class="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900">Alterar e-mail de acesso</h3>
+                        <p class="mt-1 text-xs text-gray-500">
+                            O endereço atual continua valendo até a confirmação do código.
+                        </p>
+                    </div>
+                    <button type="button" class="text-gray-400 hover:text-gray-600" wire:click="closeEmailChange" aria-label="Fechar">
+                        <x-icon name="times" class="h-5 w-5" />
+                    </button>
+                </div>
+
+                @if (auth()->user()->hasPendingEmailChange())
+                    <form wire:submit="confirmEmailChange" class="space-y-4">
+                        <div class="rounded-md bg-brand-50 px-3 py-2 text-xs text-brand-800">
+                            Enviamos um código de 6 dígitos para
+                            <strong>{{ auth()->user()->pending_email }}</strong>.
+                        </div>
+                        <div class="form-group">
+                            <label for="profile_email_code">Código de confirmação</label>
+                            <input type="text" inputmode="numeric" maxlength="6"
+                                class="form-control @error('emailCode') is-invalid @enderror"
+                                id="profile_email_code" wire:model="emailCode" placeholder="000000" autocomplete="one-time-code">
+                            @error('emailCode')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <button type="button" class="btn btn-outline btn-sm" wire:click="cancelEmailChange">
+                                Cancelar troca
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="confirmEmailChange">
+                                Confirmar novo e-mail
+                            </button>
+                        </div>
+                    </form>
+                @else
+                    <form wire:submit="requestEmailChange" class="space-y-4">
+                        <div class="form-group">
+                            <label for="profile_new_email">Novo e-mail</label>
+                            <input type="email" class="form-control @error('newEmail') is-invalid @enderror"
+                                id="profile_new_email" wire:model="newEmail" placeholder="novo@exemplo.com" autocomplete="email">
+                            @error('newEmail')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" class="btn btn-outline btn-sm" wire:click="closeEmailChange">
+                                Fechar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="requestEmailChange">
+                                Enviar código
+                            </button>
+                        </div>
+                    </form>
+                @endif
+            </div>
+        </div>
+    @endif
 </div>

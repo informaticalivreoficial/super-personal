@@ -396,6 +396,27 @@ class FinancialReportTest extends TestCase
         $this->assertStringNotContainsString('999', $content);
     }
 
+    public function test_export_neutralizes_spreadsheet_formulas(): void
+    {
+        ['teacher' => $teacher, 'studentA' => $studentA] = $this->arrange();
+        $studentA->update(['name' => '=HYPERLINK("http://malicioso.test")']);
+
+        Payment::factory()->forStudent($studentA)->create([
+            'description' => '+SUM(1,1)',
+            'amount' => 100,
+            'status' => PaymentStatus::PAID,
+            'due_date' => now()->toDateString(),
+            'paid_at' => now(),
+        ]);
+
+        $this->actingAs($teacher->user);
+
+        $content = $this->get(route('reports.financial.export'))->streamedContent();
+
+        $this->assertStringContainsString("'=HYPERLINK", $content);
+        $this->assertStringContainsString("'+SUM(1,1)", $content);
+    }
+
     public function test_export_respects_the_status_filter(): void
     {
         ['teacher' => $teacher, 'studentA' => $studentA] = $this->arrange();

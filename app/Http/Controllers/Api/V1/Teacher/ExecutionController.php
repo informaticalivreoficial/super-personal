@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ApiController;
 use App\Http\Resources\TrainingExecutionResource;
 use App\Models\Student;
 use App\Models\TrainingExecution;
+use App\Support\Pagination;
 use Illuminate\Http\Request;
 
 class ExecutionController extends ApiController
@@ -18,7 +19,7 @@ class ExecutionController extends ApiController
             ->where('student_id', $student->id)
             ->with('session')
             ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(Pagination::perPage($request));
 
         return TrainingExecutionResource::collection($executions);
     }
