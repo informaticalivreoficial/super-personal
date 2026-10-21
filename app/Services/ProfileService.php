@@ -82,6 +82,16 @@ class ProfileService
             if ($teacher !== null) {
                 $teacher->name = $data['name'];
                 $teacher->phone = ($data['phone'] ?? '') ?: null;
+
+                // Preferências dos lembretes automáticos (Meu perfil).
+                if (array_key_exists('reminders_enabled', $data)) {
+                    $teacher->reminders_enabled = (bool) $data['reminders_enabled'];
+                }
+
+                if (array_key_exists('reminder_due_days', $data) && $data['reminder_due_days'] !== null) {
+                    $teacher->reminder_due_days = max(0, min(30, (int) $data['reminder_due_days']));
+                }
+
                 // Contas/chaves de recebimento são geridas na área Financeiro
                 // (`PayoutAccountService`) — não passam por aqui.
                 $teacher->save();

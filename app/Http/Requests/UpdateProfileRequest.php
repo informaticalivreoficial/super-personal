@@ -64,6 +64,9 @@ class UpdateProfileRequest extends FormRequest
             'neighborhood' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'regex:/^[A-Za-z]{2}$/'],
+            // Lembretes automáticos (preferências do treinador)
+            'reminders_enabled' => ['sometimes', 'boolean'],
+            'reminder_due_days' => ['sometimes', 'integer', 'min:0', 'max:30'],
             // Segurança
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
@@ -89,6 +92,9 @@ class UpdateProfileRequest extends FormRequest
             'whatsapp.max' => 'O WhatsApp pode ter no máximo 30 caracteres.',
             'zipcode.max' => 'O CEP pode ter no máximo 9 caracteres.',
             'state.regex' => 'A UF deve ter 2 letras (ex.: SP).',
+            'reminder_due_days.integer' => 'Informe um número de dias válido.',
+            'reminder_due_days.min' => 'A antecedência não pode ser negativa.',
+            'reminder_due_days.max' => 'A antecedência máxima é de 30 dias.',
             'password.min' => 'A senha deve ter no mínimo 8 caracteres.',
             'password.confirmed' => 'A confirmação de senha não confere.',
         ];

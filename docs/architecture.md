@@ -154,7 +154,7 @@ paginação, exportação e cabeçalhos:
 Coberto por `MyProfileTest` (17, inclui o fluxo com código),
 `PagBankWebhookTest` (15, inclui GET 405, assinatura, IP e idempotência),
 `MediaFileTest` (2), `SecurityHeadersTest` (1), `FinancialReportTest` (14) e
-`StudentNotificationsTest` (9). Suíte **525 testes / 1986 assertions**;
+`StudentNotificationsTest` (9). Suíte **555 testes / 2140 assertions**;
 `vendor/bin/pint --test` limpo.
 
 ## Integridade de pagamentos (P2) — 2026-10-20
@@ -329,6 +329,15 @@ sports ──1:N── training_sessions (restrict)
   - A API `GET /teacher/dashboard` devolve `teacherDashboard()` inteiro: as
     chaves novas (`money` e as listas) são **aditivas** — o contrato antigo
     (`students`/`plans`/`trainings`/`payments`) não mudou.
+  - **Primeiros passos (onboarding guiado)** — `OnboardingService::progress()`
+    monta 5 etapas com link e estado: primeiro aluno, primeiro plano, primeiro
+    plano **publicado**, forma de recebimento (`teacher_payout_accounts`) e
+    página pública ativa (`public_profile` + slug). O card no topo do painel
+    mostra `n de 5` + barra de progresso e some sozinho quando tudo é concluído;
+    "Dispensar" grava `teachers.onboarding_dismissed_at` (migration
+    `2026_10_20_100008`). As consultas são explícitas por `teacher_id`
+    (`withoutGlobalScope`) — o progresso de um treinador nunca conta dados do
+    outro. Coberto por `OnboardingTest` (6).
 - **Agenda semanal do treinador** — `/admin/agenda` (`agenda.index`,
   `role:teacher`; o admin não tem tenant/agenda própria) → componente full-page
   `App\Livewire\Dashboard\Agenda` + `AgendaService::week()`:
@@ -407,6 +416,27 @@ sports ──1:N── training_sessions (restrict)
       select do aluno destino — o `Student::find` sob o escopo do tenant barra
       outro treinador com erro de validação — e nome opcional, default "«nome» (cópia)")
       e o ícone de duplicar em cada semana (`wire:confirm`).
+  - **Modelos de treino (templates)** — `/admin/modelos` (`templates.index`,
+    `role:teacher`, item "Modelos" no sidebar):
+    - `training_plan_templates` guarda a periodização em **JSON** (`structure`)
+      como **offsets de dias a partir do início** — semanas e sessões mantêm a
+      progressão relativa e podem ser reancoradas em qualquer data;
+    - `TrainingPlanService::saveAsTemplate($plan, ['name','description'])`
+      serializa plano → semanas → sessões → composição, deriva contagens,
+      modalidade (quando todas as sessões são da mesma) e guarda `teacher_id` do
+      **plano**; o plano original não muda;
+    - `applyTemplate($template, $student, $startDate, $name)` cria o plano como
+      **rascunho** (não dispara `TrainingPlanPublished`, logo não notifica o
+      aluno), recalcula datas de semanas/sessões a partir da data escolhida e
+      reinicia status (`week` → `pending`, sessão → `planned`); histórico de
+      execução não é copiado;
+    - no `PlanShow`: botão **"Salvar como modelo"** (form inline com nome
+      pré-preenchido "«plano» (modelo)" e descrição); em `/admin/modelos`:
+      cards com modalidade/contagens, busca, **"Aplicar em aluno"** (modal com
+      aluno, data de início e nome) e exclusão (`wire:confirm`); o aluno de
+      outro treinador não é encontrado (`Student::find` sob o escopo) e a
+      exclusão cross-tenant responde 404;
+    - testes: `TrainingPlanTemplateTest` (10).
 - **Pagamentos** — `app/Livewire/Dashboard/Payments/`:
   - `PaymentIndex` (busca, filtro por status, "marcar como pago", exclusão),
     `PaymentForm` (create/edit; aluno fixo na edição).
@@ -736,6 +766,37 @@ sports ──1:N── training_sessions (restrict)
 - **Sidebar**: item "Relatório Financeiro" (ícone `chart-bar`) só para
   `isTeacher()`.
 
+### Relatório de aderência do treinador — 2026-10-20
+
+- **Página**: `GET /admin/relatorios/aderencia` (`reports.adherence`,
+  `role:teacher`) → `App\Livewire\Dashboard\Reports\AdherenceReport`
+  (full-page, `viewAny` de `Student`), exclusiva do treinador.
+- **`AdherenceReportService`** (leitura pura sob o global scope `tenant`):
+  `filters()` (datas invertidas trocadas; aluno/modalidade inválidos
+  ignorados), `periodRange()` (presets do relatório financeiro), `query()` /
+  `sessions()`, `summary()`, `byStudent()`, `bySport()` e `csvRows()`.
+  - **Competência = `scheduled_date`** da sessão e só entram sessões de planos
+    **publicados** (`training_plans.status = active`) — rascunhos/modelos não
+    fazem parte do que o aluno recebeu.
+  - **Aderência** = concluídas ÷ `due`, onde `due` = concluídas + puladas +
+    planejadas com data **no passado**. Planejadas de hoje em diante e
+    canceladas ficam fora do denominador (não penalizam o aluno por treino que
+    ainda pode ser feito).
+  - `planned` no resumo = sessões futuras ainda planejadas; `missed` =
+    planejadas vencidas; distância/duração somam apenas as **concluídas**.
+  - Agregação em PHP sobre as colunas necessárias (portável SQLite/MariaDB) e
+    intervalo com o dia inteiro nas duas pontas.
+- **Tela**: KPIs de aderência (com cor por faixa), sessões, não realizadas e
+  volume concluído; presets de período + datas; filtros aluno/modalidade;
+  ranking por aluno (link para a ficha) e por modalidade; tabela paginada de
+  sessões (15/pág.) com badge de situação e dois estados vazios.
+- **Exportação CSV**: `GET /admin/relatorios/aderencia/exportar`
+  (`reports.adherence.export`) → `AdherenceReportExportController` (fora do
+  Livewire; BOM UTF-8, `;`, uma linha por aluno + linha de total), nome
+  `relatorio-aderencia-{de}-a-{ate}.csv`.
+- **Sidebar**: item "Relatório de Aderência" (ícone `academic-cap`) só para
+  `isTeacher()`. Coberto por `AdherenceReportTest` (8).
+
 ### Auditoria das notificações enviadas — 2026-10-17
 
 - **Página**: `GET /admin/notificacoes` (`notifications.index`, `role:teacher`)
@@ -853,8 +914,8 @@ sports ──1:N── training_sessions (restrict)
 - **Comando** `notifications:send-reminders` (`App\Console\Commands\SendReminders`),
   agendado no `App\Console\Kernel` via `dailyAt('07:00')->withoutOverlapping()`
   (rodando sem auth → global scope `tenant` não filtra: comando de plataforma):
-  - `PaymentDueSoon` — pagamento **pendente** com vencimento em até 3 dias
-    (mensagem "vence hoje" / "vence em X dia(s)");
+  - `PaymentDueSoon` — pagamento **pendente** dentro da antecedência configurada
+    pelo treinador (0–30 dias; padrão 3) — mensagem "vence hoje" / "vence em X dia(s)";
   - `PaymentOverdue` — vencido (pendente/overdue) com `due_date` no passado;
   - `TrainingToday` — sessão **planejada** para hoje;
   - `TrainingMissed` — sessão de ontem ainda planejada;
@@ -865,7 +926,14 @@ sports ──1:N── training_sessions (restrict)
     mais de uma vez no dia);
   - entrega pelo canal `database` (`BaseNotification::via()`); push Android
     entra no `via()` no futuro. Leitura do aluno: API existente
-    `GET /api/v1/student/notifications`.
+    `GET /api/v1/student/notifications`;
+  - **preferências por treinador** (`teachers.reminders_enabled` e
+    `teachers.reminder_due_days`, migration `2026_10_20_100009`, editáveis em
+    "Meu perfil" → card **"Lembretes automáticos"**): desligado pula **todos**
+    os avisos do tenant; a antecedência vale só para a cobrança a vencer. O
+    comando busca a janela máxima (30 dias) e aplica o recorte de cada tenant em
+    memória, sem funções de data específicas de driver. Coberto por
+    `ReminderPreferencesTest` (6).
 - **Como o aluno fica sabendo (decidido em 2026-10-16)**: a API **não tem
   websocket** — o app **consulta** (`GET /student/notifications` + o contador de
   não lidas do `GET /student/dashboard`) e, com o app aberto, o **polling**
@@ -1147,7 +1215,7 @@ sports ──1:N── training_sessions (restrict)
     indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
     filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
     403) — ver "Auditoria das notificações enviadas".
-  - **Total: 525 testes / 1986 assertions**.
+  - **Total: 555 testes / 2140 assertions**.
   - **Webhooks**: `PagBankWebhookTest` (15) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`
     customizado), `WAITING` só registra o status do gateway, `REFUNDED` de

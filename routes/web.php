@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Reports\AdherenceReportExportController;
 use App\Http\Controllers\Reports\FinancialReportExportController;
 use App\Http\Controllers\Students\StudentProfilePdfController;
 use App\Http\Controllers\Web\SiteController;
@@ -23,6 +24,7 @@ use App\Livewire\Dashboard\Plans\PlanIndex;
 use App\Livewire\Dashboard\Plans\PlanShow;
 use App\Livewire\Dashboard\Professores\ProfessorForm;
 use App\Livewire\Dashboard\Professores\ProfessorIndex;
+use App\Livewire\Dashboard\Reports\AdherenceReport;
 use App\Livewire\Dashboard\Reports\FinancialReport;
 use App\Livewire\Dashboard\Settings;
 use App\Livewire\Dashboard\Sports\SportForm;
@@ -32,6 +34,7 @@ use App\Livewire\Dashboard\Students\StudentIndex;
 use App\Livewire\Dashboard\Students\StudentMessages;
 use App\Livewire\Dashboard\Students\StudentShow;
 use App\Livewire\Dashboard\Students\StudentTracking;
+use App\Livewire\Dashboard\TrainingTemplates\TemplateIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
@@ -94,6 +97,13 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     Route::get('planos/{plan}/editar', PlanForm::class)->name('plans.edit');
     Route::get('planos/{plan}', PlanShow::class)->name('plans.show');
 
+    // *********************** Modelos de treino (templates) ************************
+    // Biblioteca de periodizações do treinador: salvar um plano como modelo e
+    // aplicar a outro aluno, recalculando as datas a partir do início escolhido.
+    Route::get('modelos', TemplateIndex::class)
+        ->name('templates.index')
+        ->middleware('role:teacher');
+
     // *********************** Pagamentos *******************************************/
     Route::get('pagamentos', PaymentIndex::class)->name('payments.index');
     Route::get('pagamentos/cadastrar', PaymentForm::class)->name('payments.create');
@@ -110,6 +120,17 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     // Download em CSV com os mesmos filtros (fora do Livewire).
     Route::get('relatorios/financeiro/exportar', FinancialReportExportController::class)
         ->name('reports.financial.export')
+        ->middleware('role:teacher');
+
+    // *********************** Relatório de aderência *******************************/
+    // O que foi prescrito × executado (competência = data agendada), por aluno
+    // e modalidade. Só sessões de planos publicados.
+    Route::get('relatorios/aderencia', AdherenceReport::class)
+        ->name('reports.adherence')
+        ->middleware('role:teacher');
+
+    Route::get('relatorios/aderencia/exportar', AdherenceReportExportController::class)
+        ->name('reports.adherence.export')
         ->middleware('role:teacher');
 
     // *********************** Notificações enviadas ********************************/

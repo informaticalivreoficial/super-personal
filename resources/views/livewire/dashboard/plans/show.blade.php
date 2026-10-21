@@ -24,6 +24,9 @@
             <button type="button" class="btn btn-secondary btn-sm" wire:click="openDuplicateForm">
                 <x-icon name="clipboard" class="h-4 w-4" /> Duplicar plano
             </button>
+            <button type="button" class="btn btn-secondary btn-sm" wire:click="openTemplateForm">
+                <x-icon name="squares-2x2" class="h-4 w-4" /> Salvar como modelo
+            </button>
         </div>
     </div>
 
@@ -137,6 +140,65 @@
                         </span>
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm" wire:click="closeDuplicateForm">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    @endif
+
+    {{-- Salvar como modelo (template reaplicável) --}}
+    @if ($showTemplateForm)
+        <div class="card mt-6 border-brand-300">
+            <div class="card-header bg-brand-50">
+                <h3 class="card-title flex items-center gap-2 text-brand-900">
+                    <x-icon name="squares-2x2" class="h-5 w-5" />
+                    Salvar como modelo
+                </h3>
+            </div>
+            <form wire:submit="saveAsTemplate">
+                <div class="card-body">
+                    <p class="mb-4 text-sm text-gray-500">
+                        Guarda as semanas, as sessões e a composição em uma biblioteca reaplicável.
+                        As datas viram referências relativas ao início do plano — ao aplicar em outro
+                        aluno, tudo é recalculado a partir da data escolhida.
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="template_name">Nome do modelo *</label>
+                                <input type="text" class="form-control @error('templateName') is-invalid @enderror"
+                                    id="template_name" wire:model="templateName" maxlength="255">
+                                @error('templateName')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="template_description">Descrição</label>
+                                <input type="text" class="form-control @error('templateDescription') is-invalid @enderror"
+                                    id="template_description" wire:model="templateDescription" maxlength="1000"
+                                    placeholder="Ex.: Base de 8 semanas para iniciantes">
+                                @error('templateDescription')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary btn-sm" wire:loading.attr="disabled"
+                        wire:target="saveAsTemplate">
+                        <span wire:loading.remove wire:target="saveAsTemplate" class="flex items-center gap-2">
+                            <x-icon name="check" class="h-4 w-4" /> Salvar modelo
+                        </span>
+                        <span wire:loading wire:target="saveAsTemplate">
+                            <x-icon name="arrow-path" class="h-4 w-4 animate-spin" />
+                        </span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeTemplateForm">Cancelar</button>
+                    <a wire:navigate href="{{ route('templates.index') }}" class="btn btn-info btn-sm">
+                        <x-icon name="squares-2x2" class="h-4 w-4" /> Ver modelos
+                    </a>
                 </div>
             </form>
         </div>

@@ -87,6 +87,11 @@ class MyProfile extends Component
 
     public string $state = '';
 
+    // Lembretes automáticos (só treinador; preferências do tenant)
+    public bool $remindersEnabled = true;
+
+    public int $reminderDueDays = 3;
+
     // Senha (opcional)
     public string $password = '';
 
@@ -144,6 +149,11 @@ class MyProfile extends Component
             'password_confirmation' => $this->password_confirmation,
             'avatar' => $avatarPath,
         ];
+
+        if ($user->teacher !== null) {
+            $data['reminders_enabled'] = $this->remindersEnabled;
+            $data['reminder_due_days'] = $this->reminderDueDays;
+        }
 
         // 3) Valida os textos; se falhar, remove o upload recém-guardado.
         try {
@@ -334,6 +344,8 @@ class MyProfile extends Component
         $this->neighborhood = $user->neighborhood ?? '';
         $this->city = $user->city ?? '';
         $this->state = $user->state ?? '';
+        $this->remindersEnabled = $user->teacher?->reminders_enabled ?? true;
+        $this->reminderDueDays = (int) ($user->teacher?->reminder_due_days ?? 3);
         $this->password = '';
         $this->password_confirmation = '';
     }

@@ -62,6 +62,9 @@ class Teacher extends Model
         'public_profile' => 'boolean',
         'display_address' => 'boolean',
         'views' => 'integer',
+        'onboarding_dismissed_at' => 'datetime',
+        'reminders_enabled' => 'boolean',
+        'reminder_due_days' => 'integer',
     ];
 
     protected static function booted(): void

@@ -256,6 +256,50 @@
             </div>
         </div>
 
+        @if ($isTeacher)
+            {{-- Lembretes automáticos (preferências do tenant) --}}
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-base font-semibold text-gray-900">Lembretes automáticos</h2>
+                </div>
+
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label class="flex items-start gap-3 rounded-lg bg-brand-50 p-4">
+                                <input type="checkbox" wire:model.live="remindersEnabled"
+                                    class="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                                <span>
+                                    <span class="text-sm font-semibold text-gray-900">Enviar lembretes aos alunos</span>
+                                    <span class="block text-xs text-gray-500">
+                                        Avisos de cobrança a vencer, cobrança em atraso, treino do dia e treino não realizado
+                                        (aparecem no app do aluno).
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="profile_reminder_due_days">Avisar a cobrança com antecedência de</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" min="0" max="30"
+                                        class="form-control @error('reminder_due_days') is-invalid @enderror"
+                                        id="profile_reminder_due_days" wire:model="reminderDueDays"
+                                        @disabled(! $remindersEnabled)>
+                                    <span class="text-sm text-gray-600">dias</span>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Entre 0 e 30 dias (0 avisa só no dia do vencimento).</p>
+                                @error('reminder_due_days')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{-- Endereço (auto-preenchido via ViaCEP) --}}
         <div class="card">
             <div class="card-header">

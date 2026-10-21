@@ -157,6 +157,63 @@
             </div>
         </div>
     @else
+    {{-- Primeiros passos: checklist para o treinador novo (some ao concluir/dispensar) --}}
+    @if ($onboarding && $onboarding['visible'])
+        <div class="mb-6 overflow-hidden rounded-xl border border-brand-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-start justify-between gap-3 border-b border-brand-100 bg-brand-50/60 px-5 py-4">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+                        <x-icon name="bolt" class="h-5 w-5" />
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-gray-900">Primeiros passos</h2>
+                        <p class="mt-0.5 text-sm text-gray-600">
+                            {{ $onboarding['done'] }} de {{ $onboarding['total'] }} concluídos —
+                            falta pouco para o seu painel estar a todo vapor.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="text-xs font-medium text-gray-500 hover:text-gray-700"
+                    wire:click="dismissOnboarding">
+                    Dispensar
+                </button>
+            </div>
+
+            <div class="px-5 pt-4">
+                <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div class="h-full rounded-full bg-brand-500 transition-all" style="width: {{ $onboarding['percent'] }}%"></div>
+                </div>
+            </div>
+
+            <div class="grid gap-2 p-5 md:grid-cols-2 xl:grid-cols-3">
+                @foreach ($onboarding['steps'] as $step)
+                    <a href="{{ $step['url'] }}" wire:navigate
+                        @class([
+                            'flex items-start gap-3 rounded-lg border p-3 transition',
+                            $step['done']
+                                ? 'border-emerald-100 bg-emerald-50/50'
+                                : 'border-gray-200 bg-white hover:border-brand-300 hover:bg-brand-50/40',
+                        ])>
+                        <span
+                            @class([
+                                'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+                                $step['done'] ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400',
+                            ])>
+                            <x-icon name="{{ $step['done'] ? 'check' : 'arrow-right' }}" class="h-3.5 w-3.5" />
+                        </span>
+                        <span class="min-w-0">
+                            <span @class([
+                                'block text-sm font-medium',
+                                $step['done'] ? 'text-emerald-900 line-through' : 'text-gray-900',
+                            ])>{{ $step['label'] }}</span>
+                            <span class="mt-0.5 block text-xs text-gray-500">{{ $step['description'] }}</span>
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- KPIs do dia --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <a href="{{ route('students.index') }}" wire:navigate class="card group p-5 transition hover:shadow-md">

@@ -64,6 +64,13 @@ class PlanShow extends Component
 
     public $duplicateName = '';
 
+    // Estado do formulário "Salvar como modelo"
+    public bool $showTemplateForm = false;
+
+    public $templateName = '';
+
+    public $templateDescription = '';
+
     public $session = [
         'sport_id' => '',
         'title' => '',
@@ -94,6 +101,55 @@ class PlanShow extends Component
         Gate::authorize('view', $plan);
 
         $this->plan = $plan;
+    }
+
+    // *********************** Modelo de treino *************************************/
+
+    /**
+     * Abre o formulário que transforma este plano em modelo reaplicável.
+     */
+    public function openTemplateForm(): void
+    {
+        Gate::authorize('view', $this->plan);
+
+        $this->resetTemplateForm();
+        $this->templateName = $this->plan->name.' (modelo)';
+        $this->templateDescription = $this->plan->description ?? '';
+        $this->showTemplateForm = true;
+    }
+
+    public function closeTemplateForm(): void
+    {
+        $this->resetTemplateForm();
+    }
+
+    /**
+     * Salva a periodização (semanas → sessões → composição) como modelo.
+     * O plano original não muda; o modelo passa a aparecer em "Modelos".
+     */
+    public function saveAsTemplate(TrainingPlanService $service): void
+    {
+        Gate::authorize('view', $this->plan);
+
+        $validated = $this->validate([
+            'templateName' => ['required', 'string', 'max:255'],
+            'templateDescription' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'templateName.required' => 'Dê um nome ao modelo.',
+            'templateName.max' => 'O nome do modelo não pode ter mais de 255 caracteres.',
+            'templateDescription.max' => 'A descrição não pode ter mais de 1000 caracteres.',
+        ], [
+            'templateName' => 'nome do modelo',
+            'templateDescription' => 'descrição',
+        ]);
+
+        $service->saveAsTemplate($this->plan, [
+            'name' => $validated['templateName'],
+            'description' => $validated['templateDescription'] ?? null,
+        ]);
+
+        $this->resetTemplateForm();
+        $this->toastSuccess('Modelo salvo. Aplique em outro aluno em “Modelos de treino”.');
     }
 
     // *********************** Semanas **********************************************/
@@ -425,6 +481,12 @@ class PlanShow extends Component
     }
 
     #[Title('Detalhe do Plano')]
+    private function resetTemplateForm(): void
+    {
+        $this->reset('showTemplateForm', 'templateName', 'templateDescription');
+        $this->resetValidation(['templateName', 'templateDescription']);
+    }
+
     public function render()
     {
         $this->plan->load(['student', 'weeks.sessions']);

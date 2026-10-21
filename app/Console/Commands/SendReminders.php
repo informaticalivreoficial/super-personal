@@ -6,6 +6,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\TrainingSessionStatus;
 use App\Models\Payment;
 use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\TrainingSession;
 use App\Models\User;
 use App\Notifications\PaymentDueSoon;
@@ -23,6 +24,10 @@ use Illuminate\Notifications\DatabaseNotification;
  *
  * Deduplicação: uma notificação por evento — consulta em
  * `notifications.type` + `data->payment_id`/`data->session_id`.
+ *
+ * Preferências do treinador: `teachers.reminders_enabled` desliga os avisos do
+ * tenant e `teachers.reminder_due_days` (0–30) define com quantos dias de
+ * antecedência a cobrança "a vencer" é avisada.
  */
 class SendReminders extends Command
 {
@@ -42,18 +47,32 @@ class SendReminders extends Command
         return self::SUCCESS;
     }
 
-    /** Pagamento pendente vencendo nos próximos 3 dias (inclusive hoje). */
+    /**
+     * Pagamento pendente vencendo dentro da janela do treinador (inclusive hoje).
+     * Busca o teto de 30 dias e aplica a preferência de cada tenant em memória
+     * (evita funções de data específicas de driver na query).
+     */
     private function dueSoonPayments(): int
     {
         $sent = 0;
 
         $payments = Payment::query()
             ->where('status', PaymentStatus::PENDING)
-            ->whereBetween('due_date', [now()->toDateString(), now()->addDays(3)->toDateString()])
-            ->with('student.user')
+            ->whereBetween('due_date', [now()->toDateString(), now()->addDays(30)->toDateString()])
+            ->with(['student.user', 'teacher'])
             ->get();
 
         foreach ($payments as $payment) {
+            if (! $this->remindersEnabled($payment->teacher)) {
+                continue;
+            }
+
+            $window = $payment->due_date->startOfDay();
+
+            if ($window->gt(now()->startOfDay()->addDays($this->reminderDueDays($payment->teacher)))) {
+                continue;
+            }
+
             if ($this->alreadySent(PaymentDueSoon::class, 'payment_id', $payment->id)) {
                 continue;
             }
@@ -90,10 +109,14 @@ class SendReminders extends Command
         $payments = Payment::query()
             ->whereIn('status', [PaymentStatus::PENDING, PaymentStatus::OVERDUE])
             ->where('due_date', '<', now()->toDateString())
-            ->with('student.user')
+            ->with(['student.user', 'teacher'])
             ->get();
 
         foreach ($payments as $payment) {
+            if (! $this->remindersEnabled($payment->teacher)) {
+                continue;
+            }
+
             if ($this->alreadySent(PaymentOverdue::class, 'payment_id', $payment->id)) {
                 continue;
             }
@@ -127,10 +150,14 @@ class SendReminders extends Command
         $sessions = TrainingSession::query()
             ->where('status', TrainingSessionStatus::PLANNED)
             ->whereDate('scheduled_date', now()->toDateString())
-            ->with('student.user')
+            ->with(['student.user', 'teacher'])
             ->get();
 
         foreach ($sessions as $session) {
+            if (! $this->remindersEnabled($session->teacher)) {
+                continue;
+            }
+
             if ($this->alreadySent(TrainingToday::class, 'session_id', $session->id)) {
                 continue;
             }
@@ -163,10 +190,14 @@ class SendReminders extends Command
         $sessions = TrainingSession::query()
             ->where('status', TrainingSessionStatus::PLANNED)
             ->whereDate('scheduled_date', now()->subDay()->toDateString())
-            ->with('student.user')
+            ->with(['student.user', 'teacher'])
             ->get();
 
         foreach ($sessions as $session) {
+            if (! $this->remindersEnabled($session->teacher)) {
+                continue;
+            }
+
             if ($this->alreadySent(TrainingMissed::class, 'session_id', $session->id)) {
                 continue;
             }
@@ -201,6 +232,18 @@ class SendReminders extends Command
         }
 
         return $user;
+    }
+
+    /** O treinador quer receber lembretes? (sem perfil/legado = ligado). */
+    private function remindersEnabled(?Teacher $teacher): bool
+    {
+        return $teacher === null || (bool) $teacher->reminders_enabled;
+    }
+
+    /** Antecedência da cobrança a vencer (0–30 dias; padrão 3). */
+    private function reminderDueDays(?Teacher $teacher): int
+    {
+        return max(0, min(30, (int) ($teacher?->reminder_due_days ?? 3)));
     }
 
     /** Já enviou este evento? (evita reenviar a cada execução do cron). */
