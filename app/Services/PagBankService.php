@@ -225,12 +225,21 @@ class PagBankService
         $qrCode = $charge['qr_code'] ?? ($order['qr_codes'][0] ?? []);
         $rawStatus = (string) ($charge['status'] ?? $order['status'] ?? '');
 
+        $amountCents = (int) ($charge['amount']['value'] ?? $order['amount']['value'] ?? 0);
+
+        if ($amountCents === 0 && is_array($order['items'] ?? null)) {
+            foreach ($order['items'] as $item) {
+                $amountCents += (int) ($item['unit_amount'] ?? 0) * (int) ($item['quantity'] ?? 1);
+            }
+        }
+
         return [
             'id' => (string) ($order['id'] ?? ''),
             'reference_id' => (string) ($order['reference_id'] ?? ''),
             'status' => self::CHARGE_STATUS[$rawStatus] ?? 'pending',
             'gateway_status' => $rawStatus,
             'charge_id' => (string) ($charge['id'] ?? ''),
+            'amount_cents' => $amountCents,
             'code' => (string) ($charge['payment_response']['code'] ?? ''),
             'message' => (string) ($charge['payment_response']['message'] ?? ''),
             'qr_code_text' => (string) ($qrCode['text'] ?? ''),

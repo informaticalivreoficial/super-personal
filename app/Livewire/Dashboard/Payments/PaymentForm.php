@@ -151,6 +151,8 @@ class PaymentForm extends Component
             'isEdit' => (bool) $this->paymentId,
             'payment' => $payment,
             'paymentStudent' => $payment?->student,
+            'locked' => $payment?->payout_id !== null,
+            'onlinePaid' => $payment?->isOnline() && $payment->status === PaymentStatus::PAID,
         ]);
     }
 }

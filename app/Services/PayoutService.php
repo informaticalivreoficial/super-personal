@@ -108,7 +108,13 @@ class PayoutService
         return DB::transaction(function () use ($teacher, $accountId, $notes) {
             $account = $this->resolveAccount($teacher, $accountId);
 
-            $payments = $this->awaitingPayments($teacher);
+            // Trava as cobranças elegíveis: dois cliques/duas abas não podem
+            // criar dois saques com as mesmas cobranças.
+            $payments = $this->openPayments($teacher)
+                ->where('paid_at', '<=', $this->releaseThreshold())
+                ->orderBy('paid_at')
+                ->lockForUpdate()
+                ->get();
 
             if ($payments->isEmpty()) {
                 throw ValidationException::withMessages([
@@ -116,7 +122,12 @@ class PayoutService
                 ]);
             }
 
-            if ($this->pendingRequest($teacher) !== null) {
+            $pending = $this->payouts($teacher)
+                ->where('status', PayoutStatus::REQUESTED)
+                ->lockForUpdate()
+                ->first();
+
+            if ($pending !== null) {
                 throw ValidationException::withMessages([
                     'payout' => 'Você já tem um saque aguardando confirmação. Aguarde a conclusão antes de solicitar outro.',
                 ]);
@@ -149,6 +160,12 @@ class PayoutService
     /** Confirma a transferência do repasse (admin). */
     public function markPaid(Payout $payout, ?string $notes = null): Payout
     {
+        if ($payout->status !== PayoutStatus::REQUESTED) {
+            throw ValidationException::withMessages([
+                'payout' => 'Somente um saque aguardando confirmação pode ser marcado como pago.',
+            ]);
+        }
+
         $payout->status = PayoutStatus::PAID;
         $payout->paid_at = now();
 
@@ -164,6 +181,12 @@ class PayoutService
     /** Cancela o repasse e devolve as cobranças ao saldo. */
     public function cancel(Payout $payout): Payout
     {
+        if ($payout->status !== PayoutStatus::REQUESTED) {
+            throw ValidationException::withMessages([
+                'payout' => 'Somente um saque aguardando confirmação pode ser cancelado.',
+            ]);
+        }
+
         $payout->status = PayoutStatus::CANCELLED;
         $payout->paid_at = null;
         $payout->save();

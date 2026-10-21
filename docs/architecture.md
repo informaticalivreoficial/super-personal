@@ -154,8 +154,46 @@ paginação, exportação e cabeçalhos:
 Coberto por `MyProfileTest` (17, inclui o fluxo com código),
 `PagBankWebhookTest` (15, inclui GET 405, assinatura, IP e idempotência),
 `MediaFileTest` (2), `SecurityHeadersTest` (1), `FinancialReportTest` (14) e
-`StudentNotificationsTest` (9). Suíte **510 testes / 1948 assertions**;
+`StudentNotificationsTest` (9). Suíte **525 testes / 1986 assertions**;
 `vendor/bin/pint --test` limpo.
+
+## Integridade de pagamentos (P2) — 2026-10-20
+
+O painel não pode "fabricar" dinheiro nem alterar histórico financeiro:
+
+- **Cobrança online só é paga pelo gateway.** `PaymentService::store`/`update`
+  recusam `channel=online` com `status=paid`; cobrança online paga aceita
+  apenas correções de texto (descrição/observações), nunca valor, canal,
+  situação ou `paid_at`. `PaymentIndex::markAsPaid` responde com toast de erro
+  para online e o botão "marcar pago" não aparece nessas linhas.
+- **Cobrança paga não muda de canal** (manual ↔ online) e o valor de qualquer
+  cobrança paga é imutável. Manual paga pode voltar para pendente — nesse caso
+  `paid_at` é limpo.
+- **Cobrança em repasse é histórico**: `update`/`delete` recusam quando
+  `payout_id` existe; `delete` também recusa qualquer cobrança paga. O form
+  esconde "Salvar" e explica o motivo; o índice converte a exceção em toast.
+- **Webhook**: `syncFromOrder`/`findByExternalReference` só enxergam cobranças
+  online (referência forjada para manual é ignorada); o valor do pedido
+  (`amount_cents`, de `charges[]`, do topo ou somando `items[]`) precisa bater
+  com `payments.amount`; aprovação repetida **não recalcula** taxa/líquido com
+  um `fee_percent` novo; `CANCELED` de Pix pendente cancela só o pedido atual.
+  A marca de idempotência do controller só é gravada após sucesso — falha
+  transitória pode ser reenviada (500), duplicata responde 200.
+- **Repasses**: `request` trava ( `lockForUpdate` ) as cobranças e o saque
+  pendente — dois cliques/abas não geram dois saques; `markPaid`/`cancel` só
+  aceitam `requested` (não pagam/cancelam duas vezes). Estorno de cobrança que
+  estava em saque **pendente** recalcula o saque ou o cancela se ele ficar
+  vazio; em saque já pago o vínculo é mantido (não há clawback automático).
+- **UI**: em cobrança online paga, valor/canal/situação/`paid_at` ficam
+  desabilitados com aviso; em cobrança já repassada o formulário fica somente
+  leitura e o botão de salvar some.
+
+Coberto por `tests/Feature/Panel/PaymentIntegrityTest` (15) — criação online
+paga bloqueada, manual paga ainda permitida, valor/canal/status de paga,
+online paga com observação, exclusão de paga, cobrança em repasse, índice não
+marca online, referência manual ignorada, valor divergente, aprovação
+repetida sem recalcular taxa, estorno em saque pendente (recalcula/cancela),
+canal de paga bloqueado, saque pago não é pago/cancelado de novo.
 
 ## Multi-tenancy (3 camadas)
 
@@ -1092,7 +1130,7 @@ sports ──1:N── training_sessions (restrict)
     considera só as liberadas, extrato com entradas/saídas/totais/filtros de
     tipo e período/paginação/"Limpar filtros"/presets, transição disponível →
     repassado após o saque e as 3 abas do `PayoutIndex` (`#[On('show-tab')]`).
-  - `FinancialReportTest` (13) — relatório financeiro: página só com as
+  - `FinancialReportTest` (14) — relatório financeiro: página só com as
     cobranças do tenant (com controles), KPIs do período (recebido/líquido/
     taxas, a receber, em atraso, manual × online × pagas, cancelada fora),
     pendente com vencimento passado conta como atraso, quebras por mês e por
@@ -1109,14 +1147,15 @@ sports ──1:N── training_sessions (restrict)
     indicadores e resumo por tipo, paginação, "Limpar filtros", estado vazio,
     filtros inválidos ignorados e acesso (guest → login, teacher 200, admin
     403) — ver "Auditoria das notificações enviadas".
-  - **Total: 510 testes / 1948 assertions**.
-  - **Webhooks**: `PagBankWebhookTest` (10) — pedido pago marca a cobrança do
+  - **Total: 525 testes / 1986 assertions**.
+  - **Webhooks**: `PagBankWebhookTest` (15) — pedido pago marca a cobrança do
     aluno como paga com a taxa da plataforma (5% e `config.fee_percent`
     customizado), `WAITING` só registra o status do gateway, `REFUNDED` de
     cobrança paga reverte (cancelled + taxa/líquido nulos) e de pendente é
     ignorado, notificação só com `reference_id` usa o `gateway_order_id`
     guardado, referência desconhecida é ignorada, sem identificação não
-    consulta o gateway (200), GET aceito e rota isenta de CSRF.
+    consulta o gateway (200), GET agora responde 405, assinatura/IP validados
+    e corpo repetido é idempotente.
 - Testes legados Pest/Volt do starter foram **removidos** (Pest não instalado,
   páginas Volt inexistentes).
 - **Pint: 100% limpo** (`vendor/bin/pint --test` passa) — o legado do starter

@@ -147,7 +147,7 @@
                                 </td>
                                 <td>
                                     <div class="flex items-center justify-center gap-1">
-                                        @if ($payment->status->value !== 'paid')
+                                        @if ($payment->status->value !== 'paid' && $payment->isOnline() === false)
                                             <button type="button" class="btn btn-xs btn-success"
                                                 wire:click="markAsPaid({{ $payment->id }})" title="Marcar como pago">
                                                 <x-icon name="check" class="h-4 w-4" />

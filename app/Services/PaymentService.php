@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Enums\PaymentChannel;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\PayoutStatus;
 use App\Models\Config;
 use App\Models\Payment;
 use App\Models\Student;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -52,6 +54,7 @@ class PaymentService
         }
 
         $this->applyPaidAt($payment, $data);
+        $this->assertOnlinePaymentIsNotManuallyPaid($payment);
         $this->syncPlatformFee($payment);
         $payment->save();
 
@@ -63,8 +66,73 @@ class PaymentService
      */
     public function update(Payment $payment, array $data): Payment
     {
+        // Cobrança já vinculada a um repasse é histórico financeiro: não muda.
+        if ($payment->payout_id !== null) {
+            throw ValidationException::withMessages([
+                'payment' => 'Esta cobrança já faz parte de um repasse e não pode mais ser alterada.',
+            ]);
+        }
+
+        $originalAmount = (float) $payment->amount;
+        $originalChannel = $payment->channel;
+        $originalStatus = $payment->status;
+        $originalPaidAt = $payment->paid_at;
+
+        // Cobrança paga (manual também) não troca de canal: evita transformar
+        // um recebimento manual em uma cobrança online (e vice-versa).
+        if ($originalStatus === PaymentStatus::PAID
+            && array_key_exists('channel', $data)
+            && $data['channel'] !== $originalChannel?->value
+        ) {
+            throw ValidationException::withMessages([
+                'channel' => 'O canal de uma cobrança paga não pode ser alterado.',
+            ]);
+        }
+
         $payment->fill($data);
         $this->applyPaidAt($payment, $data);
+
+        if (! ($originalChannel === PaymentChannel::ONLINE && $originalStatus === PaymentStatus::PAID)) {
+            $this->assertOnlinePaymentIsNotManuallyPaid($payment);
+        }
+
+        // Cobrança online paga só é alterada pelo gateway (webhook). O painel
+        // pode corrigir textos, mas nunca valor/canal/status de um pagamento
+        // confirmado — senão a taxa, o líquido e o repasse ficariam irreais.
+        if ($originalChannel === PaymentChannel::ONLINE && $originalStatus === PaymentStatus::PAID) {
+            $payment->amount = $originalAmount;
+            $payment->channel = $originalChannel;
+            $payment->status = $originalStatus;
+            $payment->paid_at = $originalPaidAt;
+
+            if (array_key_exists('amount', $data) && abs((float) $data['amount'] - $originalAmount) > 0.001) {
+                throw ValidationException::withMessages([
+                    'amount' => 'O valor de uma cobrança online paga não pode ser alterado.',
+                ]);
+            }
+
+            if (array_key_exists('channel', $data) && $data['channel'] !== $originalChannel?->value) {
+                throw ValidationException::withMessages([
+                    'channel' => 'O canal de uma cobrança online paga não pode ser alterado.',
+                ]);
+            }
+
+            if (array_key_exists('status', $data) && $data['status'] !== $originalStatus?->value) {
+                throw ValidationException::withMessages([
+                    'status' => 'Cobranças online são confirmadas automaticamente pelo gateway.',
+                ]);
+            }
+        }
+
+        if ($originalStatus === PaymentStatus::PAID
+            && array_key_exists('amount', $data)
+            && abs((float) $data['amount'] - $originalAmount) > 0.001
+        ) {
+            throw ValidationException::withMessages([
+                'amount' => 'O valor de uma cobrança paga não pode ser alterado.',
+            ]);
+        }
+
         $this->syncPlatformFee($payment);
         $payment->save();
 
@@ -73,6 +141,12 @@ class PaymentService
 
     public function delete(Payment $payment): void
     {
+        if ($payment->status === PaymentStatus::PAID || $payment->payout_id !== null) {
+            throw ValidationException::withMessages([
+                'payment' => 'Cobranças pagas ou já incluídas em repasse não podem ser excluídas. Cancele o repasse antes, se necessário.',
+            ]);
+        }
+
         $payment->delete();
     }
 
@@ -171,14 +245,45 @@ class PaymentService
             return null;
         }
 
+        // Só cobranças online passam pelo gateway — uma referência forjada para
+        // uma cobrança manual não pode marcar nada como pago.
+        if (! $payment->isOnline()) {
+            return null;
+        }
+
         $gatewayStatus = (string) ($order['gateway_status'] ?? '');
 
         if ($gatewayStatus !== '') {
             $payment->gateway_status = $gatewayStatus;
         }
 
-        // Pagamento confirmado → marca paga e aplica a taxa da plataforma.
+        // Pagamento confirmado.
         if (($order['status'] ?? '') === 'approved') {
+            // Webhook repetido: preserva taxa/líquido já calculados (a taxa da
+            // plataforma pode ter mudado depois do pagamento).
+            if ($payment->status === PaymentStatus::PAID) {
+                $payment->gateway_status = 'PAID';
+                $payment->save();
+
+                return $payment;
+            }
+
+            $expectedCents = (int) round(((float) $payment->amount) * 100);
+            $orderCents = (int) ($order['amount_cents'] ?? 0);
+
+            if ($orderCents > 0 && $orderCents !== $expectedCents) {
+                Log::error('Gateway: valor do pedido divergente da cobrança', [
+                    'payment_id' => $payment->id,
+                    'order_id' => (string) ($order['id'] ?? ''),
+                    'expected_cents' => $expectedCents,
+                    'received_cents' => $orderCents,
+                ]);
+
+                $payment->save();
+
+                return $payment;
+            }
+
             $this->markPaid($payment, (string) ($order['id'] ?? ''));
 
             return $payment;
@@ -189,6 +294,18 @@ class PaymentService
             && $payment->status === PaymentStatus::PAID
         ) {
             $this->reverse($payment);
+
+            return $payment;
+        }
+
+        // Cancelamento de um Pix ainda pendente (só do pedido atual).
+        if ($gatewayStatus === 'CANCELED'
+            && $payment->status !== PaymentStatus::PAID
+            && in_array($payment->status, [PaymentStatus::PENDING, PaymentStatus::OVERDUE], true)
+            && ($payment->gateway_order_id === '' || $payment->gateway_order_id === (string) ($order['id'] ?? ''))
+        ) {
+            $payment->status = PaymentStatus::CANCELLED;
+            $payment->save();
 
             return $payment;
         }
@@ -256,6 +373,9 @@ class PaymentService
     private function syncPlatformFee(Payment $payment): void
     {
         if (! $payment->isOnline()) {
+            $payment->fee_amount = null;
+            $payment->net_amount = null;
+
             return;
         }
 
@@ -287,11 +407,44 @@ class PaymentService
         $payment->paid_at = null;
         $payment->fee_amount = null;
         $payment->net_amount = null;
+
+        $payout = $payment->payout;
+
         // Só solta do repasse se ele ainda não foi pago (saldo volta a existir).
-        if ($payment->payout?->isPaid() !== true) {
+        if ($payout?->isPaid() !== true) {
             $payment->payout_id = null;
         }
+
         $payment->save();
+
+        // Estorno de cobrança que estava em um saque ainda pendente: recalcula
+        // o saque (ou cancela se não sobrou nenhuma cobrança nele).
+        if ($payout !== null && $payout->status === PayoutStatus::REQUESTED && $payment->payout_id === null) {
+            $remaining = Payment::withoutGlobalScope('tenant')
+                ->where('payout_id', $payout->id)
+                ->get();
+
+            if ($remaining->isEmpty()) {
+                $payout->status = PayoutStatus::CANCELLED;
+                $payout->paid_at = null;
+                $payout->save();
+            } else {
+                $payout->amount = round((float) $remaining->sum('amount'), 2);
+                $payout->fee_total = round((float) $remaining->sum('fee_amount'), 2);
+                $payout->net_amount = round((float) $remaining->sum('net_amount'), 2);
+                $payout->save();
+            }
+        }
+    }
+
+    /** Cobrança online só nasce/fica paga pela confirmação do gateway. */
+    private function assertOnlinePaymentIsNotManuallyPaid(Payment $payment): void
+    {
+        if ($payment->isOnline() && $payment->status === PaymentStatus::PAID) {
+            throw ValidationException::withMessages([
+                'status' => 'Cobranças online são confirmadas automaticamente pelo gateway. Use o canal manual para registrar um pagamento já recebido.',
+            ]);
+        }
     }
 
     private function ensureGateway(): void
@@ -340,7 +493,9 @@ class PaymentService
             return null;
         }
 
-        return Payment::withoutGlobalScope('tenant')->find((int) substr($externalReference, 4));
+        return Payment::withoutGlobalScope('tenant')
+            ->where('channel', PaymentChannel::ONLINE)
+            ->find((int) substr($externalReference, 4));
     }
 
     private function applyPaidAt(Payment $payment, array $data): void
@@ -349,7 +504,11 @@ class PaymentService
 
         if ($status === PaymentStatus::PAID) {
             $payment->paid_at = $payment->paid_at ?? now();
-        } else {
+
+            return;
+        }
+
+        if (array_key_exists('status', $data)) {
             $payment->paid_at = null;
         }
     }

@@ -70,7 +70,8 @@
                             <label for="amount">Valor (R$) *</label>
                             <input type="number" step="0.01" min="0.01"
                                 class="form-control @error('amount') is-invalid @enderror"
-                                id="amount" wire:model="amount" placeholder="Ex.: 350.00">
+                                id="amount" wire:model="amount" placeholder="Ex.: 350.00"
+                                @disabled($onlinePaid || $locked)>
                             @error('amount')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -92,7 +93,7 @@
                         <div class="form-group">
                             <label for="status">Status</label>
                             <select class="form-control @error('status') is-invalid @enderror"
-                                id="status" wire:model="status">
+                                id="status" wire:model="status" @disabled($onlinePaid || $locked)>
                                 @foreach ($statuses as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
@@ -107,7 +108,7 @@
                         <div class="form-group">
                             <label for="channel">Canal de cobrança *</label>
                             <select class="form-control @error('channel') is-invalid @enderror"
-                                id="channel" wire:model.live="channel">
+                                id="channel" wire:model.live="channel" @disabled($onlinePaid || $locked)>
                                 @foreach ($channels as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
@@ -138,7 +139,7 @@
                         <div class="form-group">
                             <label for="paid_at">Data do pagamento</label>
                             <input type="date" class="form-control @error('paid_at') is-invalid @enderror"
-                                id="paid_at" wire:model="paid_at">
+                                id="paid_at" wire:model="paid_at" @disabled($onlinePaid || $locked)>
                             <small class="text-muted">Preenchido automaticamente ao marcar como pago.</small>
                             @error('paid_at')
                                 <span class="invalid-feedback">{{ $message }}</span>
@@ -171,6 +172,27 @@
                         </div>
                     @endif
 
+                    @if ($locked)
+                        <div class="col-md-12">
+                            <div class="alert alert-warning">
+                                <x-icon name="exclamation-triangle" class="h-5 w-5" />
+                                <span>
+                                    Esta cobrança já faz parte de um repasse e não pode mais ser alterada.
+                                </span>
+                            </div>
+                        </div>
+                    @elseif ($onlinePaid)
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <x-icon name="information-circle" class="h-5 w-5" />
+                                <span>
+                                    Cobrança online paga: valor, canal e situação são controlados pelo gateway.
+                                    Você pode corrigir a descrição e as observações.
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+
                     @if ($isEdit && $payment?->isOnline() && $payment?->fee_amount !== null)
                         <div class="col-md-12">
                             <div class="form-group">
@@ -188,6 +210,7 @@
             </div>
 
             <div class="card-footer flex flex-wrap gap-2">
+                @if (! $locked)
                 <button type="submit" class="btn btn-primary" wire:loading.attr="disabled" wire:target="save">
                     <span wire:loading.remove wire:target="save" class="flex items-center gap-2">
                         <x-icon name="check" class="h-4 w-4" />
@@ -198,6 +221,7 @@
                         Salvando...
                     </span>
                 </button>
+                @endif
                 <button type="button" class="btn btn-secondary" wire:click="cancel">
                     <x-icon name="x-mark" class="h-4 w-4" />
                     Cancelar

@@ -47,14 +47,23 @@ class PagBankWebhookController extends Controller
             return response()->json(['received' => true]);
         }
 
-        // Idempotência: o mesmo corpo não é processado duas vezes.
+        // Idempotência: o mesmo corpo não é processado duas vezes. A marca só
+        // é gravada após o sucesso — uma falha transitória pode ser reenviada.
         $eventKey = 'pagbank:webhook:'.hash('sha256', $request->getContent());
 
-        if (! Cache::add($eventKey, true, now()->addHour())) {
+        if (Cache::has($eventKey)) {
             return response()->json(['received' => true, 'duplicated' => true]);
         }
 
-        $payments->syncFromOrder($orderId, $reference);
+        try {
+            $payments->syncFromOrder($orderId, $reference);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'Falha ao processar a notificação.'], 500);
+        }
+
+        Cache::put($eventKey, true, now()->addHour());
 
         // Sempre 200: o gateway não precisa reenviar (estado é reconsultado).
         return response()->json(['received' => true]);

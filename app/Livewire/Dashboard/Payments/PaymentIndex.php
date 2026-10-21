@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Services\PaymentService;
 use App\Traits\WithToastr;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -61,8 +62,13 @@ class PaymentIndex extends Component
 
         if ($payment) {
             Gate::authorize('delete', $payment);
-            $service->delete($payment);
-            $this->toastSuccess('Pagamento excluído com sucesso.');
+
+            try {
+                $service->delete($payment);
+                $this->toastSuccess('Pagamento excluído com sucesso.');
+            } catch (ValidationException $e) {
+                $this->toastError($e->validator->errors()->first('payment'));
+            }
         }
 
         $this->deleteId = null;
@@ -72,6 +78,12 @@ class PaymentIndex extends Component
     {
         $payment = Payment::find($paymentId) ?? abort(404);
         Gate::authorize('update', $payment);
+
+        if ($payment->isOnline()) {
+            $this->toastError('Cobranças online são confirmadas automaticamente pelo gateway.');
+
+            return;
+        }
 
         $service->update($payment, ['status' => PaymentStatus::PAID->value]);
         $this->toastSuccess('Pagamento marcado como pago.');
