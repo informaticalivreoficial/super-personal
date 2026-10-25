@@ -1,0 +1,30 @@
+# ------------------------------------------------------------------------------
+# Pin do nixpkgs (PHP 8.3.36)
+# ------------------------------------------------------------------------------
+# O nixpacks 1.41 embutido no Coolify 4.4.7 pina um nixpkgs de dez/2024, que instala
+# PHP 8.3.15 — vulnerável a CVE-2026-109618 / CVE-2026-109619 (RCE não autenticado,
+# corrigido no PHP 8.3.36). Este commit do nixpkgs (2026-10) traz o 8.3.36.
+# Revisar quando o nixpacks do Coolify for atualizado.
+[phases.setup]
+nixpkgsArchive = "d782438fa9d27ba0dfb54bdcd4e6eb342fef2132"
+
+# Lista explícita: o nixpacks pediria nodejs_18 e npm-9_x, que não existem mais neste
+# nixpkgs. O front-end (public/build) é versionado no repositório, então não há build
+# de assets (npm) no deploy.
+nixPkgs = [
+    "(php83.withExtensions (pe: pe.enabled ++ []))",
+    "nginx",
+    "libmysqlclient",
+    "php83Packages.composer",
+    # node é necessário em runtime: o start_command do nixpacks usa prestart.mjs
+    "nodejs_22",
+]
+
+[phases.install]
+cmds = [
+    "mkdir -p /var/log/nginx && mkdir -p /var/cache/nginx",
+    "composer install --ignore-platform-reqs",
+]
+
+[phases.build]
+cmds = ["echo 'assets (public/build) versionados no repositorio'"]
