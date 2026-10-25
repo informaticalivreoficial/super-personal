@@ -49,14 +49,14 @@
     @endif
 
     <!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-HQ3MRW6582"></script>
-	<script>
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-54RWVZ03Y0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
 
-	gtag('config', 'G-HQ3MRW6582');
-	</script>
+        gtag('config', 'G-54RWVZ03Y0');
+    </script>
 
 	@livewireScripts
 </body>
