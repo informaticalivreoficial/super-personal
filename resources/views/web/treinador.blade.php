@@ -222,7 +222,7 @@
         <section class="border-t border-brand-400/30 bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900">
             <div class="mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 lg:py-20">
                 <h2 class="font-display text-4xl font-bold uppercase leading-none tracking-wide sm:text-5xl">
-                    Comece a treinar com {{ $teacher->name }}
+                    Comece a treinar com {{ $teacher->landing_title }}
                 </h2>
                 <p class="mx-auto mt-4 max-w-xl text-brand-100">
                     Fale direto pelo WhatsApp ou acesse sua conta de aluno para ver seus treinos.
