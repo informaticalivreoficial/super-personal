@@ -237,7 +237,7 @@
                         </a>
                     @endif
 
-                    <a href="#"
+                    <a href="#" 
                         class="inline-flex w-full items-center justify-center gap-2 border border-white/30 px-7 py-3.5 font-display text-sm font-semibold uppercase tracking-wide text-white transition hover:border-brand-400 hover:text-brand-400 sm:w-auto">
                         <x-icon name="academic-cap" class="h-5 w-5" />
                         Sou aluno — ver meus treinos
