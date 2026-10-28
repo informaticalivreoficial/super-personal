@@ -303,6 +303,28 @@
                         <x-icon name="users" class="h-5 w-5 shrink-0" />
                         <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Treinadores</span>
                     </a>
+                    <a href="{{ route('contact.messages.index') }}" wire:navigate
+                        @class([
+                            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                            Route::is('contact.messages.*')
+                                ? 'bg-brand-400/15 text-brand-400'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                        ])>
+                        <x-icon name="lifebuoy" class="h-5 w-5 shrink-0" />
+                        <span class="truncate" :class="$store.nav.mini ? 'lg:hidden' : ''">Atendimentos</span>
+                        @php
+                            // Avisos de atendimento ainda não lidos (cópia do admin logado).
+                            $contactUnread = auth()->user()
+                                ->unreadNotifications()
+                                ->where('type', \App\Notifications\ContactMessageReceived::class)
+                                ->count();
+                        @endphp
+                        @if ($contactUnread > 0)
+                            <span class="ml-auto rounded-full bg-brand-400 px-2 py-0.5 text-[10px] font-bold text-brand-950">
+                                {{ $contactUnread }}
+                            </span>
+                        @endif
+                    </a>
                     <a href="{{ route('payouts.admin') }}" wire:navigate
                         @class([
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',

@@ -1663,6 +1663,34 @@ sports ──1:N── training_sessions (restrict)
 - **Loop de crescimento**: rodapé da landing traz
   "Quero minha página assim → criar conta de treinador" (`/auth/register`).
 
+## Página de atendimento (site institucional)
+
+Formulário público de contato em `/atendimento` (2026-10-28), server-rendered
+(SEO) no mesmo padrão visual da home e das páginas legais.
+
+- **`ContactController`** (`GET /atendimento` = `web.contact`,
+  `POST /atendimento` = `web.contact.store`, `throttle:5,10`): a view
+  `web/{template}/contact.blade.php` mostra os canais cadastrados em
+  Configurações (e-mail, WhatsApp com DDI 55, Telegram e telefone — só os
+  preenchidos), horário e FAQs. O POST valida por
+  `StoreContactMessageRequest` (consentimento obrigatório) e **honeypot**
+  `website` (preenchido = robô; devolve a mesma confirmação sem enviar).
+- **`ContactService`** (caminho único de escrita) — cada canal isolado em
+  `try/catch` + `report()`, então o visitante sempre recebe confirmação:
+  1. e-mail (`ContactMessageMail`) para `MAIL_CONTACT_TO` → `config.email` das
+     Configurações → `MAIL_FROM_ADDRESS`, com `replyTo` de quem escreveu;
+  2. notificação **database** `ContactMessageReceived` para todos os
+     usuários `role=admin`;
+  3. **Telegram** (`TelegramService`, opcional: sem `TELEGRAM_BOT_TOKEN` e
+     `TELEGRAM_CHAT_ID` o canal é desligado).
+- **Painel**: `/admin/plataforma/atendimentos` (`role:admin`) lista as
+  notificações de atendimento **de cada admin** (cópia individual), com
+  marcação de leitura e link para responder por e-mail; badge de não lidas no
+  item "Atendimentos" do sidebar.
+- **Testes**: `ContactPageTest` (16) cobre render, envio nos três canais,
+  prioridade do destinatário, falhas isoladas, validação, honeypot, throttle,
+  isolamento (treinador 403) e leitura no painel.
+
 ## Fora do escopo atual
 
 - ~~Product pass do blog~~ **concluído por completo** (2026-10-09): além das

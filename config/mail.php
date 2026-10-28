@@ -46,6 +46,20 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN'),
         ],
 
+        'mailtrap' => [
+            'transport' => 'smtp',
+            // Host SMTP do Mailtrap. Fica em variável própria para não
+            // conflitar com MAILTRAP_HOST, usado pela API HTTP.
+            'host' => env('MAILTRAP_SMTP_HOST') ?: 'live.smtp.mailtrap.io',
+            'port' => (int) env('MAILTRAP_PORT', 587),
+            'encryption' => env('MAILTRAP_ENCRYPTION') ?: 'tls',
+            'username' => env('MAILTRAP_USERNAME') ?: 'api',
+            // A senha SMTP do Mailtrap é um API token da conta.
+            'password' => env('MAILTRAP_PASSWORD') ?: env('MAILTRAP_API_KEY'),
+            'timeout' => (int) env('MAIL_TIMEOUT', 10),
+            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],
@@ -111,6 +125,19 @@ return [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Destinatário das mensagens do site
+    |--------------------------------------------------------------------------
+    |
+    | Quando definido, formulários públicos enviam para este endereço. Se
+    | ficar vazio, o componente usa o e-mail cadastrado nas configurações do
+    | site e, por último, o próprio remetente (MAIL_FROM_ADDRESS).
+    |
+    */
+
+    'contact_to' => env('MAIL_CONTACT_TO'),
 
     /*
     |--------------------------------------------------------------------------

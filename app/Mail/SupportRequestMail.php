@@ -26,13 +26,17 @@ class SupportRequestMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $user = auth()->user();
+
         return new Envelope(
             subject: '🆘 Nova solicitação de suporte',
-            from: new Address(env('MAIL_FROM_ADDRESS'), config('app.name')), // Remetente
-            to: [new Address(config('app.desenvolvedor_email'), config('app.desenvolvedor_nome'))], // Destinatário
-            replyTo: [
-                new Address(env('MAIL_FROM_ADDRESS'), config('app.name')),
-            ],
+            // Remetente sempre no domínio verificado (Mailtrap recusa
+            // endereços fora dele). As respostas vão para quem pediu suporte.
+            from: new Address(config('mail.from.address'), config('mail.from.name')),
+            to: [new Address(config('app.desenvolvedor_email'), config('app.desenvolvedor'))],
+            replyTo: $user
+                ? [new Address($user->email, $user->name)]
+                : [new Address(config('mail.from.address'), config('mail.from.name'))],
         );
     }
 
@@ -41,12 +45,14 @@ class SupportRequestMail extends Mailable
      */
     public function content(): Content
     {
+        $user = auth()->user();
+
         return new Content(
             markdown: 'emails.support',
             with: [
                 'Cliente' => config('app.name'),
-                'nome' => auth()->user()->name,
-                'email' => env('MAIL_FROM_ADDRESS'),
+                'nome' => $user->name ?? '-',
+                'email' => $user->email ?? config('mail.from.address'),
                 'mensagem' => $this->messageText,
             ]
         );

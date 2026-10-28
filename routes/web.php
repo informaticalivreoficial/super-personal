@@ -3,6 +3,7 @@
 use App\Http\Controllers\Reports\AdherenceReportExportController;
 use App\Http\Controllers\Reports\FinancialReportExportController;
 use App\Http\Controllers\Students\StudentProfilePdfController;
+use App\Http\Controllers\Web\ContactController;
 use App\Http\Controllers\Web\SiteController;
 use App\Http\Controllers\Web\TeacherLandingController;
 use App\Http\Controllers\Webhooks\PagBankWebhookController;
@@ -22,6 +23,7 @@ use App\Livewire\Dashboard\Payouts\PayoutIndex;
 use App\Livewire\Dashboard\Plans\PlanForm;
 use App\Livewire\Dashboard\Plans\PlanIndex;
 use App\Livewire\Dashboard\Plans\PlanShow;
+use App\Livewire\Dashboard\Platform\ContactMessageIndex;
 use App\Livewire\Dashboard\Professores\ProfessorForm;
 use App\Livewire\Dashboard\Professores\ProfessorIndex;
 use App\Livewire\Dashboard\Reports\AdherenceReport;
@@ -55,6 +57,16 @@ Route::group(['namespace' => 'Web', 'as' => 'web.'], function () {
      */
     Route::get('termos', [SiteController::class, 'terms'])->name('terms');
     Route::get('privacidade', [SiteController::class, 'privacy'])->name('privacy');
+
+    /**
+     * Página de atendimento (contato): formulário público que avisa a equipe
+     * por e-mail, notificação no banco e Telegram (ContactService).
+     * Throttle por POST evita flood/spam além do honeypot do formulário.
+     */
+    Route::get('atendimento', [ContactController::class, 'show'])->name('contact');
+    Route::post('atendimento', [ContactController::class, 'store'])
+        ->name('contact.store')
+        ->middleware('throttle:5,10');
 
 });
 
@@ -172,6 +184,13 @@ Route::group(['middleware' => ['auth', 'role:teacher,admin', 'profile.complete']
     // treinador vê o próprio saldo em /admin/repasses.
     Route::get('plataforma/repasses', AdminPayoutIndex::class)
         ->name('payouts.admin')
+        ->middleware('role:admin');
+
+    // *********************** Atendimentos (site institucional) *******************
+    // Mensagens recebidas pelo formulário público /atendimento. Exclusivo do
+    // admin: cada um vê a própria cópia da notificação (leitura individual).
+    Route::get('plataforma/atendimentos', ContactMessageIndex::class)
+        ->name('contact.messages.index')
         ->middleware('role:admin');
 
     // *********************** Minha página pública *******************************

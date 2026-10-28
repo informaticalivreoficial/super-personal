@@ -173,6 +173,7 @@
 
             <nav class="flex flex-wrap items-center justify-center gap-6 font-display text-sm font-semibold uppercase tracking-wide">
                 <a href="{{ route('web.home') }}" class="text-white/60 transition hover:text-brand-400">Início</a>
+                <a href="{{ route('web.contact') }}" class="text-white/60 transition hover:text-brand-400">Atendimento</a>
                 <a href="{{ route('web.terms') }}" class="text-white/60 transition hover:text-brand-400">Termos</a>
                 <a href="{{ route('web.privacy') }}" class="text-white/60 transition hover:text-brand-400">Privacidade</a>
                 <a href="{{ route('login') }}" class="text-white/60 transition hover:text-brand-400">Entrar</a>

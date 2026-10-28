@@ -32,6 +32,18 @@ return [
     ],
 
     /*
+    | Telegram — aviso instantâneo das mensagens recebidas pela página de
+    | atendimento. Sem `bot_token`/`chat_id` o canal é simplesmente ignorado
+    | (o formulário continua funcionando por e-mail e notificação no banco).
+    */
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'chat_id' => env('TELEGRAM_CHAT_ID'),
+        'base_url' => env('TELEGRAM_BASE_URL', 'https://api.telegram.org'),
+        'timeout' => (int) env('TELEGRAM_TIMEOUT', 8),
+    ],
+
+    /*
     | Gateway de pagamentos das assinaturas do SaaS (checkout transparente:
     | cartão criptografado no navegador + Pix com QR Code).
     |

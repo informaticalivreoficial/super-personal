@@ -43,15 +43,15 @@
                         <td style="padding:0 30px 30px 30px; color:#333333;">
                             <h2 style="font-size:18px; color:#ac5f03; border-bottom:1px solid #e0e0e0; padding-bottom:8px; margin-top:0;">Mensagem</h2>
                             <p style="font-size:14px; line-height:1.5;">
-                                {{ nl2br(e($messageText)) ?? '-' }}
+                                {!! nl2br(e($messageText)) !!}
                             </p>
                         </td>                   
                     <tr>
                         <td style="background-color:#f9fafb; padding:15px 30px; text-align:center; font-size:11px; color:#888;">                                                       
                             {{ config('app.name') }} © {{ date('Y') }}<br>
                             Desenvolvido por 
-                            <a href="mailto:{{ env('DESENVOLVEDOR_EMAIL') }}" style="color:#ac5f03; text-decoration:none;">
-                                {{ env('DESENVOLVEDOR') }}
+                            <a href="mailto:{{ config('app.desenvolvedor_email') }}" style="color:#ac5f03; text-decoration:none;">
+                                {{ config('app.desenvolvedor') }}
                             </a>
                         </td>
                     </tr>

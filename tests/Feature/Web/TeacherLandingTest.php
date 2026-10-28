@@ -270,8 +270,8 @@ class TeacherLandingTest extends TestCase
             ->assertOk()
             // Grande título do hero + <title> de SEO
             ->assertSee('Fit Club Triathlon')
-            // Nome do treinador continua no CTA final
-            ->assertSee('Comece a treinar com '.$teacher->name);
+            // CTA final repete a marca escolhida pelo treinador (landing_title)
+            ->assertSee('Comece a treinar com Fit Club Triathlon');
     }
 
     public function test_landing_falls_back_to_name_without_landing_title(): void
